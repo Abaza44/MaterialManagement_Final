@@ -1,0 +1,68 @@
+﻿@{
+    ViewData["Title"] = "تقرير كشف الحساب";
+}
+
+<h1><i class="bi bi-file-earmark-person"></i> تقرير كشف الحساب</h1>
+<hr />
+
+<div class="row">
+    <!-- Client Statement Form -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5>كشف حساب عميل</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AccountStatement" method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">العميل</label>
+                        <select name="clientId" class="form-select" asp-items="ViewBag.Clients" required>
+                            <option value="">-- اختر عميل --</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">من تاريخ</label>
+                            <input type="date" name="fromDate" class="form-control" required />
+                        </div>
+                         <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">إلى تاريخ</label>
+                            <input type="date" name="toDate" class="form-control" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> عرض تقرير العميل</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supplier Statement Form -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5>كشف حساب مورد</h5>
+            </div>
+            <div class="card-body">
+                 <form asp-action="AccountStatement" method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">المورد</label>
+                        <select name="supplierId" class="form-select" asp-items="ViewBag.Suppliers" required>
+                            <option value="">-- اختر مورد --</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">من تاريخ</label>
+                            <input type="date" name="fromDate" class="form-control" required />
+                        </div>
+                         <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">إلى تاريخ</label>
+                            <input type="date" name="toDate" class="form-control" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> عرض تقرير المورد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

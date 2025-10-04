@@ -1,0 +1,45 @@
+﻿@model MaterialManagement.BLL.ModelVM.Material.MaterialViewModel
+
+@{
+    ViewData["Title"] = "تفاصيل مادة";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+    <h2 class="mb-3">👁 تفاصيل مادة</h2>
+
+    <dl class="row">
+        <dt class="col-sm-3">الكود</dt>
+        <dd class="col-sm-9">@Model.Code</dd>
+
+        <dt class="col-sm-3">الاسم</dt>
+        <dd class="col-sm-9">@Model.Name</dd>
+
+        <dt class="col-sm-3">الوحدة</dt>
+        <dd class="col-sm-9">@Model.Unit</dd>
+
+        <dt class="col-sm-3">الكمية</dt>
+        <dd class="col-sm-9">@Model.Quantity</dd>
+
+        <dt class="col-sm-3">سعر الشراء</dt>
+        <dd class="col-sm-9">@Model.PurchasePrice</dd>
+
+        <dt class="col-sm-3">سعر البيع</dt>
+        <dd class="col-sm-9">@Model.SellingPrice</dd>
+
+        <dt class="col-sm-3">الوصف</dt>
+        <dd class="col-sm-9">@Model.Description</dd>
+
+        <dt class="col-sm-3">الحالة</dt>
+        <dd class="col-sm-9">@(Model.IsActive ? "نشط" : "غير نشط")</dd>
+    </dl>
+
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">✏️ تعديل</a>
+    <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+</div>

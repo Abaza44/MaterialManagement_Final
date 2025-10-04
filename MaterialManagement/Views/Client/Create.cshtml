@@ -1,0 +1,51 @@
+﻿@model MaterialManagement.BLL.ModelVM.Client.ClientCreateModel
+
+@{
+    ViewData["Title"] = "إضافة عميل جديد";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">➕ إضافة عميل جديد</h2>
+
+    <form asp-action="Create" method="post">
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Phone" class="form-label"></label>
+            <input asp-for="Phone" class="form-control" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Address" class="form-label"></label>
+            <input asp-for="Address" class="form-control" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Balance" class="form-label"></label>
+            <input asp-for="Balance" class="form-control" />
+            <span asp-validation-for="Balance" class="text-danger"></span>
+        </div>
+
+        <div class="form-check mb-3">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">نشط</label>
+        </div>
+
+        <button type="submit" class="btn btn-success">💾 حفظ</button>
+        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+    </form>
+</div>

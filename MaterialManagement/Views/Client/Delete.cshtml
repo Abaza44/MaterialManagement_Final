@@ -1,0 +1,29 @@
+﻿@model MaterialManagement.BLL.ModelVM.Client.ClientViewModel
+
+@{
+    ViewData["Title"] = "حذف عميل";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+    <h2 class="mb-3 text-danger">🗑 حذف عميل</h2>
+
+    <h4>هل أنت متأكد أنك تريد حذف العميل: <span class="text-warning">@Model.Name</span> ؟</h4>
+
+    <dl class="row">
+        <dt class="col-sm-3">الهاتف</dt>
+        <dd class="col-sm-9">@Model.Phone</dd>
+    </dl>
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">🗑 حذف</button>
+        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+    </form>
+</div>

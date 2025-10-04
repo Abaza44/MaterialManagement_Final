@@ -1,0 +1,35 @@
+﻿@model MaterialManagement.BLL.ModelVM.Equipment.EquipmentViewModel
+
+@{
+    ViewData["Title"] = "تفاصيل المعدة";
+}
+
+<h1>تفاصيل: @Model.Name</h1>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">بيانات المعدة</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">الكود</dt>
+            <dd class="col-sm-9">@Model.Code</dd>
+
+            <dt class="col-sm-3">الاسم</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">تاريخ الشراء</dt>
+            <dd class="col-sm-9">@Model.PurchaseDate.ToString("D")</dd>
+
+            <dt class="col-sm-3">آخر صيانة</dt>
+            <dd class="col-sm-9">@(Model.LastMaintenanceDate.HasValue? Model.LastMaintenanceDate.Value.ToString("D") : "---")</dd>
+
+            <dt class="col-sm-3">الصيانة القادمة</dt>
+            <dd class="col-sm-9">@(Model.NextMaintenanceDate.HasValue? Model.NextMaintenanceDate.Value.ToString("D") : "---")</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-code="@Model.Code" class="btn btn-warning"><i class="bi bi-pencil"></i> تعديل</a>
+        <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-list-ul"></i> العودة للقائمة</a>
+    </div>
+</div>

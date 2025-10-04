@@ -1,0 +1,36 @@
+﻿@model MaterialManagement.BLL.ModelVM.Supplier.SupplierViewModel
+
+@{
+    ViewData["Title"] = "تفاصيل مورد";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+    <h2 class="mb-3">👁 تفاصيل مورد</h2>
+
+    <dl class="row">
+        <dt class="col-sm-3">الاسم</dt>
+        <dd class="col-sm-9">@Model.Name</dd>
+
+        <dt class="col-sm-3">الهاتف</dt>
+        <dd class="col-sm-9">@Model.Phone</dd>
+
+        <dt class="col-sm-3">العنوان</dt>
+        <dd class="col-sm-9">@Model.Address</dd>
+
+        <dt class="col-sm-3">الرصيد</dt>
+        <dd class="col-sm-9">@Model.Balance</dd>
+
+        <dt class="col-sm-3">الحالة</dt>
+        <dd class="col-sm-9">@(Model.IsActive ? "نشط" : "غير نشط")</dd>
+    </dl>
+
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">✏️ تعديل</a>
+    <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+</div>

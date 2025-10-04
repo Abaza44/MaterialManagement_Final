@@ -1,0 +1,22 @@
+﻿@model MaterialManagement.BLL.ModelVM.Equipment.EquipmentViewModel
+
+@{
+    ViewData["Title"] = "حذف المعدة";
+}
+
+<h1><i class="bi bi-trash text-danger"></i> حذف المعدة</h1>
+
+<div class="alert alert-danger">
+    <h4 class="alert-heading">تأكيد الحذف!</h4>
+    <p>هل أنت متأكد من حذف المعدة "<strong>@Model.Name</strong>" (كود: @Model.Code)؟</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="Code" />
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash-fill"></i> نعم، قم بالحذف</button>
+            <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-x-circle"></i> إلغاء</a>
+        </form>
+    </div>
+</div>

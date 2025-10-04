@@ -1,0 +1,31 @@
+﻿@model MaterialManagement.BLL.ModelVM.Material.MaterialViewModel
+
+@{
+    ViewData["Title"] = "حذف مادة";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+    <h2 class="mb-3 text-danger">🗑 حذف مادة</h2>
+
+    <h4>هل أنت متأكد أنك تريد حذف هذه المادة؟</h4>
+
+    <dl class="row">
+        <dt class="col-sm-3">الاسم</dt>
+        <dd class="col-sm-9">@Model.Name</dd>
+        <dt class="col-sm-3">الكود</dt>
+        <dd class="col-sm-9">@Model.Code</dd>
+    </dl>
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">🗑 حذف</button>
+        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+    </form>
+</div>

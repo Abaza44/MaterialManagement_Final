@@ -1,0 +1,129 @@
+﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Expense.ExpenseViewModel>
+
+@{
+    ViewData["Title"] = "إدارة المصاريف";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1><i class="bi bi-cash-stack"></i> إدارة المصاريف</h1>
+    <div>
+        <a asp-action="Report" class="btn btn-outline-info"><i class="bi bi-file-earmark-bar-graph"></i> عرض التقرير</a>
+        <a asp-action="Create" class="btn btn-success"><i class="bi bi-plus-circle"></i> إضافة مصروف جديد</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Filter and Summary Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <form method="get" asp-action="Index" class="row g-3 align-items-end">
+                    <div class="col-sm-5">
+                        <label for="startDate" class="form-label">من تاريخ</label>
+                        <input type="date" class="form-control" id="startDate" name="startDate" value="@ViewBag.StartDate">
+                    </div>
+                    <div class="col-sm-5">
+                        <label for="endDate" class="form-label">إلى تاريخ</label>
+                        <input type="date" class="form-control" id="endDate" name="endDate" value="@ViewBag.EndDate">
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="submit" class="btn btn-primary w-100">بحث</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-4 text-center text-md-end mt-3 mt-md-0">
+                <div class="card bg-danger text-white">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-0">إجمالي المصاريف للفترة</h6>
+                        <h4 class="mb-0">@(((decimal?)ViewBag.TotalExpenses ?? 0).ToString("C"))</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Expenses Table Card -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="expensesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الوصف</th>
+                        <th>المبلغ</th>
+                        <th>الفئة</th>
+                        <th>مدفوع إلى</th>
+                        <th class="text-center">العمليات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.ExpenseDate.ToString("yyyy-MM-dd")</td>
+                                <td>@item.Description</td>
+                                <td><span class="badge bg-danger">@item.Amount.ToString("C")</span></td>
+                                <td><span class="badge bg-info">@item.Category</span></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.EmployeeName))
+                                    {
+                                        <strong>@item.EmployeeName</strong>
+                                    }
+                                    else
+                                    {
+                                        @item.PaymentTo
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning" title="تعديل">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا المصروف؟');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger" title="حذف">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center p-4">لا توجد مصاريف مسجلة.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#expensesTable').DataTable({
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" },
+                "order": [[0, "desc"]] // ترتيب حسب التاريخ تنازليًا
+            });
+        });
+    </script>
+}

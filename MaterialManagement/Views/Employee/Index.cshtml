@@ -1,0 +1,85 @@
+﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Employee.EmployeeViewModel>
+
+@{
+    ViewData["Title"] = "إدارة الموظفين";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1><i class="bi bi-people-fill"></i> إدارة الموظفين</h1>
+    <a asp-action="Create" class="btn btn-success">
+        <i class="bi bi-person-plus"></i> إضافة موظف جديد
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0">قائمة الموظفين (@Model.Count())</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="employeesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>الاسم</th>
+                        <th>الوظيفة</th>
+                        <th>رقم الهاتف</th>
+                        <th>الراتب</th>
+                        <th>تاريخ التعيين</th>
+                        <th>الحالة</th>
+                        <th class="text-center">العمليات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>@item.Name</strong></td>
+                            <td>@(item.Position ?? "---")</td>
+                            <td>@item.Phone</td>
+                            <td>@item.Salary.ToString("C")</td>
+                            <td>@item.HireDate.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge bg-success">نشط</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">غير نشط</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning" title="تعديل"><i class="bi bi-pencil"></i></a>
+                                    
+                                    @if(item.IsActive)
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('هل أنت متأكد من تعطيل هذا الموظف؟');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger" title="تعطيل"><i class="bi bi-person-x"></i></button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#employeesTable').DataTable({
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" }
+            });
+        });
+    </script>
+}

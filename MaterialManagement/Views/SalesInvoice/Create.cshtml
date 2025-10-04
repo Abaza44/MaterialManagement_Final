@@ -1,0 +1,118 @@
+﻿@model MaterialManagement.BLL.ModelVM.Invoice.SalesInvoiceCreateModel
+@using MaterialManagement.BLL.ModelVM.Invoice;
+
+@{
+    ViewData["Title"] = "إنشاء فاتورة بيع";
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">➕ إنشاء فاتورة بيع</h2>
+
+    <form asp-action="Create" method="post">
+
+        <div class="mb-3">
+    <label asp-for="InvoiceNumber" class="form-label fw-bold"></label>
+    <input asp-for="InvoiceNumber" class="form-control" 
+           placeholder="سيتم إنشاؤه تلقائيًا عند الحفظ" readonly />
+    <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
+</div>
+
+        <div class="mb-3">
+            <label asp-for="InvoiceDate" class="form-label">تاريخ الفاتورة</label>
+            <input asp-for="InvoiceDate" type="date" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ClientId" class="form-label">العميل</label>
+            <select asp-for="ClientId" class="form-control"
+                    asp-items="@(new SelectList(ViewBag.Clients, "Id", "Name"))">
+                <option>اختر العميل</option>
+            </select>
+            <span asp-validation-for="ClientId" class="text-danger"></span>
+        </div>
+
+        <h4>المواد المباعة</h4>
+        <table class="table table-bordered" id="itemsTable">
+            <thead class="table-light">
+                <tr>
+                    <th>المادة</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Items.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            <select asp-for="@Model.Items[i].MaterialId"
+                                    class="form-control"
+                                    asp-items="@(new SelectList(ViewBag.Materials, "Id", "Name"))">
+                                <option>اختر مادة</option>
+                            </select>
+                            <span asp-validation-for="@Model.Items[i].MaterialId" class="text-danger"></span>
+                        </td>
+                        <td>
+                            <input asp-for="@Model.Items[i].Quantity" class="form-control" />
+                            <span asp-validation-for="@Model.Items[i].Quantity" class="text-danger"></span>
+                        </td>
+                        <td>
+                            <input asp-for="@Model.Items[i].UnitPrice" class="form-control" />
+                            <span asp-validation-for="@Model.Items[i].UnitPrice" class="text-danger"></span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button type="button" class="btn btn-primary btn-sm mb-3" id="addRow">➕ إضافة مادة</button>
+
+        <div class="mb-3">
+            <label asp-for="PaidAmount" class="form-label">المبلغ المدفوع</label>
+            <input asp-for="PaidAmount" class="form-control" />
+            <span asp-validation-for="PaidAmount" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Notes" class="form-label"></label>
+            <textarea asp-for="Notes" class="form-control"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success">💾 حفظ الفاتورة</button>
+        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById("addRow").addEventListener("click", function () {
+            var tableBody = document.querySelector("#itemsTable tbody");
+            var rowCount = tableBody.rows.length;
+
+            var newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                <td>
+                    <select name="Items[${rowCount}].MaterialId" class="form-control">
+                        <option>اختر مادة</option>
+                        @foreach (var material in ViewBag.Materials)
+                        {
+                                <option value="@material.Id">@material.Name</option>
+                        }
+                    </select>
+                </td>
+                <td><input name="Items[${rowCount}].Quantity" class="form-control" /></td>
+                <td><input name="Items[${rowCount}].UnitPrice" class="form-control" /></td>
+            `;
+            tableBody.appendChild(newRow);
+        });
+    </script>
+}

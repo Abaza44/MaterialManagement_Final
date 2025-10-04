@@ -1,0 +1,47 @@
+﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Material.MaterialViewModel>
+
+@{
+    ViewData["Title"] = "⚠️ المواد منخفضة المخزون";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+    <h2 class="mb-3 text-warning">⚠️ المواد منخفضة المخزون</h2>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-warning">
+            <tr>
+                <th>الكود</th>
+                <th>الاسم</th>
+                <th>الكمية</th>
+                <th>حالة المخزون</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Code</td>
+                        <td>@item.Name</td>
+                        <td>@item.Quantity</td>
+                        <td>@item.StockStatus</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="4" class="text-center">🎉 لا توجد مواد منخفضة المخزون الآن</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

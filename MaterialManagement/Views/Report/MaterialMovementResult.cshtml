@@ -1,0 +1,49 @@
+﻿@model List<MaterialManagement.BLL.ModelVM.Reports.MaterialMovementViewModel>
+
+@{
+    ViewData["Title"] = "نتيجة تقرير حركة الصنف";
+}
+
+<h3>حركة الصنف: <strong>@ViewBag.MaterialName</strong></h3>
+<p>
+    الفترة من: <strong>@(((DateTime)ViewBag.FromDate).ToString("D"))</strong> 
+    إلى: <strong>@(((DateTime)ViewBag.ToDate).ToString("D"))</strong>
+</p>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>التاريخ</th>
+                <th>نوع الحركة</th>
+                <th>رقم الفاتورة</th>
+                <th class="text-success">وارد (+)</th>
+                <th class="text-danger">صادر (-)</th>
+                <th>الرصيد</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var item in Model)
+            {
+                <tr class="@(item.TransactionType == "رصيد افتتاحي" ? "table-light fw-bold" : "")">
+                    <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
+                    <td>@item.TransactionType</td>
+                    <td>@item.InvoiceNumber</td>
+                    <td class="text-success">@(item.QuantityIn > 0 ? item.QuantityIn.ToString("N2") : "-")</td>
+                    <td class="text-danger">@(item.QuantityOut > 0 ? item.QuantityOut.ToString("N2") : "-")</td>
+                    <td class="fw-bold">@item.Balance.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+         <tfoot class="table-group-divider">
+             <tr class="fw-bolder fs-5">
+                <td colspan="3" class="text-end">الإجماليات / الرصيد النهائي:</td>
+                <td class="text-success">@Model.Sum(i => i.QuantityIn).ToString("N2")</td>
+                <td class="text-danger">@Model.Sum(i => i.QuantityOut).ToString("N2")</td>
+                <td>@Model.Last().Balance.ToString("N2")</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<a asp-action="MaterialMovement" class="btn btn-secondary mt-3"><i class="bi bi-arrow-clockwise"></i> بحث جديد</a>

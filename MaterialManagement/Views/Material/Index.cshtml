@@ -1,0 +1,102 @@
+﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Material.MaterialViewModel>
+
+@{
+    ViewData["Title"] = "إدارة المواد";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+
+    <h2 class="mb-3">📦 إدارة المواد</h2>
+
+    <!-- Search Form -->
+    <form asp-action="Index" method="get" class="row mb-3">
+        <div class="col-md-4">
+            <input type="text" name="searchTerm" value="@ViewBag.SearchTerm"
+                   class="form-control" placeholder="ابحث بالاسم أو الكود..." />
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">🔍 بحث</button>
+        </div>
+    </form>
+
+    <!-- Alert Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <!-- Create New -->
+    <div class="mb-3">
+        <a asp-action="Create" class="btn btn-success">➕ إضافة مادة جديدة</a>
+        <a asp-action="LowStock" class="btn btn-warning">⚠️ المواد منخفضة المخزون</a>
+    </div>
+
+    <!-- Materials Table -->
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>الكود</th>
+                <th>الاسم</th>
+                <th>الوحدة</th>
+                <th>الكمية</th>
+                <th>سعر الشراء</th>
+                <th>سعر البيع</th>
+                <th>قيمة المخزون</th>
+                <th>الهامش</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Code</td>
+                        <td>@item.Name</td>
+                        <td>@item.Unit</td>
+                        <td>@item.Quantity</td>
+                        <td>@item.PurchasePrice</td>
+                        <td>@item.SellingPrice</td>
+                        <td>@item.TotalValue</td>
+                        <td>@item.ProfitMargin</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="badge bg-success">نشط</span>
+                            }
+                            else
+                            {
+
+                                <span class="badge bg-danger">غير نشط</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">👁 تفاصيل</a>
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">✏️ تعديل</a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">🗑 حذف</a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="10" class="text-center">لا توجد مواد مسجلة</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

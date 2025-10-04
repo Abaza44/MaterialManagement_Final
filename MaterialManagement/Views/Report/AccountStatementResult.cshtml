@@ -1,0 +1,49 @@
+﻿@model List<MaterialManagement.BLL.ModelVM.Reports.AccountStatementViewModel>
+
+@{
+    ViewData["Title"] = "نتيجة كشف الحساب";
+}
+
+<h3>كشف حساب: <strong>@ViewBag.AccountName</strong></h3>
+<p>
+    الفترة من: <strong>@Model.First().TransactionDate.AddDays(1).ToString("D")</strong> 
+    إلى: <strong>@Model.Last().TransactionDate.ToString("D")</strong>
+</p>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>التاريخ</th>
+                <th>نوع الحركة</th>
+                <th>المرجع</th>
+                <th class="text-danger">مدين</th>
+                <th class="text-success">دائن</th>
+                <th>الرصيد</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var item in Model)
+            {
+                <tr class="@(item.TransactionType == "رصيد افتتاحي" ? "table-light fw-bold" : "")">
+                    <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
+                    <td>@item.TransactionType</td>
+                    <td>@item.Reference</td>
+                    <td class="text-danger">@(item.Debit > 0 ? item.Debit.ToString("N2") : "-")</td>
+                    <td class="text-success">@(item.Credit > 0 ? item.Credit.ToString("N2") : "-")</td>
+                    <td class="fw-bold">@item.Balance.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot class="table-group-divider">
+             <tr class="fw-bolder fs-5">
+                <td colspan="3" class="text-end">الرصيد النهائي:</td>
+                <td class="text-danger">@Model.Sum(i => i.Debit).ToString("N2")</td>
+                <td class="text-success">@Model.Sum(i => i.Credit).ToString("N2")</td>
+                <td>@Model.Last().Balance.ToString("N2")</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<a asp-action="AccountStatement" class="btn btn-secondary mt-3">بحث جديد</a>

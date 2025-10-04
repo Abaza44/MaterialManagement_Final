@@ -1,0 +1,68 @@
+﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Invoice.SalesInvoiceViewModel>
+
+@{
+    ViewData["Title"] = "فواتير البيع";
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+    <h2 class="mb-3">🧾 فواتير البيع</h2>
+
+    <div class="mb-3">
+        <a asp-action="Create" class="btn btn-success">➕ إنشاء فاتورة بيع جديدة</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>رقم الفاتورة</th>
+                <th>التاريخ</th>
+                <th>العميل</th>
+                <th>الإجمالي</th>
+                <th>المدفوع</th>
+                <th>المتبقي</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Any())
+            {
+                foreach (var invoice in Model)
+                {
+                    <tr>
+                        <td>@invoice.InvoiceNumber</td>
+                        <td>@invoice.InvoiceDate.ToShortDateString()</td>
+                        <td>@invoice.ClientName</td>
+                        <td>@invoice.TotalAmount</td>
+                        <td>@invoice.PaidAmount</td>
+                        <td>@invoice.RemainingAmount</td>
+                        
+                        <td>
+                            <a asp-action="Details" asp-route-id="@invoice.Id" class="btn btn-info btn-sm">👁 تفاصيل</a>
+                            <a asp-action="Delete" asp-route-id="@invoice.Id" class="btn btn-danger btn-sm">🗑 حذف</a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td colspan="7" class="text-center">لا توجد فواتير بيع</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

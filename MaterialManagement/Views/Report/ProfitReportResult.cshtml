@@ -1,0 +1,49 @@
+﻿@model List<MaterialManagement.BLL.ModelVM.Reports.ProfitReportViewModel>
+
+@{
+    ViewData["Title"] = "نتيجة تقرير الأرباح";
+}
+
+<h3>تقرير الأرباح</h3>
+<p>
+    الفترة من: <strong>@(((DateTime)ViewBag.FromDate).ToString("D"))</strong> 
+    إلى: <strong>@(((DateTime)ViewBag.ToDate).ToString("D"))</strong>
+</p>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>تاريخ الفاتورة</th>
+                <th>رقم الفاتورة</th>
+                <th>العميل</th>
+                <th class="text-success">إجمالي البيع</th>
+                <th class="text-warning">إجمالي التكلفة</th>
+                <th class="text-primary">الربح</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var item in Model)
+            {
+                <tr>
+                    <td>@item.InvoiceDate.ToString("yyyy-MM-dd")</td>
+                    <td>@item.InvoiceNumber</td>
+                    <td>@item.ClientName</td>
+                    <td class="text-success">@item.TotalAmount.ToString("N2")</td>
+                    <td class="text-warning">@item.TotalCost.ToString("N2")</td>
+                    <td class="fw-bold text-primary">@item.Profit.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+         <tfoot class="table-group-divider">
+             <tr class="fw-bolder fs-5">
+                <td colspan="3" class="text-end">الإجماليات:</td>
+                <td class="text-success">@Model.Sum(i => i.TotalAmount).ToString("N2")</td>
+                <td class="text-warning">@Model.Sum(i => i.TotalCost).ToString("N2")</td>
+                <td class="text-primary">@Model.Sum(i => i.Profit).ToString("N2")</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<a asp-action="ProfitReport" class="btn btn-secondary mt-3"><i class="bi bi-arrow-clockwise"></i> بحث جديد</a>

@@ -1,0 +1,29 @@
+﻿@{
+    ViewData["Title"] = "تقرير الأرباح";
+}
+
+<h1><i class="bi bi-graph-up-arrow"></i> تقرير الأرباح</h1>
+<hr />
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5>اختر الفترة الزمنية</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="ProfitReport" method="post">
+            <div class="row align-items-end">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">من تاريخ</label>
+                    <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+                 <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">إلى تاريخ</label>
+                    <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-4 mb-3">
+                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> عرض التقرير</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

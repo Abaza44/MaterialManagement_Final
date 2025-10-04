@@ -1,0 +1,40 @@
+﻿@{
+    ViewData["Title"] = "تقرير حركة صنف";
+}
+
+<h1><i class="bi bi-arrows-move"></i> تقرير حركة صنف</h1>
+<hr />
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5>اختر المادة والفترة الزمنية</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="MaterialMovement" method="post">
+            <div class="row align-items-end">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">المادة</label>
+                    <select name="materialId" class="form-select" asp-items="ViewBag.Materials" required>
+                        <option value="">-- اختر مادة --</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label fw-bold">من تاريخ</label>
+                    <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+                 <div class="col-md-3 mb-3">
+                    <label class="form-label fw-bold">إلى تاريخ</label>
+                    <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-2 mb-3">
+                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> عرض التقرير</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

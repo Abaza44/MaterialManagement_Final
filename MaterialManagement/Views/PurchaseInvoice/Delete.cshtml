@@ -1,0 +1,18 @@
+﻿@model MaterialManagement.BLL.ModelVM.Invoice.PurchaseInvoiceViewModel
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+<div class="container mt-4">
+    <h2 class="mb-3 text-danger">حذف فاتورة شراء</h2>
+    <h4>هل انت متأكد من حذف الفاتورة @Model.InvoiceNumber ؟</h4>
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">🗑 حذف</button>
+        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+    </form>
+</div>
