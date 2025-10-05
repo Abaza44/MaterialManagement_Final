@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MaterialManagement.DAL.DB;
 using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions;
@@ -78,7 +78,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         }
         public async Task<Material?> GetByIdForUpdateAsync(int id)
         {
-            // بدون AsNoTracking لأننا نريد تحديث هذه المادة
+            
             return await _context.Materials.FindAsync(id);
         }
     }

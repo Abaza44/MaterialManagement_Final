@@ -22,7 +22,8 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task<EquipmentViewModel?> GetByCodeAsync(int code)
         {
-            return _mapper.Map<EquipmentViewModel>(await _equipmentRepo.GetByCodeAsync(code));
+            var equipment = await _equipmentRepo.GetByCodeAsync(code);
+            return _mapper.Map<EquipmentViewModel>(equipment); 
         }
 
         public async Task<EquipmentViewModel> CreateEquipmentAsync(EquipmentCreateModel model)

@@ -36,56 +36,71 @@ namespace MaterialManagement.BLL.Service.Implementations
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // 1. جلب المورد للتتبع
                 var supplierToUpdate = await _context.Suppliers.FindAsync(model.SupplierId);
                 if (supplierToUpdate == null) throw new InvalidOperationException("المورد غير موجود");
 
-                // --- <<< تم استبدال هذا الجزء بالكامل بالمنطق الجديد >>> ---
+                // 2. إنشاء رقم الفاتورة
+                string finalInvoiceNumber;
                 if (string.IsNullOrWhiteSpace(model.InvoiceNumber))
                 {
                     var allInvoiceNumbers = await _context.PurchaseInvoices
                                                   .Where(i => i.InvoiceNumber.StartsWith("PUR-"))
                                                   .Select(i => i.InvoiceNumber)
                                                   .ToListAsync();
-
                     var maxInvoiceNum = allInvoiceNumbers
                         .Select(numStr => int.TryParse(numStr.Substring(4), out int num) ? num : 0)
-                        .DefaultIfEmpty(0)
-                        .Max();
-
-                    model.InvoiceNumber = $"PUR-{(maxInvoiceNum + 1):D5}";
+                        .DefaultIfEmpty(0).Max();
+                    finalInvoiceNumber = $"PUR-{(maxInvoiceNum + 1):D5}";
                 }
                 else
                 {
                     if (await _context.PurchaseInvoices.AnyAsync(i => i.InvoiceNumber == model.InvoiceNumber))
-                    {
                         throw new InvalidOperationException($"رقم الفاتورة '{model.InvoiceNumber}' مستخدم بالفعل.");
-                    }
+                    finalInvoiceNumber = model.InvoiceNumber;
                 }
-                // --- نهاية الجزء المستبدل ---
 
-                var invoice = _mapper.Map<PurchaseInvoice>(model);
-                invoice.CreatedDate = DateTime.Now;
-
-                decimal totalAmount = 0;
-                foreach (var item in model.Items)
+                // 3. إنشاء الفاتورة والبنود
+                var invoice = new PurchaseInvoice
                 {
-                    var material = await _materialRepo.GetByIdForUpdateAsync(item.MaterialId);
-                    if (material == null) throw new InvalidOperationException($"المادة بكود {item.MaterialId} غير موجودة");
+                    InvoiceNumber = finalInvoiceNumber,
+                    InvoiceDate = model.InvoiceDate,
+                    SupplierId = model.SupplierId,
+                    PaidAmount = model.PaidAmount,
+                    Notes = model.Notes,
+                    CreatedDate = DateTime.Now,
+                    IsActive = true,
+                    PurchaseInvoiceItems = new List<PurchaseInvoiceItem>()
+                };
 
-                    material.Quantity += item.Quantity;
-                    material.PurchasePrice = item.UnitPrice;
-                    totalAmount += item.Quantity * item.UnitPrice;
+                // 4. معالجة البنود وتحديث المخزون
+                decimal totalAmount = 0;
+                foreach (var itemModel in model.Items)
+                {
+                    // جلب المادة للتتبع
+                    var material = await _context.Materials.FindAsync(itemModel.MaterialId);
+                    if (material == null) throw new InvalidOperationException($"المادة غير موجودة");
+
+                    material.Quantity += itemModel.Quantity;
+                    material.PurchasePrice = itemModel.UnitPrice;
+
+                    totalAmount += itemModel.Quantity * itemModel.UnitPrice;
+
+                    var invoiceItem = _mapper.Map<PurchaseInvoiceItem>(itemModel);
+                    invoiceItem.TotalPrice = itemModel.Quantity * itemModel.UnitPrice;
+                    invoice.PurchaseInvoiceItems.Add(invoiceItem);
                 }
 
                 invoice.TotalAmount = totalAmount;
-                invoice.PaidAmount = model.PaidAmount;
-                invoice.RemainingAmount = totalAmount - model.PaidAmount;
-
-                invoice.PurchaseInvoiceItems = model.Items.Select(item => _mapper.Map<PurchaseInvoiceItem>(item)).ToList();
+                invoice.RemainingAmount = totalAmount - invoice.PaidAmount;
 
                 _context.PurchaseInvoices.Add(invoice);
-                supplierToUpdate.Balance += invoice.RemainingAmount;
 
+                // 5. تحديث رصيد المورد
+                supplierToUpdate.Balance += invoice.RemainingAmount;
+                _context.Entry(supplierToUpdate).State = EntityState.Modified; // إجبار التتبع
+
+                // 6. حفظ كل التغييرات
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

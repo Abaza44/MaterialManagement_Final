@@ -36,26 +36,31 @@ namespace MaterialManagement.PL.Controllers
         }
 
         [HttpPost]
+        [HttpPost]
         public async Task<IActionResult> AccountStatement(int? clientId, int? supplierId, DateTime fromDate, DateTime toDate)
         {
             if (clientId.HasValue && clientId > 0)
             {
                 var statement = await _reportService.GetClientAccountStatementAsync(clientId.Value, fromDate, toDate);
-                var client = await _clientService.GetClientByIdAsync(clientId.Value);
-                ViewBag.AccountName = client?.Name;
+
+                // <<< التعديل هنا: نمرر الكائن بأكمله >>>
+                ViewBag.AccountHolder = await _clientService.GetClientByIdAsync(clientId.Value);
+
                 ViewBag.FromDate = fromDate;
                 ViewBag.ToDate = toDate;
                 return View("AccountStatementResult", statement);
             }
 
-            // <<< تم تفعيل هذا الجزء >>>
             if (supplierId.HasValue && supplierId > 0)
             {
                 var statement = await _reportService.GetSupplierAccountStatementAsync(supplierId.Value, fromDate, toDate);
-                var supplier = await _supplierService.GetSupplierByIdAsync(supplierId.Value);
-                ViewBag.AccountName = supplier?.Name;
+
+                // <<< التعديل هنا: نمرر الكائن بأكمله >>>
+                ViewBag.AccountHolder = await _supplierService.GetSupplierByIdAsync(supplierId.Value);
+
                 ViewBag.FromDate = fromDate;
                 ViewBag.ToDate = toDate;
+                // سنحتاج إلى View منفصل أو منطق إضافي في View واحد. لنستخدم نفس الـ View حاليًا.
                 return View("AccountStatementResult", statement);
             }
 

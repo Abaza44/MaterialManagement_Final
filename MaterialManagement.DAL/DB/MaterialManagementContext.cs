@@ -10,7 +10,7 @@ namespace MaterialManagement.DAL.DB
 {
     public class MaterialManagementContext : DbContext
     {
-        // تم حذف OnConfiguring لأنه من الأفضل تعريف الـ connection string في Program.cs فقط
+
         public MaterialManagementContext(DbContextOptions<MaterialManagementContext> options) : base(options)
         {
         }

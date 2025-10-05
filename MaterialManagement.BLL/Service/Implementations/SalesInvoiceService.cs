@@ -37,21 +37,21 @@ namespace MaterialManagement.BLL.Service.Implementations
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // 1. جلب العميل للتتبع
                 var clientToUpdate = await _context.Clients.FindAsync(model.ClientId);
                 if (clientToUpdate == null) throw new InvalidOperationException("العميل غير موجود");
 
+                // 2. إنشاء رقم الفاتورة
                 string finalInvoiceNumber;
                 if (string.IsNullOrWhiteSpace(model.InvoiceNumber))
                 {
                     var allInvoiceNumbers = await _context.SalesInvoices
-                                         .Where(i => i.InvoiceNumber.StartsWith("SAL-"))
-                                         .Select(i => i.InvoiceNumber)
-                                         .ToListAsync(); // <-- التنفيذ وجلب البيانات
+                        .Where(i => i.InvoiceNumber.StartsWith("SAL-"))
+                        .Select(i => i.InvoiceNumber)
+                        .ToListAsync();
                     var maxInvoiceNum = allInvoiceNumbers
-                .Select(numStr => int.TryParse(numStr.Substring(4), out int num) ? num : 0)
-                .DefaultIfEmpty(0) // إذا كانت القائمة فارغة
-                .Max(); // <-- استخدام Max() بدلاً من MaxAsync()
-
+                        .Select(numStr => int.TryParse(numStr.Substring(4), out int num) ? num : 0)
+                        .DefaultIfEmpty(0).Max();
                     finalInvoiceNumber = $"SAL-{(maxInvoiceNum + 1):D5}";
                 }
                 else
@@ -61,10 +61,10 @@ namespace MaterialManagement.BLL.Service.Implementations
                     finalInvoiceNumber = model.InvoiceNumber;
                 }
 
-                // <<< الإصلاح الحاسم هنا: إنشاء الـ Entity يدويًا >>>
+                // 3. إنشاء الفاتورة
                 var invoice = new SalesInvoice
                 {
-                    InvoiceNumber = finalInvoiceNumber, // <-- استخدام الرقم الصحيح
+                    InvoiceNumber = finalInvoiceNumber,
                     InvoiceDate = model.InvoiceDate,
                     ClientId = model.ClientId,
                     PaidAmount = model.PaidAmount,
@@ -74,10 +74,12 @@ namespace MaterialManagement.BLL.Service.Implementations
                     SalesInvoiceItems = new List<SalesInvoiceItem>()
                 };
 
+                // 4. معالجة البنود وتحديث المخزون
                 decimal totalAmount = 0;
                 foreach (var item in model.Items)
                 {
-                    var material = await _materialRepo.GetByIdForUpdateAsync(item.MaterialId);
+                    // استخدم _context.Materials.FindAsync لجلب المادة للتتبع
+                    var material = await _context.Materials.FindAsync(item.MaterialId);
                     if (material == null) throw new InvalidOperationException($"المادة غير موجودة");
                     if (material.Quantity < item.Quantity) throw new InvalidOperationException($"الكمية غير كافية للمادة: '{material.Name}'.");
 
@@ -94,11 +96,18 @@ namespace MaterialManagement.BLL.Service.Implementations
                 }
 
                 invoice.TotalAmount = totalAmount;
-                invoice.RemainingAmount = totalAmount - invoice.PaidAmount;
+                invoice.RemainingAmount = totalAmount - model.PaidAmount;
 
                 _context.SalesInvoices.Add(invoice);
+
+                // 5. تحديث رصيد العميل
                 clientToUpdate.Balance += invoice.RemainingAmount;
 
+                // <<< الإصلاح الحاسم هنا >>>
+                // أخبر EF صراحةً أن حالة هذا الكيان تغيرت
+                _context.Entry(clientToUpdate).State = EntityState.Modified;
+
+                // 6. حفظ كل التغييرات
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

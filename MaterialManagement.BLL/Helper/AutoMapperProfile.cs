@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using MaterialManagement.BLL.ModelVM.Client;
 using MaterialManagement.BLL.ModelVM.Employee;
 using MaterialManagement.BLL.ModelVM.Equipment;
@@ -20,7 +20,7 @@ namespace MaterialManagement.BLL.Helper
             CreateMap<Client, ClientViewModel>().ReverseMap(); // ReverseMap for Edit
             CreateMap<ClientCreateModel, Client>();
             CreateMap<ClientUpdateModel, Client>();
-
+            
             // === Supplier Mappings ===
             CreateMap<Supplier, SupplierViewModel>().ReverseMap();
             CreateMap<SupplierCreateModel, Supplier>();
@@ -36,7 +36,11 @@ namespace MaterialManagement.BLL.Helper
             CreateMap<EmployeeCreateModel, Employee>();
             CreateMap<EmployeeUpdateModel, Employee>();
             CreateMap<EmployeeViewModel, EmployeeUpdateModel>(); // For Edit GET
+            CreateMap<Equipment, EquipmentViewModel>()
+    // <<< هذا السطر هو الأهم >>>
+            .ForMember(dest => dest.MaintenanceHistory, opt => opt.MapFrom(src => src.MaintenanceHistory));
 
+            CreateMap<MaintenanceRecord, MaintenanceRecordViewModel>();
             // === Equipment & Maintenance Mappings ===
             CreateMap<Equipment, EquipmentViewModel>()
                 .ForMember(dest => dest.MaintenanceHistory, opt => opt.MapFrom(src => src.MaintenanceHistory));

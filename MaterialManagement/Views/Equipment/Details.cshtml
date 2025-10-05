@@ -1,35 +1,80 @@
 ﻿@model MaterialManagement.BLL.ModelVM.Equipment.EquipmentViewModel
 
 @{
-    ViewData["Title"] = "تفاصيل المعدة";
+    ViewData["Title"] = $"تفاصيل المعدة: {Model.Name}";
 }
 
-<h1>تفاصيل: @Model.Name</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>تفاصيل المعدة: <strong>@Model.Name</strong></h1>
+    <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-list-ul"></i> العودة للقائمة</a>
+</div>
+<hr />
 
-<div class="card shadow-sm">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">بيانات المعدة</h5>
+<!-- Equipment Details Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">البيانات الأساسية</h5>
+        <a asp-action="Edit" asp-route-code="@Model.Code" class="btn btn-sm btn-warning">
+            <i class="bi bi-pencil"></i> تعديل
+        </a>
     </div>
     <div class="card-body">
         <dl class="row">
             <dt class="col-sm-3">الكود</dt>
-            <dd class="col-sm-9">@Model.Code</dd>
+            <dd class="col-sm-9"><code>@Model.Code</code></dd>
 
             <dt class="col-sm-3">الاسم</dt>
             <dd class="col-sm-9">@Model.Name</dd>
 
             <dt class="col-sm-3">تاريخ الشراء</dt>
             <dd class="col-sm-9">@Model.PurchaseDate.ToString("D")</dd>
-
-            <dt class="col-sm-3">آخر صيانة</dt>
-            <dd class="col-sm-9">@(Model.LastMaintenanceDate.HasValue? Model.LastMaintenanceDate.Value.ToString("D") : "---")</dd>
-
-            <dt class="col-sm-3">الصيانة القادمة</dt>
-            <dd class="col-sm-9">@(Model.NextMaintenanceDate.HasValue? Model.NextMaintenanceDate.Value.ToString("D") : "---")</dd>
         </dl>
     </div>
-    <div class="card-footer">
-        <a asp-action="Edit" asp-route-code="@Model.Code" class="btn btn-warning"><i class="bi bi-pencil"></i> تعديل</a>
-        <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-list-ul"></i> العودة للقائمة</a>
+</div>
+
+<!-- <<< هذا هو الجزء الذي كان ناقصًا بالكامل >>> -->
+<!-- Maintenance History Card -->
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> سجل الصيانة</h5>
+        <a asp-controller="Maintenance" asp-action="AddForEquipment" asp-route-equipmentCode="@Model.Code" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> إضافة سجل صيانة جديد
+        </a>
+    </div>
+    <div class="card-body">
+        @if (Model.MaintenanceHistory != null && Model.MaintenanceHistory.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>تاريخ الصيانة</th>
+                            <th>الوصف</th>
+                            <th>التكلفة</th>
+                            <th>تم بواسطة</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in Model.MaintenanceHistory)
+                        {
+                            <tr>
+                                <td>@record.MaintenanceDate.ToString("yyyy-MM-dd")</td>
+                                <td>@record.Description</td>
+                                <td>@record.Cost.ToString("C")</td>
+                                <td>@(record.PerformedBy ?? "---")</td>
+                                <td>@(record.Notes ?? "---")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-3">
+                <p class="text-muted">لا توجد سجلات صيانة لهذه المعدة حتى الآن.</p>
+            </div>
+        }
     </div>
 </div>

@@ -1,17 +1,40 @@
 ﻿@model List<MaterialManagement.BLL.ModelVM.Reports.AccountStatementViewModel>
+@using MaterialManagement.BLL.ModelVM.Client
+@using MaterialManagement.BLL.ModelVM.Supplier
 
 @{
     ViewData["Title"] = "نتيجة كشف الحساب";
+
+    // <<< تم إصلاح المشكلة هنا >>>
+    string accountName = "غير محدد";
+    string? accountPhone = null;
+
+    if (ViewBag.AccountHolder is ClientViewModel client)
+    {
+        accountName = client.Name;
+        accountPhone = client.Phone;
+    }
+    else if (ViewBag.AccountHolder is SupplierViewModel supplier)
+    {
+        accountName = supplier.Name;
+        accountPhone = supplier.Phone;
+    }
 }
 
-<h3>كشف حساب: <strong>@ViewBag.AccountName</strong></h3>
-<p>
-    الفترة من: <strong>@Model.First().TransactionDate.AddDays(1).ToString("D")</strong> 
-    إلى: <strong>@Model.Last().TransactionDate.ToString("D")</strong>
-</p>
+<div class="report-header mb-4 p-3 bg-light rounded">
+    <h3>كشف حساب: <strong>@accountName</strong></h3>
+    @if (!string.IsNullOrEmpty(accountPhone))
+    {
+        <h5 class="text-muted"><i class="bi bi-telephone-fill"></i> @accountPhone</h5>
+    }
+    <p>
+        الفترة من: <strong>@(((DateTime)ViewBag.FromDate).ToString("D"))</strong>
+        إلى: <strong>@(((DateTime)ViewBag.ToDate).ToString("D"))</strong>
+    </p>
+</div>
 
 <div class="table-responsive">
-    <table class="table table-bordered table-striped">
+    <table class="table table-bordered table-striped" id="reportTable">
         <thead class="table-dark">
             <tr>
                 <th>التاريخ</th>
@@ -23,27 +46,54 @@
             </tr>
         </thead>
         <tbody>
-            @foreach(var item in Model)
+            @if (Model != null)
             {
-                <tr class="@(item.TransactionType == "رصيد افتتاحي" ? "table-light fw-bold" : "")">
-                    <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
-                    <td>@item.TransactionType</td>
-                    <td>@item.Reference</td>
-                    <td class="text-danger">@(item.Debit > 0 ? item.Debit.ToString("N2") : "-")</td>
-                    <td class="text-success">@(item.Credit > 0 ? item.Credit.ToString("N2") : "-")</td>
-                    <td class="fw-bold">@item.Balance.ToString("N2")</td>
-                </tr>
+                @foreach (var item in Model)
+                {
+                    <tr class="@(item.TransactionType == "رصيد مرحل" ? "table-light fw-bold" : "")">
+                        <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
+                        <td>@item.TransactionType</td>
+                        <td>@item.Reference</td>
+                        <td class="text-danger">@(item.Debit > 0 ? item.Debit.ToString("N2") : "-")</td>
+                        <td class="text-success">@(item.Credit > 0 ? item.Credit.ToString("N2") : "-")</td>
+                        <td class="fw-bold">@item.Balance.ToString("N2")</td>
+                    </tr>
+                }
             }
         </tbody>
-        <tfoot class="table-group-divider">
-             <tr class="fw-bolder fs-5">
-                <td colspan="3" class="text-end">الرصيد النهائي:</td>
-                <td class="text-danger">@Model.Sum(i => i.Debit).ToString("N2")</td>
-                <td class="text-success">@Model.Sum(i => i.Credit).ToString("N2")</td>
-                <td>@Model.Last().Balance.ToString("N2")</td>
-            </tr>
-        </tfoot>
+        @if (Model != null && Model.Count > 1) // لا تعرض الإجمالي إذا كان هناك رصيد مرحل فقط
+        {
+            <tfoot class="table-group-divider">
+                <tr class="fw-bolder fs-5">
+                    <td colspan="3" class="text-end">الإجماليات / الرصيد النهائي:</td>
+                    <td class="text-danger">@Model.Sum(i => i.Debit).ToString("N2")</td>
+                    <td class="text-success">@Model.Sum(i => i.Credit).ToString("N2")</td>
+                    <td>@Model.Last().Balance.ToString("N2")</td>
+                </tr>
+            </tfoot>
+        }
     </table>
 </div>
 
-<a asp-action="AccountStatement" class="btn btn-secondary mt-3">بحث جديد</a>
+<div class="mt-3">
+    <a asp-action="AccountStatement" class="btn btn-secondary">
+        <i class="bi bi-arrow-clockwise"></i> بحث جديد
+    </a>
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer"></i> طباعة
+    </button>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#reportTable').DataTable({
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" },
+                "order": [[ 0, "asc" ]], // ترتيب حسب التاريخ
+                "paging": false, // تعطيل الترقيم لهذا التقرير
+                "searching": false, // تعطيل البحث
+                "info": false // إخفاء معلومات "Showing x of y entries"
+            });
+        });
+    </script>
+}

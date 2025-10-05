@@ -26,11 +26,16 @@ namespace MaterialManagement.PL.Controllers
         [Route("Index")]
         public async Task<IActionResult> Index()
         {
+            // 1. هل هذه الدالة تجلب كل المعدات مع سجلات صيانتها؟
             var allEquipment = await _equipmentService.GetAllEquipmentAsync();
+
+            // 2. هل SelectMany تعمل بشكل صحيح؟
             var allMaintenanceRecords = allEquipment
                 .SelectMany(e => e.MaintenanceHistory)
                 .OrderByDescending(r => r.MaintenanceDate)
                 .ToList();
+
+            // 3. هل يتم تمرير القائمة الصحيحة إلى الـ View؟
             return View(allMaintenanceRecords);
         }
 

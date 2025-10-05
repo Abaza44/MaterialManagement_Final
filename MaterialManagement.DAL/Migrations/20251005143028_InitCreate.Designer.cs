@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MaterialManagement.DAL.Migrations
 {
     [DbContext(typeof(MaterialManagementContext))]
-    [Migration("20251004163700_InitCreate")]
+    [Migration("20251005143028_InitCreate")]
     partial class InitCreate
     {
         /// <inheritdoc />

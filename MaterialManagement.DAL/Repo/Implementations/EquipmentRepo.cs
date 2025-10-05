@@ -15,7 +15,11 @@ namespace MaterialManagement.DAL.Repo.Implementations
 
         public async Task<IEnumerable<Equipment>> GetAllAsync()
         {
-            return await _context.Equipment.AsNoTracking().OrderBy(e => e.Name).ToListAsync();
+            return await _context.Equipment
+                .Include(e => e.MaintenanceHistory) // <-- أضف هذا
+                .AsNoTracking()
+                .OrderBy(e => e.Name)
+                .ToListAsync();
         }
 
         // في دالة GetByCodeAsync
