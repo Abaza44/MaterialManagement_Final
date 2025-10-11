@@ -162,48 +162,73 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task<List<MaterialMovementViewModel>> GetMaterialMovementAsync(int materialId, DateTime fromDate, DateTime toDate)
         {
-            // (هذا الكود صحيح من المرة السابقة)
             var inclusiveToDate = toDate.Date.AddDays(1).AddTicks(-1);
 
+            // --- 1. حساب الرصيد الافتتاحي (مع المرتجعات) ---
             var purchasesBefore = await _context.PurchaseInvoiceItems
-                .Where(i => i.MaterialId == materialId && i.PurchaseInvoice.InvoiceDate < fromDate)
+                .Where(i => i.MaterialId == materialId && i.PurchaseInvoice.SupplierId.HasValue && i.PurchaseInvoice.InvoiceDate < fromDate)
+                .SumAsync(i => (decimal?)i.Quantity) ?? 0;
+
+            var returnsBefore = await _context.PurchaseInvoiceItems
+                .Where(i => i.MaterialId == materialId && i.PurchaseInvoice.ClientId.HasValue && i.PurchaseInvoice.InvoiceDate < fromDate)
                 .SumAsync(i => (decimal?)i.Quantity) ?? 0;
 
             var salesBefore = await _context.SalesInvoiceItems
                 .Where(i => i.MaterialId == materialId && i.SalesInvoice.InvoiceDate < fromDate)
                 .SumAsync(i => (decimal?)i.Quantity) ?? 0;
 
-            decimal openingBalance = purchasesBefore - salesBefore;
+            decimal openingBalance = (purchasesBefore + returnsBefore) - salesBefore;
 
+            // --- 2. جلب الحركات خلال الفترة مع المصدر ---
             var purchasesInPeriod = await _context.PurchaseInvoiceItems
+                .Include(i => i.PurchaseInvoice.Supplier)
+                .Include(i => i.PurchaseInvoice.Client)
                 .Where(i => i.MaterialId == materialId && i.PurchaseInvoice.InvoiceDate >= fromDate && i.PurchaseInvoice.InvoiceDate <= inclusiveToDate)
-                .Select(i => new { Date = i.PurchaseInvoice.InvoiceDate, Type = "شراء", Ref = i.PurchaseInvoice.InvoiceNumber, Qty = i.Quantity, IsIn = true })
-                .ToListAsync();
+                .Select(i => new {
+                    Date = i.PurchaseInvoice.InvoiceDate,
+                    Type = i.PurchaseInvoice.ClientId.HasValue ? "مرتجع من عميل" : "شراء من مورد",
+                    Ref = i.PurchaseInvoice.InvoiceNumber,
+                    Qty = i.Quantity,
+                    IsIn = true,
+                    Source = i.PurchaseInvoice.ClientId.HasValue ? i.PurchaseInvoice.Client.Name : i.PurchaseInvoice.Supplier.Name
+                }).ToListAsync();
 
             var salesInPeriod = await _context.SalesInvoiceItems
+                .Include(i => i.SalesInvoice.Client) // <<< تم إصلاح المشكلة هنا
                 .Where(i => i.MaterialId == materialId && i.SalesInvoice.InvoiceDate >= fromDate && i.SalesInvoice.InvoiceDate <= inclusiveToDate)
-                .Select(i => new { Date = i.SalesInvoice.InvoiceDate, Type = "بيع", Ref = i.SalesInvoice.InvoiceNumber, Qty = i.Quantity, IsIn = false })
-                .ToListAsync();
+                .Select(i => new {
+                    Date = i.SalesInvoice.InvoiceDate,
+                    Type = "بيع لعميل",
+                    Ref = i.SalesInvoice.InvoiceNumber,
+                    Qty = i.Quantity,
+                    IsIn = false,
+                    Source = i.SalesInvoice.Client.Name // <<< الآن هذا سيعمل
+                }).ToListAsync();
 
-            var allTransactions = purchasesInPeriod.Concat(salesInPeriod).OrderBy(t => t.Date).ToList();
+            // 3. دمج وترتيب الحركات
+            var allTransactions = purchasesInPeriod.Concat(salesInPeriod)
+                                                   .OrderBy(t => t.Date)
+                                                   .ToList();
 
+            // 4. بناء التقرير النهائي
             var report = new List<MaterialMovementViewModel>();
             decimal currentBalance = openingBalance;
 
-            report.Add(new MaterialMovementViewModel { TransactionDate = fromDate, TransactionType = "رصيد افتتاحي", Balance = currentBalance });
+            report.Add(new MaterialMovementViewModel { TransactionDate = fromDate, TransactionType = "رصيد افتتاحي", Balance = currentBalance, Source = "" });
 
             foreach (var trans in allTransactions)
             {
-                if (trans.IsIn)
+                currentBalance += trans.IsIn ? trans.Qty : -trans.Qty;
+                report.Add(new MaterialMovementViewModel
                 {
-                    currentBalance += trans.Qty;
-                    report.Add(new MaterialMovementViewModel { TransactionDate = trans.Date, TransactionType = trans.Type, InvoiceNumber = trans.Ref, QuantityIn = trans.Qty, Balance = currentBalance });
-                }
-                else
-                {
-                    currentBalance -= trans.Qty;
-                    report.Add(new MaterialMovementViewModel { TransactionDate = trans.Date, TransactionType = trans.Type, InvoiceNumber = trans.Ref, QuantityOut = trans.Qty, Balance = currentBalance });
-                }
+                    TransactionDate = trans.Date,
+                    TransactionType = trans.Type,
+                    InvoiceNumber = trans.Ref,
+                    Source = trans.Source,
+                    QuantityIn = trans.IsIn ? trans.Qty : 0,
+                    QuantityOut = !trans.IsIn ? trans.Qty : 0,
+                    Balance = currentBalance
+                });
             }
             return report;
         }

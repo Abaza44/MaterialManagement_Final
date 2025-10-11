@@ -17,6 +17,7 @@
                 <th>التاريخ</th>
                 <th>نوع الحركة</th>
                 <th>رقم الفاتورة</th>
+                <th>(المصدر (عميل/مورد</th>
                 <th class="text-success">وارد (+)</th>
                 <th class="text-danger">صادر (-)</th>
                 <th>الرصيد</th>
@@ -29,6 +30,7 @@
                     <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
                     <td>@item.TransactionType</td>
                     <td>@item.InvoiceNumber</td>
+                    <td>@item.Source</td>
                     <td class="text-success">@(item.QuantityIn > 0 ? item.QuantityIn.ToString("N2") : "-")</td>
                     <td class="text-danger">@(item.QuantityOut > 0 ? item.QuantityOut.ToString("N2") : "-")</td>
                     <td class="fw-bold">@item.Balance.ToString("N2")</td>
@@ -37,7 +39,7 @@
         </tbody>
          <tfoot class="table-group-divider">
              <tr class="fw-bolder fs-5">
-                <td colspan="3" class="text-end">الإجماليات / الرصيد النهائي:</td>
+                <td colspan="4" class="text-end">الإجماليات / الرصيد النهائي:</td>
                 <td class="text-success">@Model.Sum(i => i.QuantityIn).ToString("N2")</td>
                 <td class="text-danger">@Model.Sum(i => i.QuantityOut).ToString("N2")</td>
                 <td>@Model.Last().Balance.ToString("N2")</td>

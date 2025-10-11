@@ -1,10 +1,10 @@
 ﻿using MaterialManagement.BLL.ModelVM.Invoice;
 using MaterialManagement.BLL.Service.Abstractions;
-using MaterialManagement.DAL.Repo.Abstractions; // <-- مهم
+using MaterialManagement.DAL.Repo.Abstractions; 
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.Linq; // <-- مهم
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace MaterialManagement.PL.Controllers
@@ -13,32 +13,32 @@ namespace MaterialManagement.PL.Controllers
     {
         private readonly IPurchaseInvoiceService _purchaseInvoiceService;
         private readonly ISupplierService _supplierService;
-        private readonly IClientService _clientService; // <<< تم إضافته
+        private readonly IClientService _clientService; 
         private readonly IMaterialService _materialService;
         private readonly ISupplierPaymentRepo _supplierPaymentRepo;
 
         public PurchaseInvoiceController(
             IPurchaseInvoiceService purchaseInvoiceService,
             ISupplierService supplierService,
-            IClientService clientService, // <<< تم إضافته
+            IClientService clientService, 
             IMaterialService materialService,
             ISupplierPaymentRepo supplierPaymentRepo)
         {
             _purchaseInvoiceService = purchaseInvoiceService;
             _supplierService = supplierService;
-            _clientService = clientService; // <<< تم إضافته
+            _clientService = clientService;
             _materialService = materialService;
             _supplierPaymentRepo = supplierPaymentRepo;
         }
 
-        // GET: PurchaseInvoice
+        
         public async Task<IActionResult> Index()
         {
             var invoices = await _purchaseInvoiceService.GetAllInvoicesAsync();
             return View(invoices);
         }
 
-        // GET: PurchaseInvoice/Details/5
+        
         public async Task<IActionResult> Details(int id)
         {
             var invoice = await _purchaseInvoiceService.GetInvoiceByIdAsync(id);
