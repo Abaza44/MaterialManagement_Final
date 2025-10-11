@@ -17,8 +17,10 @@ namespace MaterialManagement.DAL.Entities
 
         public DateTime InvoiceDate { get; set; }
 
-        public int SupplierId { get; set; }
+        public int? SupplierId { get; set; }
 
+
+        public int? ClientId { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal RemainingAmount { get; set; }
@@ -31,6 +33,7 @@ namespace MaterialManagement.DAL.Entities
 
         // Navigation Properties
         public virtual Supplier Supplier { get; set; }
+        public virtual Client? Client { get; set; }
         public virtual ICollection<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; } = new HashSet<PurchaseInvoiceItem>();
     }
 }

@@ -13,20 +13,22 @@ namespace MaterialManagement.PL.Controllers
     {
         private readonly IPurchaseInvoiceService _purchaseInvoiceService;
         private readonly ISupplierService _supplierService;
+        private readonly IClientService _clientService; // <<< تم إضافته
         private readonly IMaterialService _materialService;
-        private readonly ISupplierPaymentRepo _supplierPaymentRepo; // <<< تم إضافته هنا
+        private readonly ISupplierPaymentRepo _supplierPaymentRepo;
 
-        // <<< تم تحديث الـ Constructor >>>
         public PurchaseInvoiceController(
             IPurchaseInvoiceService purchaseInvoiceService,
             ISupplierService supplierService,
+            IClientService clientService, // <<< تم إضافته
             IMaterialService materialService,
-            ISupplierPaymentRepo supplierPaymentRepo) // <<< تم إضافته هنا
+            ISupplierPaymentRepo supplierPaymentRepo)
         {
             _purchaseInvoiceService = purchaseInvoiceService;
             _supplierService = supplierService;
+            _clientService = clientService; // <<< تم إضافته
             _materialService = materialService;
-            _supplierPaymentRepo = supplierPaymentRepo; // <<< تم إضافته هنا
+            _supplierPaymentRepo = supplierPaymentRepo;
         }
 
         // GET: PurchaseInvoice
@@ -44,12 +46,14 @@ namespace MaterialManagement.PL.Controllers
             {
                 TempData["ErrorMessage"] = "الفاتورة غير موجودة";
                 return RedirectToAction(nameof(Index));
-
             }
 
-            // <<< جلب سجل الدفعات المرتبط بهذه الفاتورة >>>
-            var payments = await _supplierPaymentRepo.GetByInvoiceIdAsync(id);
-            ViewBag.Payments = payments;
+            // جلب سجل الدفعات الخاص بالمورد فقط (لأن المرتجعات لا يتم سدادها هنا)
+            if (invoice.SupplierId.HasValue)
+            {
+                var payments = await _supplierPaymentRepo.GetByInvoiceIdAsync(id);
+                ViewBag.Payments = payments;
+            }
 
             return View(invoice);
         }
@@ -57,7 +61,9 @@ namespace MaterialManagement.PL.Controllers
         // GET: PurchaseInvoice/Create
         public async Task<IActionResult> Create()
         {
+            // <<< تم التحديث هنا لجلب العملاء والموردين >>>
             ViewBag.Suppliers = await _supplierService.GetAllSuppliersAsync();
+            ViewBag.Clients = await _clientService.GetAllClientsAsync();
             ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
 
             var model = new PurchaseInvoiceCreateModel
@@ -73,16 +79,18 @@ namespace MaterialManagement.PL.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(PurchaseInvoiceCreateModel model)
         {
-            // إزالة البنود الفارغة التي قد يرسلها الفورم
             model.Items.RemoveAll(i => i.Quantity == 0 || i.UnitPrice == 0);
 
             if (!ModelState.IsValid || !model.Items.Any())
             {
                 if (!model.Items.Any())
                 {
-                    ModelState.AddModelError("Items", "يجب إضافة بند واحد على الأقل للفاتورة.");
+                    ModelState.AddModelError("Items", "يجب إضافة بند واحد على الأقل.");
                 }
+
+                // <<< إعادة تحميل كل القوائم في حالة الخطأ >>>
                 ViewBag.Suppliers = await _supplierService.GetAllSuppliersAsync();
+                ViewBag.Clients = await _clientService.GetAllClientsAsync();
                 ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
                 return View(model);
             }
@@ -90,13 +98,14 @@ namespace MaterialManagement.PL.Controllers
             try
             {
                 await _purchaseInvoiceService.CreateInvoiceAsync(model);
-                TempData["SuccessMessage"] = "تم إنشاء فاتورة شراء بنجاح";
+                TempData["SuccessMessage"] = "تم إنشاء العملية بنجاح"; 
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = ex.Message;
                 ViewBag.Suppliers = await _supplierService.GetAllSuppliersAsync();
+                ViewBag.Clients = await _clientService.GetAllClientsAsync();
                 ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
                 return View(model);
             }

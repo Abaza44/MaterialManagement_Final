@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MaterialManagement.DAL.Migrations
 {
     [DbContext(typeof(MaterialManagementContext))]
-    [Migration("20251005143028_InitCreate")]
+    [Migration("20251011193104_InitCreate")]
     partial class InitCreate
     {
         /// <inheritdoc />
@@ -317,6 +317,9 @@ namespace MaterialManagement.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
@@ -343,7 +346,7 @@ namespace MaterialManagement.DAL.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("SupplierId")
+                    b.Property<int?>("SupplierId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalAmount")
@@ -351,6 +354,8 @@ namespace MaterialManagement.DAL.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
 
                     b.HasIndex("InvoiceNumber")
                         .IsUnique();
@@ -597,11 +602,15 @@ namespace MaterialManagement.DAL.Migrations
 
             modelBuilder.Entity("MaterialManagement.DAL.Entities.PurchaseInvoice", b =>
                 {
+                    b.HasOne("MaterialManagement.DAL.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId");
+
                     b.HasOne("MaterialManagement.DAL.Entities.Supplier", "Supplier")
                         .WithMany("PurchaseInvoices")
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SupplierId");
+
+                    b.Navigation("Client");
 
                     b.Navigation("Supplier");
                 });

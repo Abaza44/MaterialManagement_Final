@@ -3,100 +3,98 @@
 @{
     ViewData["Title"] = "إدارة المواد";
 }
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-}
+
 <div class="container mt-4">
 
-    <h2 class="mb-3">📦 إدارة المواد</h2>
+    <h2 class="mb-4 fw-bold text-center">📦 إدارة المواد</h2>
 
-    <!-- Search Form -->
-    <form asp-action="Index" method="get" class="row mb-3">
+    <!-- ✅ رسائل التنبيه -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- ✅ شريط البحث -->
+    <form asp-action="Index" method="get" class="row g-2 mb-3 align-items-center">
         <div class="col-md-4">
             <input type="text" name="searchTerm" value="@ViewBag.SearchTerm"
                    class="form-control" placeholder="ابحث بالاسم أو الكود..." />
         </div>
         <div class="col-md-2">
-            <button type="submit" class="btn btn-primary">🔍 بحث</button>
+            <button type="submit" class="btn btn-primary w-100">🔍 بحث</button>
+        </div>
+        <div class="col-md-6 text-md-end text-center">
+            <a asp-action="Create" class="btn btn-success me-2">➕ مادة جديدة</a>
+            <a asp-action="LowStock" class="btn btn-warning">⚠️ المواد منخفضة المخزون</a>
         </div>
     </form>
 
-    <!-- Alert Messages -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-    }
-
-    <!-- Create New -->
-    <div class="mb-3">
-        <a asp-action="Create" class="btn btn-success">➕ إضافة مادة جديدة</a>
-        <a asp-action="LowStock" class="btn btn-warning">⚠️ المواد منخفضة المخزون</a>
-    </div>
-
-    <!-- Materials Table -->
-    <table class="table table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>الكود</th>
-                <th>الاسم</th>
-                <th>الوحدة</th>
-                <th>الكمية</th>
-                <th>سعر الشراء</th>
-                <th>سعر البيع</th>
-                <th>قيمة المخزون</th>
-                <th>الهامش</th>
-                <th>الحالة</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (Model != null && Model.Any())
-            {
-                foreach (var item in Model)
+    <!-- ✅ جدول المواد -->
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>الكود</th>
+                    <th>الاسم</th>
+                    <th>الوحدة</th>
+                    <th>الكمية</th>
+                    <th>سعر الشراء</th>
+                    <th>قيمة المخزون</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Code</td>
+                            <td>@item.Name</td>
+                            <td>@item.Unit</td>
+                            <td>@item.Quantity</td>
+                            <td>@item.PurchasePrice.ToString("N2")</td>
+                            <td>@item.TotalValue.ToString("N2")</td>
+                            <td class="text-center">
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge bg-success px-3 py-2">نشط</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger px-3 py-2">غير نشط</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">👁</a>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">✏️</a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">🗑</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
                 {
                     <tr>
-                        <td>@item.Code</td>
-                        <td>@item.Name</td>
-                        <td>@item.Unit</td>
-                        <td>@item.Quantity</td>
-                        <td>@item.PurchasePrice</td>
-                        <td>@item.SellingPrice</td>
-                        <td>@item.TotalValue</td>
-                        <td>@item.ProfitMargin</td>
-                        <td>
-                            @if (item.IsActive)
-                            {
-                                <span class="badge bg-success">نشط</span>
-                            }
-                            else
-                            {
-
-                                <span class="badge bg-danger">غير نشط</span>
-                            }
-                        </td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">👁 تفاصيل</a>
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">✏️ تعديل</a>
-                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">🗑 حذف</a>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            لا توجد مواد مسجلة حاليًا 💤
                         </td>
                     </tr>
                 }
-            }
-            else
-            {
-                <tr>
-                    <td colspan="10" class="text-center">لا توجد مواد مسجلة</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>

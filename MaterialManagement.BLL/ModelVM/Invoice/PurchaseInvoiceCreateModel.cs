@@ -1,26 +1,32 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using System;
 
 namespace MaterialManagement.BLL.ModelVM.Invoice
 {
     public class PurchaseInvoiceCreateModel
     {
-        
         [StringLength(50)]
-        [Display(Name = "رقم الفاتورة")]
+        [Display(Name = "رقم الفاتورة (اتركه فارغًا للتوليد التلقائي)")]
         public string? InvoiceNumber { get; set; }
 
-        [Display(Name = "تاريخ الفاتورة")]
+        [Display(Name = "تاريخ العملية")]
         public DateTime InvoiceDate { get; set; } = DateTime.Now;
 
-        [Required(ErrorMessage = "المورد مطلوب")]
+        // <<< تم التعديل هنا >>>
+        // لم يعد المورد مطلوبًا بشكل إلزامي
         [Display(Name = "المورد")]
-        public int SupplierId { get; set; }
+        public int? SupplierId { get; set; }
+
+        // <<< تم إضافة هذا >>>
+        [Display(Name = "العميل (في حالة المرتجع)")]
+        public int? ClientId { get; set; }
 
         [Required(ErrorMessage = "أضف عناصر الفاتورة")]
         public List<PurchaseInvoiceItemCreateModel> Items { get; set; } = new();
 
-        [Display(Name = "المبلغ المدفوع")]
-        public decimal PaidAmount { get; set; }
+        [Display(Name = "المبلغ المسدد/المسترجع")]
+        public decimal PaidAmount { get; set; } // هذا المبلغ سيتم خصمه من رصيد المورد أو إضافته لرصيد العميل
 
         public string? Notes { get; set; }
     }
@@ -31,7 +37,7 @@ namespace MaterialManagement.BLL.ModelVM.Invoice
         public int MaterialId { get; set; }
 
         [Required]
-        [Range(1, double.MaxValue, ErrorMessage = "الكمية يجب أن تكون أكبر من صفر")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "الكمية يجب أن تكون أكبر من صفر")]
         public decimal Quantity { get; set; }
 
         [Required]

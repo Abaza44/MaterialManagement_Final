@@ -36,21 +36,26 @@ namespace MaterialManagement.BLL.Service.Implementations
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. جلب المورد للتتبع
-                var supplierToUpdate = await _context.Suppliers.FindAsync(model.SupplierId);
-                if (supplierToUpdate == null) throw new InvalidOperationException("المورد غير موجود");
+                if (!model.SupplierId.HasValue && !model.ClientId.HasValue)
+                    throw new InvalidOperationException("يجب تحديد مورد أو عميل.");
+                if (model.SupplierId.HasValue && model.ClientId.HasValue)
+                    throw new InvalidOperationException("لا يمكن تحديد مورد وعميل في نفس الوقت.");
 
-                // 2. إنشاء رقم الفاتورة
                 string finalInvoiceNumber;
                 if (string.IsNullOrWhiteSpace(model.InvoiceNumber))
                 {
-                    var allInvoiceNumbers = await _context.PurchaseInvoices
-                                                  .Where(i => i.InvoiceNumber.StartsWith("PUR-"))
-                                                  .Select(i => i.InvoiceNumber)
-                                                  .ToListAsync();
-                    var maxInvoiceNum = allInvoiceNumbers
-                        .Select(numStr => int.TryParse(numStr.Substring(4), out int num) ? num : 0)
-                        .DefaultIfEmpty(0).Max();
+                    // --- <<< تم إصلاح الأخطاء الإملائية هنا >>> ---
+                    var allInvoiceNumberParts = await _context.PurchaseInvoices
+                                              .Where(i => i.InvoiceNumber.StartsWith("PUR-"))
+                                              .Select(i => i.InvoiceNumber.Substring(4))
+                                              .ToListAsync();
+
+                    // 2. الآن، قم بمعالجة الأرقام في الذاكرة باستخدام LINQ to Objects
+                    var maxInvoiceNum = allInvoiceNumberParts
+                        .Select(numStr => int.TryParse(numStr, out int num) ? num : 0)
+                        .DefaultIfEmpty(0)
+                        .Max();
+
                     finalInvoiceNumber = $"PUR-{(maxInvoiceNum + 1):D5}";
                 }
                 else
@@ -60,12 +65,12 @@ namespace MaterialManagement.BLL.Service.Implementations
                     finalInvoiceNumber = model.InvoiceNumber;
                 }
 
-                // 3. إنشاء الفاتورة والبنود
                 var invoice = new PurchaseInvoice
                 {
                     InvoiceNumber = finalInvoiceNumber,
                     InvoiceDate = model.InvoiceDate,
                     SupplierId = model.SupplierId,
+                    ClientId = model.ClientId,
                     PaidAmount = model.PaidAmount,
                     Notes = model.Notes,
                     CreatedDate = DateTime.Now,
@@ -73,17 +78,17 @@ namespace MaterialManagement.BLL.Service.Implementations
                     PurchaseInvoiceItems = new List<PurchaseInvoiceItem>()
                 };
 
-                // 4. معالجة البنود وتحديث المخزون
                 decimal totalAmount = 0;
                 foreach (var itemModel in model.Items)
                 {
-                    // جلب المادة للتتبع
                     var material = await _context.Materials.FindAsync(itemModel.MaterialId);
-                    if (material == null) throw new InvalidOperationException($"المادة غير موجودة");
+                    if (material == null) throw new InvalidOperationException("المادة غير موجودة");
 
                     material.Quantity += itemModel.Quantity;
-                    material.PurchasePrice = itemModel.UnitPrice;
-
+                    if (model.SupplierId.HasValue)
+                    {
+                        material.PurchasePrice = itemModel.UnitPrice;
+                    }
                     totalAmount += itemModel.Quantity * itemModel.UnitPrice;
 
                     var invoiceItem = _mapper.Map<PurchaseInvoiceItem>(itemModel);
@@ -92,15 +97,26 @@ namespace MaterialManagement.BLL.Service.Implementations
                 }
 
                 invoice.TotalAmount = totalAmount;
-                invoice.RemainingAmount = totalAmount - invoice.PaidAmount;
-
+                invoice.RemainingAmount = totalAmount - model.PaidAmount;
                 _context.PurchaseInvoices.Add(invoice);
 
-                // 5. تحديث رصيد المورد
-                supplierToUpdate.Balance += invoice.RemainingAmount;
-                _context.Entry(supplierToUpdate).State = EntityState.Modified; // إجبار التتبع
+                if (model.SupplierId.HasValue)
+                {
+                    var supplierToUpdate = await _context.Suppliers.FindAsync(model.SupplierId.Value);
+                    if (supplierToUpdate == null) throw new InvalidOperationException("المورد المحدد غير موجود");
 
-                // 6. حفظ كل التغييرات
+                    supplierToUpdate.Balance += invoice.RemainingAmount;
+                    _context.Entry(supplierToUpdate).State = EntityState.Modified;
+                }
+                else if (model.ClientId.HasValue)
+                {
+                    var clientToUpdate = await _context.Clients.FindAsync(model.ClientId.Value);
+                    if (clientToUpdate == null) throw new InvalidOperationException("العميل المحدد غير موجود");
+
+                    clientToUpdate.Balance -= invoice.TotalAmount;
+                    _context.Entry(clientToUpdate).State = EntityState.Modified;
+                }
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

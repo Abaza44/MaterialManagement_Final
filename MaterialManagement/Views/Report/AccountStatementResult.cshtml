@@ -4,11 +4,8 @@
 
 @{
     ViewData["Title"] = "نتيجة كشف الحساب";
-
-    // <<< تم إصلاح المشكلة هنا >>>
     string accountName = "غير محدد";
     string? accountPhone = null;
-
     if (ViewBag.AccountHolder is ClientViewModel client)
     {
         accountName = client.Name;
@@ -50,7 +47,12 @@
             {
                 @foreach (var item in Model)
                 {
-                    <tr class="@(item.TransactionType == "رصيد مرحل" ? "table-light fw-bold" : "")">
+                    // <<< تم الإصلاح هنا >>>
+                    string rowClass = "";
+                    if (item.TransactionType == "رصيد مرحل") { rowClass = "table-light fw-bold"; }
+                    else if (item.TransactionType == "مرتجع بيع") { rowClass = "table-warning"; }
+
+                    <tr class="@rowClass">
                         <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
                         <td>@item.TransactionType</td>
                         <td>@item.Reference</td>
@@ -61,7 +63,7 @@
                 }
             }
         </tbody>
-        @if (Model != null && Model.Count > 1) // لا تعرض الإجمالي إذا كان هناك رصيد مرحل فقط
+        @if (Model != null && Model.Count > 1)
         {
             <tfoot class="table-group-divider">
                 <tr class="fw-bolder fs-5">
@@ -89,10 +91,10 @@
         $(document).ready(function () {
             $('#reportTable').DataTable({
                 "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" },
-                "order": [[ 0, "asc" ]], // ترتيب حسب التاريخ
-                "paging": false, // تعطيل الترقيم لهذا التقرير
-                "searching": false, // تعطيل البحث
-                "info": false // إخفاء معلومات "Showing x of y entries"
+                "order": [[ 0, "asc" ]],
+                "paging": false,
+                "searching": false,
+                "info": false
             });
         });
     </script>

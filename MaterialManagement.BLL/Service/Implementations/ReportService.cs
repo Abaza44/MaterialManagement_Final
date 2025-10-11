@@ -22,23 +22,32 @@ namespace MaterialManagement.BLL.Service.Implementations
         {
             var inclusiveToDate = toDate.Date.AddDays(1).AddTicks(-1);
 
-            // 1. حساب الرصيد الافتتاحي الدقيق للعميل
-            var totalInvoicesBefore = await _context.SalesInvoices
+            // --- 1. حساب الرصيد الافتتاحي (مع المرتجعات) ---
+            decimal totalSalesBefore = 0;
+            decimal totalReturnsBefore = 0;
+            decimal paymentsOnInvoicesBefore = 0;
+            decimal separatePaymentsBefore = 0;
+
+            totalSalesBefore = await _context.SalesInvoices
                 .Where(i => i.ClientId == clientId && i.InvoiceDate < fromDate)
                 .SumAsync(i => (decimal?)i.TotalAmount) ?? 0;
 
-            var paymentsOnInvoicesBefore = await _context.SalesInvoices
+            totalReturnsBefore = await _context.PurchaseInvoices
+                .Where(i => i.ClientId == clientId && i.InvoiceDate < fromDate)
+                .SumAsync(i => (decimal?)i.TotalAmount) ?? 0;
+
+            paymentsOnInvoicesBefore = await _context.SalesInvoices
                 .Where(i => i.ClientId == clientId && i.InvoiceDate < fromDate)
                 .SumAsync(i => (decimal?)i.PaidAmount) ?? 0;
 
-            var separatePaymentsBefore = await _context.ClientPayments
+            separatePaymentsBefore = await _context.ClientPayments
                 .Where(p => p.ClientId == clientId && p.PaymentDate < fromDate)
                 .SumAsync(p => (decimal?)p.Amount) ?? 0;
 
-            decimal openingBalance = totalInvoicesBefore - (paymentsOnInvoicesBefore + separatePaymentsBefore);
+            decimal openingBalance = totalSalesBefore - (totalReturnsBefore + paymentsOnInvoicesBefore + separatePaymentsBefore);
 
-            // 2. جلب الحركات خلال الفترة
-            var invoicesInPeriod = await _context.SalesInvoices
+            // --- 2. جلب كل أنواع الحركات خلال الفترة ---
+            var salesInPeriod = await _context.SalesInvoices
                 .Where(i => i.ClientId == clientId && i.InvoiceDate >= fromDate && i.InvoiceDate <= inclusiveToDate)
                 .Select(i => new { Date = i.InvoiceDate, Type = "فاتورة بيع", Ref = i.InvoiceNumber, Debit = i.TotalAmount, Credit = i.PaidAmount })
                 .ToListAsync();
@@ -48,15 +57,26 @@ namespace MaterialManagement.BLL.Service.Implementations
                 .Select(p => new { Date = p.PaymentDate, Type = "تحصيل", Ref = "دفعة #" + p.Id, Debit = 0m, Credit = p.Amount })
                 .ToListAsync();
 
-            // 3. دمج الحركات
+            var returnsInPeriod = await _context.PurchaseInvoices
+                .Where(i => i.ClientId == clientId && i.InvoiceDate >= fromDate && i.InvoiceDate <= inclusiveToDate)
+                .Select(i => new { Date = i.InvoiceDate, Type = "مرتجع بيع", Ref = i.InvoiceNumber, Debit = 0m, Credit = i.TotalAmount })
+                .ToListAsync();
+
+            // --- 3. دمج كل الحركات ---
             var allTransactions = new List<dynamic>();
-            allTransactions.AddRange(invoicesInPeriod.Select(t => new { t.Date, t.Type, t.Ref, Debit = t.Debit, Credit = 0m }));
-            allTransactions.AddRange(invoicesInPeriod.Where(t => t.Credit > 0).Select(t => new { t.Date, Type = "دفعة مع الفاتورة", Ref = t.Ref, Debit = 0m, Credit = t.Credit }));
+
+            // الفواتير كـ "مدين"
+            allTransactions.AddRange(salesInPeriod.Select(t => new { t.Date, t.Type, t.Ref, Debit = t.Debit, Credit = 0m }));
+            // الدفعات مع الفواتير كـ "دائن"
+            allTransactions.AddRange(salesInPeriod.Where(t => t.Credit > 0).Select(t => new { t.Date, Type = "دفعة مع الفاتورة", Ref = t.Ref, Debit = 0m, Credit = t.Credit }));
+            // التحصيلات المستقلة كـ "دائن"
             allTransactions.AddRange(paymentsInPeriod.Select(t => new { t.Date, t.Type, t.Ref, t.Debit, t.Credit }));
+            // المرتجعات كـ "دائن"
+            allTransactions.AddRange(returnsInPeriod.Select(t => new { t.Date, t.Type, t.Ref, t.Debit, t.Credit }));
 
             var sortedTransactions = allTransactions.OrderBy(t => t.Date).ToList();
 
-            // 4. بناء التقرير
+            // --- 4. بناء التقرير النهائي ---
             var statement = new List<AccountStatementViewModel>();
             decimal currentBalance = openingBalance;
 

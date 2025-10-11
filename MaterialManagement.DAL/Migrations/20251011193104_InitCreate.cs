@@ -188,7 +188,8 @@ namespace MaterialManagement.DAL.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     InvoiceNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     InvoiceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SupplierId = table.Column<int>(type: "int", nullable: false),
+                    SupplierId = table.Column<int>(type: "int", nullable: true),
+                    ClientId = table.Column<int>(type: "int", nullable: true),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     PaidAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     RemainingAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -200,11 +201,15 @@ namespace MaterialManagement.DAL.Migrations
                 {
                     table.PrimaryKey("PK_PurchaseInvoices", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_PurchaseInvoices_Clients_ClientId",
+                        column: x => x.ClientId,
+                        principalTable: "Clients",
+                        principalColumn: "Id");
+                    table.ForeignKey(
                         name: "FK_PurchaseInvoices_Suppliers_SupplierId",
                         column: x => x.SupplierId,
                         principalTable: "Suppliers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -365,6 +370,11 @@ namespace MaterialManagement.DAL.Migrations
                 name: "IX_PurchaseInvoiceItems_PurchaseInvoiceId",
                 table: "PurchaseInvoiceItems",
                 column: "PurchaseInvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseInvoices_ClientId",
+                table: "PurchaseInvoices",
+                column: "ClientId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseInvoices_InvoiceNumber",

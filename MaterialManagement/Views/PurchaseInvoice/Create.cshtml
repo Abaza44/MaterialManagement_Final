@@ -1,8 +1,14 @@
 ﻿@model MaterialManagement.BLL.ModelVM.Invoice.PurchaseInvoiceCreateModel
-@using MaterialManagement.BLL.ModelVM.Invoice;
+
 @{
-    ViewData["Title"] = "إنشاء فاتورة شراء";
+    ViewData["Title"] = "إنشاء شراء / مرتجع";
 }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1><i class="bi bi-cart-plus"></i> إنشاء عملية شراء / مرتجع</h1>
+    <a asp-action="Index" class="btn btn-secondary">العودة للقائمة</a>
+</div>
+
 @if (TempData["ErrorMessage"] != null)
 {
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
@@ -11,113 +17,228 @@
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3">➕ إنشاء فاتورة شراء</h2>
 
-    <form asp-action="Create" method="post">
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Create" method="post" id="purchaseForm">
+            @Html.AntiForgeryToken()
 
-        <div class="mb-3">
-    <label asp-for="InvoiceNumber" class="form-label fw-bold"></label>
-    
-    <!-- <<< تم التعديل هنا >>> -->
-    <input asp-for="InvoiceNumber" class="form-control" 
-           placeholder="سيتم إنشاؤه تلقائيًا عند الحفظ" readonly />
-           
-    <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
-</div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="InvoiceNumber" class="form-label fw-bold"></label>
+                    <input asp-for="InvoiceNumber" class="form-control" placeholder="سيتم إنشاؤه تلقائيًا" readonly />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="InvoiceDate" class="form-label fw-bold"></label>
+                    <input asp-for="InvoiceDate" type="date" class="form-control" />
+                    <span asp-validation-for="InvoiceDate" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">نوع العملية</label>
+                    <select id="transactionType" class="form-select">
+                        <option value="supplier" selected>شراء من مورد</option>
+                        <option value="client">مرتجع من عميل</option>
+                    </select>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label asp-for="InvoiceDate" class="form-label"></label>
-            <input asp-for="InvoiceDate" type="date" class="form-control" />
-        </div>
+            <div id="supplierDiv" class="mb-3">
+                <label asp-for="SupplierId" class="form-label fw-bold"></label>
+                <select asp-for="SupplierId" class="form-select" asp-items="@(new SelectList(ViewBag.Suppliers, "Id", "Name"))">
+                    <option value="">-- اختر المورد --</option>
+                </select>
+                <span asp-validation-for="SupplierId" class="text-danger"></span>
+            </div>
 
-        <div class="mb-3">
-            <label asp-for="SupplierId" class="form-label">المورد</label>
-            <select asp-for="SupplierId" class="form-control" asp-items="@(new SelectList(ViewBag.Suppliers, "Id", "Name"))">
-                <option>اختر المورد</option>
-            </select>
-            <span asp-validation-for="SupplierId" class="text-danger"></span>
-        </div>
+            <div id="clientDiv" class="mb-3" style="display:none;">
+                <label asp-for="ClientId" class="form-label fw-bold"></label>
+                <select asp-for="ClientId" class="form-select" asp-items="@(new SelectList(ViewBag.Clients, "Id", "Name"))">
+                    <option value="">-- اختر العميل --</option>
+                </select>
+                <span asp-validation-for="ClientId" class="text-danger"></span>
+            </div>
 
-        <h4>المواد</h4>
-        <table class="table table-bordered" id="itemsTable">
-            <thead class="table-light">
-                <tr>
-                    <th>المادة</th>
-                    <th>الكمية</th>
-                    <th>سعر الوحدة</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (int i = 0; i < Model.Items.Count; i++)
-                {
-                    <tr>
-                        <td>
-                            <select asp-for="@Model.Items[i].MaterialId"
-                                    class="form-control"
-                                    asp-items="@(new SelectList(ViewBag.Materials, "Id", "Name"))">
-                                <option>اختر مادة</option>
-                            </select>
-                            <span asp-validation-for="@Model.Items[i].MaterialId" class="text-danger"></span>
-                        </td>
+            <hr />
+            <h4 class="mb-3">البنود</h4>
 
-                        <td>
-                            <input asp-for="@Model.Items[i].Quantity" class="form-control" />
-                            <span asp-validation-for="@Model.Items[i].Quantity" class="text-danger"></span>
-                        </td>
+            <div class="table-responsive">
+                <table class="table table-bordered" id="itemsTable">
+                    <thead class="table-light text-center align-middle">
+                        <tr>
+                            <th style="width: 40%;">المادة</th>
+                            <th style="width: 15%;">الكمية</th>
+                            <th style="width: 20%;">سعر الوحدة</th>
+                            <th style="width: 20%;">الإجمالي</th>
+                            <th style="width: 5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- صف افتراضي واحد يبدأ به النموذج -->
+                        <tr>
+                            <td>
+                                <select name="Items[0].MaterialId" class="form-select material-select">
+                                    <option value="">-- اختر مادة --</option>
+                                    @foreach (var material in ViewBag.Materials)
+                                    {
+                                        <option value="@material.Id">@material.Name</option>
+                                    }
+                                </select>
+                            </td>
+                            <td><input name="Items[0].Quantity" type="number" step="any" class="form-control item-calc" /></td>
+                            <td><input name="Items[0].UnitPrice" type="number" step="0.01" class="form-control item-calc" /></td>
+                            <td><input type="number" class="form-control total-item-price" readonly /></td>
+                            <td class="text-center"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">الإجمالي الكلي:</td>
+                            <td id="grandTotal" class="fw-bold text-center">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
 
-                        <td>
-                            <input asp-for="@Model.Items[i].UnitPrice" class="form-control" />
-                            <span asp-validation-for="@Model.Items[i].UnitPrice" class="text-danger"></span>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+            <button type="button" class="btn btn-primary btn-sm mb-3" id="addRow">
+                <i class="bi bi-plus-lg"></i> إضافة بند
+            </button>
 
-        <button type="button" class="btn btn-primary btn-sm mb-3" id="addRow">➕ إضافة مادة</button>
+            <hr />
 
-        <div class="mb-3">
-            <label asp-for="PaidAmount" class="form-label">المبلغ المدفوع</label>
-            <input asp-for="PaidAmount" class="form-control" />
-            <span asp-validation-for="PaidAmount" class="text-danger"></span>
-        </div>
+            <div class="row justify-content-end">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label asp-for="PaidAmount" class="form-label fw-bold"></label>
+                        <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" />
+                        <span asp-validation-for="PaidAmount" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label fw-bold"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label asp-for="Notes" class="form-label"></label>
-            <textarea asp-for="Notes" class="form-control"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-success">💾 حفظ الفاتورة</button>
-        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
-    </form>
+            <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> حفظ العملية</button>
+        </form>
+    </div>
 </div>
 
 @section Scripts {
-    <script>
-        document.getElementById("addRow").addEventListener("click", function () {
-            var tableBody = document.querySelector("#itemsTable tbody");
-            var rowCount = tableBody.rows.length;
+    <partial name="_ValidationScriptsPartial" />
 
-            var newRow = document.createElement("tr");
-            newRow.innerHTML = `
-                <td>
-                    <select name="Items[${rowCount}].MaterialId" class="form-control">
-                        <option>اختر مادة</option>
-                        @foreach (var material in ViewBag.Materials)
-                        {
-                                <option value="@material.Id">@material.Name</option>
-                        }
-                    </select>
-                </td>
-                <td>
-                    <input name="Items[${rowCount}].Quantity" class="form-control" />
-                </td>
-                <td>
-                    <input name="Items[${rowCount}].UnitPrice" class="form-control" />
-                </td>
-            `;
-            tableBody.appendChild(newRow);
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const transactionType = document.getElementById("transactionType");
+            const supplierDiv = document.getElementById("supplierDiv");
+            const clientDiv = document.getElementById("clientDiv");
+            const tableBody = document.querySelector("#itemsTable tbody");
+
+            // تبديل العرض بين مورد / عميل
+            function toggleFields() {
+                if (transactionType.value === "supplier") {
+                    supplierDiv.style.display = "block";
+                    clientDiv.style.display = "none";
+                    clientDiv.querySelector("select").value = "";
+                } else {
+                    supplierDiv.style.display = "none";
+                    clientDiv.style.display = "block";
+                    supplierDiv.querySelector("select").value = "";
+                }
+            }
+            transactionType.addEventListener("change", toggleFields);
+            toggleFields();
+
+            // حساب إجمالي صف واحد
+            function updateRowCalculations(row) {
+                const qtyInput = row.querySelector('[name$=".Quantity"]');
+                const priceInput = row.querySelector('[name$=".UnitPrice"]');
+                const totalInput = row.querySelector('.total-item-price');
+
+                const qty = parseFloat(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                const total = qty * price;
+                totalInput.value = total.toFixed(2);
+                updateGrandTotal();
+            }
+
+            // حساب الإجمالي الكلي
+            function updateGrandTotal() {
+                let grandTotal = 0;
+                tableBody.querySelectorAll('.total-item-price').forEach(input => {
+                    grandTotal += parseFloat(input.value) || 0;
+                });
+                document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
+            }
+
+            // إعادة ترقيم الحقول قبل الإرسال أو بعد حذف/إضافة صف
+            function reindexTable() {
+                const rows = tableBody.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    const mat = row.querySelector('[name$=".MaterialId"]');
+                    const qty = row.querySelector('[name$=".Quantity"]');
+                    const price = row.querySelector('[name$=".UnitPrice"]');
+                    if (mat) mat.name = `Items[${index}].MaterialId`;
+                    if (qty) qty.name = `Items[${index}].Quantity`;
+                    if (price) price.name = `Items[${index}].UnitPrice`;
+                });
+            }
+
+            // إضافة صف جديد — استخدم Razor داخل template string (آمن هنا)
+            document.getElementById('addRow').addEventListener('click', function () {
+                const index = tableBody.rows.length;
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>
+                        <select name="Items[${index}].MaterialId" class="form-select">
+                            <option value="">-- اختر مادة --</option>
+                            @foreach (var material in ViewBag.Materials)
+                            {
+                                    <option value="@material.Id">@material.Name</option>
+                            }
+                        </select>
+                    </td>
+                    <td><input name="Items[${index}].Quantity" type="number" step="any" class="form-control item-calc" /></td>
+                    <td><input name="Items[${index}].UnitPrice" type="number" step="0.01" class="form-control item-calc" /></td>
+                    <td><input type="number" class="form-control total-item-price" readonly /></td>
+                    <td class="text-center"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
+                `;
+                tableBody.appendChild(newRow);
+                reindexTable();
+            });
+
+            // حدث الاستماع للتغييرات داخل الجدول (حساب تلقائي)
+            tableBody.addEventListener('input', function (e) {
+                if (e.target.classList.contains('item-calc')) {
+                    const row = e.target.closest('tr');
+                    updateRowCalculations(row);
+                }
+            });
+
+            // حذف صف
+            tableBody.addEventListener('click', function (e) {
+                const rem = e.target.closest('.remove-row');
+                if (rem) {
+                    if (tableBody.rows.length > 1) {
+                        rem.closest('tr').remove();
+                        reindexTable();
+                        updateGrandTotal();
+                    } else {
+                        alert('يجب أن تحتوي العملية على بند واحد على الأقل.');
+                    }
+                }
+            });
+
+            // حساب مبدئي لأول صف إن كان فيه قيم
+            if (tableBody.rows.length > 0) {
+                updateRowCalculations(tableBody.querySelector('tr'));
+            }
+
+            // قبل إرسال الفورم، تأكد من إعادة الترقيم (مفيد لو تم إضافة/حذف)
+            document.getElementById('purchaseForm').addEventListener('submit', function () {
+                reindexTable();
+            });
         });
     </script>
 }
