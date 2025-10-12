@@ -1,0 +1,75 @@
+version: 1
+
+project:
+  name: MaterialManagement_Final
+  description: >
+    Material Management System built with ASP.NET MVC (C#) for managing materials,
+    suppliers, clients, employees, and invoices. Includes payment tracking, expense management,
+    and reporting features.
+  language: csharp
+  framework: asp.net mvc
+
+analysis:
+  documentation: true          # Generate full documentation (classes, functions, methods)
+  performance_review: true     # Suggest performance improvements
+  code_quality: true           # Review naming, structure, and maintainability
+  security_review: true        # Identify security vulnerabilities
+  dependencies_audit: true     # Check NuGet packages for outdated or vulnerable versions
+
+output:
+  format: markdown
+  file: Auto_Report.md          # The analysis result will be saved inside this file
+  include:
+    - MaterialManagement/Controllers/
+    - MaterialManagement/Models/
+    - MaterialManagement/Views/
+    - MaterialManagement.BLL/
+    - MaterialManagement.DAL/
+    - MaterialManagement/Helper/
+    - MaterialManagement/ModelVM/
+  exclude:
+    - bin/
+    - obj/
+    - wwwroot/
+    - Migrations/
+    - .vs/
+    - .git/
+    - *.pdb
+    - *.dll
+    - *.csproj.user
+    - *.json
+    - *.css
+    - *.js
+    - *.md
+    - *.png
+    - *.jpg
+    - *.svg
+
+rules:
+  ignore_files:
+    - "*.Designer.cs"
+    - "*.g.cs"
+    - "*.AssemblyInfo.cs"
+  priority:
+    - Controllers/
+    - BLL/
+    - DAL/
+    - ModelVM/
+  report:
+    detail_level: high
+    group_by: namespace
+    show_line_numbers: true
+    show_summary: true
+
+recommendations:
+  performance:
+    - "Consider async/await for database and I/O operations."
+    - "Use caching for static lookups and repeated queries."
+    - "Avoid heavy logic in controllers — move it to the service layer."
+  naming:
+    - "Use PascalCase for class and method names."
+    - "Use camelCase for local variables and parameters."
+  security:
+    - "Validate all user inputs."
+    - "Use parameterized queries to prevent SQL injection."
+    - "Secure sensitive configuration values in environment variables."
