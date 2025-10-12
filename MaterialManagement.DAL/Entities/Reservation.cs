@@ -14,8 +14,7 @@ namespace MaterialManagement.DAL.Entities
 
         public int ClientId { get; set; }
         public virtual Client Client { get; set; }
-        public decimal PaidAmount { get; set; }
-        public decimal RemainingAmount { get; set; }
+        
         public decimal TotalAmount { get; set; }
         public ReservationStatus Status { get; set; }
         public string? Notes { get; set; }
