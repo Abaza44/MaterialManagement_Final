@@ -4,6 +4,7 @@ using MaterialManagement.DAL.DB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MaterialManagement.DAL.Migrations
 {
     [DbContext(typeof(MaterialManagementContext))]
-    partial class MaterialManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20251012101505_ConfigureReservationEntities")]
+    partial class ConfigureReservationEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

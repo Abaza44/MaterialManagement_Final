@@ -44,14 +44,12 @@
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark text-center">
                 <tr>
-                    <th>الكود</th>
                     <th>الاسم</th>
-                    <th>الوحدة</th>
-                    <th>الكمية</th>
-                    <th>سعر الشراء</th>
-                    <th>قيمة المخزون</th>
-                    <th>الحالة</th>
-                    <th>الإجراءات</th>
+                    <th>الكمية بالمخزن</th>
+                    <th>الكمية المحجوزة</th>
+                    <th>الكمية المتاحة</th>
+                    <th>سعر البيع</th>
+                    <th>إجراءات</th>
                 </tr>
             </thead>
             <tbody>
@@ -60,28 +58,23 @@
                     foreach (var item in Model)
                     {
                         <tr>
-                            <td>@item.Code</td>
                             <td>@item.Name</td>
-                            <td>@item.Unit</td>
                             <td>@item.Quantity</td>
-                            <td>@item.PurchasePrice.ToString("N2")</td>
-                            <td>@item.TotalValue.ToString("N2")</td>
-                            <td class="text-center">
-                                @if (item.IsActive)
+                            <td>@item.ReservedQuantity</td>
+
+                            <td>
+                                @if (item.AvailableQuantity < 0)
                                 {
-                                    <span class="badge bg-success px-3 py-2">نشط</span>
+                                    <span class="text-danger fw-bold">@item.AvailableQuantity</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger px-3 py-2">غير نشط</span>
+                                    <span>@item.AvailableQuantity</span>
                                 }
                             </td>
-                            <td class="text-center">
-                                <div class="btn-group">
-                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">👁</a>
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">✏️</a>
-                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">🗑</a>
-                                </div>
+
+                            <td>@item.SellingPrice</td>
+                            <td>
                             </td>
                         </tr>
                     }

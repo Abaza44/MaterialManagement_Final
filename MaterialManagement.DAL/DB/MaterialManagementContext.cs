@@ -28,7 +28,8 @@ namespace MaterialManagement.DAL.DB
         public DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
         public DbSet<ClientPayment> ClientPayments { get; set; }
         public DbSet<SupplierPayment> SupplierPayments { get; set; }
-
+        public DbSet<Reservation> Reservations { get; set; }
+        public DbSet<ReservationItem> ReservationItems { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -39,7 +40,7 @@ namespace MaterialManagement.DAL.DB
             modelBuilder.Entity<Material>().Property(m => m.Quantity).HasPrecision(18, 2);
             modelBuilder.Entity<Material>().Property(m => m.PurchasePrice).HasPrecision(18, 2);
             modelBuilder.Entity<Material>().Property(m => m.SellingPrice).HasPrecision(18, 2);
-            
+            modelBuilder.Entity<Material>().Property(m => m.ReservedQuantity).HasPrecision(18, 2);
 
             // Client & Supplier
             modelBuilder.Entity<Client>().Property(c => c.Balance).HasPrecision(18, 2);
@@ -68,7 +69,12 @@ namespace MaterialManagement.DAL.DB
 
             // Expense
             modelBuilder.Entity<Expense>().Property(e => e.Amount).HasPrecision(18, 2);
-
+            //===============================Reservation=====================
+            modelBuilder.Entity<Reservation>().Property(r => r.TotalAmount).HasPrecision(18, 2);
+            // Add precision for ReservationItem
+            modelBuilder.Entity<ReservationItem>().Property(ri => ri.Quantity).HasPrecision(18, 2);
+            modelBuilder.Entity<ReservationItem>().Property(ri => ri.UnitPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<ReservationItem>().Property(ri => ri.TotalPrice).HasPrecision(18, 2);
             // --- Relationships ---
 
             // Equipment to Maintenance Records
@@ -106,12 +112,20 @@ namespace MaterialManagement.DAL.DB
                 .HasForeignKey(item => item.PurchaseInvoiceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Reservation to its Items relationship
+            modelBuilder.Entity<Reservation>()
+                .HasMany(r => r.ReservationItems)
+                .WithOne(item => item.Reservation)
+                .HasForeignKey(item => item.ReservationId)
+                .OnDelete(DeleteBehavior.Cascade); // If a reservation is deleted, delete its items
+            
             // --- Unique Indexes ---
             modelBuilder.Entity<Material>().HasIndex(m => m.Code).IsUnique();
             modelBuilder.Entity<Client>().HasIndex(c => c.Phone).IsUnique();
             modelBuilder.Entity<Supplier>().HasIndex(s => s.Phone).IsUnique();
             modelBuilder.Entity<SalesInvoice>().HasIndex(s => s.InvoiceNumber).IsUnique();
             modelBuilder.Entity<PurchaseInvoice>().HasIndex(p => p.InvoiceNumber).IsUnique();
+            modelBuilder.Entity<Reservation>().HasIndex(r => r.ReservationNumber).IsUnique();
         }
     }
 }

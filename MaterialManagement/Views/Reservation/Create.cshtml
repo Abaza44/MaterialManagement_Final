@@ -1,0 +1,98 @@
+﻿@model MaterialManagement.BLL.ModelVM.Reservation.ReservationCreateModel
+@using MaterialManagement.BLL.ModelVM.Material
+@using MaterialManagement.DAL.Enums;
+@{
+    ViewData["Title"] = "إنشاء حجز جديد";
+    var materialsJson = Json.Serialize(ViewBag.Materials as IEnumerable<MaterialViewModel>);
+}
+
+<h1>@ViewData["Title"]</h1>
+<hr />
+<form asp-action="Create">
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="row">
+        <div class="form-group col-md-6">
+            <label asp-for="ClientId" class="control-label"></label>
+            <select asp-for="ClientId" class="form-control" asp-items="ViewBag.Clients">
+                <option value="">-- اختر العميل --</option>
+            </select>
+        </div>
+        <div class="form-group col-md-6">
+            <label asp-for="Notes" class="control-label"></label>
+            <textarea asp-for="Notes" class="form-control"></textarea>
+        </div>
+    </div>
+
+    <hr />
+    <h3>الأصناف المحجوزة</h3>
+    <table class="table" id="itemsTable">
+        <thead>
+            <tr>
+                <th>المادة</th>
+                <th style="width: 15%;">الكمية</th>
+                <th style="width: 15%;">سعر الوحدة</th>
+                <th style="width: 5%;"></th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <button type="button" id="addItemBtn" class="btn btn-secondary">إضافة صنف</button>
+    <hr />
+
+    <div class="form-group">
+        <input type="submit" value="إنشاء الحجز" class="btn btn-primary" />
+        <a asp-action="Index" class="btn btn-link">العودة إلى القائمة</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            let itemIndex = 0;
+            const materials = JSON.parse('@Html.Raw(materialsJson)');
+
+            function createMaterialDropdown() {
+                let options = '<option value="">-- اختر المادة --</option>';
+                materials.forEach(function (mat) {
+                    options += `<option value="${mat.id}">${mat.name}</option>`;
+                });
+                return `<select name="Items[${itemIndex}].MaterialId" class="form-control" required>${options}</select>`;
+            }
+
+            function addItemRow() {
+                let materialDropdown = createMaterialDropdown();
+                let newRow = `
+                    <tr>
+                        <td>${materialDropdown}</td>
+                        <td><input name="Items[${itemIndex}].Quantity" class="form-control" type="number" step="0.01" value="1" required /></td>
+                        <td><input name="Items[${itemIndex}].UnitPrice" class="form-control" type="number" step="0.01" value="0" required /></td>
+                        <td><button type="button" class="btn btn-danger btn-sm remove-item-btn">حذف</button></td>
+                    </tr>`;
+                $('#itemsTable tbody').append(newRow);
+                itemIndex++;
+            }
+
+            function reindexRows() {
+                $('#itemsTable tbody tr').each(function (index, row) {
+                    $(row).find('select, input').each(function() {
+                        let oldName = $(this).attr('name');
+                        if (oldName) {
+                           let newName = oldName.replace(/\[\d+\]/, `[${index}]`);
+                           $(this).attr('name', newName);
+                        }
+                    });
+                });
+                itemIndex = $('#itemsTable tbody tr').length;
+            }
+
+            $('#addItemBtn').on('click', function () { addItemRow(); });
+            $('#itemsTable').on('click', '.remove-item-btn', function () {
+                $(this).closest('tr').remove();
+                reindexRows();
+            });
+        });
+    </script>
+}

@@ -1,0 +1,53 @@
+﻿@model List<MaterialManagement.BLL.ModelVM.Reservation.ClientReservationsViewModel>
+
+@{
+    ViewData["Title"] = "الحجوزات النشطة";
+}
+
+<h1>@ViewData["Title"]</h1>
+<p><a asp-action="Create" class="btn btn-primary">إنشاء حجز جديد</a></p>
+
+<div class="accordion" id="reservationsAccordion">
+    @foreach (var clientGroup in Model)
+    {
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-@clientGroup.ClientId">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@clientGroup.ClientId" aria-expanded="false" aria-controls="collapse-@clientGroup.ClientId">
+                    <strong>@clientGroup.ClientName</strong>
+                    <span class="badge bg-primary ms-2">@clientGroup.Reservations.Count حجز</span>
+                </button>
+            </h2>
+            <div id="collapse-@clientGroup.ClientId" class="accordion-collapse collapse" aria-labelledby="heading-@clientGroup.ClientId" data-bs-parent="#reservationsAccordion">
+                <div class="accordion-body">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>رقم الحجز</th>
+                                <th>التاريخ</th>
+                                <th>الأصناف</th>
+                                <th>الإجمالي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reservation in clientGroup.Reservations)
+                            {
+                                <tr>
+                                    <td>@reservation.ReservationNumber</td>
+                                    <td>@reservation.ReservationDate.ToShortDateString()</td>
+                                    <td>@reservation.ItemsSummary</td>
+                                    <td>@reservation.TotalAmount.ToString("C")</td>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@reservation.Id" class="btn btn-sm btn-secondary">
+                                            التفاصيل والتسليم
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

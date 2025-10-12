@@ -4,6 +4,7 @@ using MaterialManagement.DAL.DB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MaterialManagement.DAL.Migrations
 {
     [DbContext(typeof(MaterialManagementContext))]
-    partial class MaterialManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20251011235919_AddReservationSystem")]
+    partial class AddReservationSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -290,7 +293,6 @@ namespace MaterialManagement.DAL.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("ReservedQuantity")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("SellingPrice")
@@ -398,79 +400,6 @@ namespace MaterialManagement.DAL.Migrations
                     b.HasIndex("PurchaseInvoiceId");
 
                     b.ToTable("PurchaseInvoiceItems");
-                });
-
-            modelBuilder.Entity("MaterialManagement.DAL.Entities.Reservation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ClientId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ReservationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ReservationNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClientId");
-
-                    b.HasIndex("ReservationNumber")
-                        .IsUnique();
-
-                    b.ToTable("Reservations");
-                });
-
-            modelBuilder.Entity("MaterialManagement.DAL.Entities.ReservationItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MaterialId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ReservationId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MaterialId");
-
-                    b.HasIndex("ReservationId");
-
-                    b.ToTable("ReservationItems");
                 });
 
             modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesInvoice", b =>
@@ -708,36 +637,6 @@ namespace MaterialManagement.DAL.Migrations
                     b.Navigation("PurchaseInvoice");
                 });
 
-            modelBuilder.Entity("MaterialManagement.DAL.Entities.Reservation", b =>
-                {
-                    b.HasOne("MaterialManagement.DAL.Entities.Client", "Client")
-                        .WithMany()
-                        .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Client");
-                });
-
-            modelBuilder.Entity("MaterialManagement.DAL.Entities.ReservationItem", b =>
-                {
-                    b.HasOne("MaterialManagement.DAL.Entities.Material", "Material")
-                        .WithMany()
-                        .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MaterialManagement.DAL.Entities.Reservation", "Reservation")
-                        .WithMany("ReservationItems")
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Material");
-
-                    b.Navigation("Reservation");
-                });
-
             modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesInvoice", b =>
                 {
                     b.HasOne("MaterialManagement.DAL.Entities.Client", "Client")
@@ -807,11 +706,6 @@ namespace MaterialManagement.DAL.Migrations
             modelBuilder.Entity("MaterialManagement.DAL.Entities.PurchaseInvoice", b =>
                 {
                     b.Navigation("PurchaseInvoiceItems");
-                });
-
-            modelBuilder.Entity("MaterialManagement.DAL.Entities.Reservation", b =>
-                {
-                    b.Navigation("ReservationItems");
                 });
 
             modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesInvoice", b =>

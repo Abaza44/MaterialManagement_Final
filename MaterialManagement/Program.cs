@@ -16,8 +16,7 @@ builder.Services.AddControllersWithViews();
 // Database Context
 
 builder.Services.AddDbContext<MaterialManagementContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")),
-    ServiceLifetime.Transient); 
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
@@ -35,7 +34,10 @@ builder.Services.AddScoped<IMaintenanceRecordRepo, MaintenanceRecordRepo>();
 builder.Services.AddScoped<IClientPaymentRepo, ClientPaymentRepo>();
 builder.Services.AddScoped<ISupplierPaymentRepo, SupplierPaymentRepo>();
 builder.Services.AddScoped<IEmployeeRepo, EmployeeRepo>();
-// Services
+
+builder.Services.AddScoped<IReservationRepo, ReservationRepo>();
+//========================================================================
+builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IClientPaymentService, ClientPaymentService>();
 builder.Services.AddScoped<ISupplierPaymentService, SupplierPaymentService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();

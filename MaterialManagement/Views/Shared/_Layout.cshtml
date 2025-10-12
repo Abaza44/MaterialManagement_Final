@@ -4,60 +4,65 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - MaterialManagement</title>
+
+    <!-- CSS Libraries -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <!-- Bootstrap Icons for a modern look -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MaterialManagement.styles.css" asp-append-version="true" />
 </head>
+
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top border-bottom mb-3">
             <div class="container">
                 <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Landing">
                     <i class="bi bi-stack"></i> Material Management
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
 
+                <div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">
+                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">
                                 <i class="bi bi-house-door"></i> الرئيسية
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Material" asp-action="Index">
+                            <a class="nav-link text-dark" asp-controller="Material" asp-action="Index">
                                 <i class="bi bi-box-seam"></i> المواد
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Equipment" asp-action="Index">
+                            <a class="nav-link text-dark" asp-controller="Equipment" asp-action="Index">
                                 <i class="bi bi-tools"></i> المعدات
                             </a>
                         </li>
 
-                        <!-- Dropdown for parties -->
+                        <!-- الأطراف -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-people"></i> الأطراف
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" asp-controller="Client" asp-action="Index">العملاء</a></li>
                                 <li><a class="dropdown-item" asp-controller="Supplier" asp-action="Index">الموردين</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" asp-controller="Employee" asp-action="Index">الموظفين</a>
+                                <li><a class="dropdown-item" asp-controller="Employee" asp-action="Index">الموظفين</a></li>
                             </ul>
                         </li>
 
-                        <!-- Dropdown for Invoices -->
+                        <!-- الفواتير -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-receipt"></i> الفواتير
                             </a>
                             <ul class="dropdown-menu">
@@ -66,9 +71,9 @@
                             </ul>
                         </li>
 
-                        <!-- <<< القائمة الجديدة هنا >>> -->
+                        <!-- المالية -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-wallet2"></i> المالية
                             </a>
                             <ul class="dropdown-menu">
@@ -90,50 +95,78 @@
                                 </li>
                             </ul>
                         </li>
+
+                        <!-- التقارير -->
                         <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown">
-                <i class="bi bi-file-earmark-bar-graph"></i> التقارير
-            </a>
-            <ul class="dropdown-menu">
-                <li>
-                    <a class="dropdown-item" asp-controller="Report" asp-action="AccountStatement">
-                        <i class="bi bi-person-lines-fill"></i> كشف حساب (عميل/مورد)
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" asp-controller="Report" asp-action="MaterialMovement">
-                        <i class="bi bi-arrows-move"></i> تقرير حركة صنف
-                    </a>
-                </li>
-                 <li>
-                    <a class="dropdown-item" asp-controller="Report" asp-action="ProfitReport">
-                        <i class="bi bi-graph-up-arrow"></i> تقرير الأرباح
-                    </a>
-                </li>
-            </ul>
-        </li>
+                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
+                                <i class="bi bi-file-earmark-bar-graph"></i> التقارير
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Report" asp-action="AccountStatement">
+                                        <i class="bi bi-person-lines-fill"></i> كشف حساب (عميل/مورد)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Report" asp-action="MaterialMovement">
+                                        <i class="bi bi-arrows-move"></i> تقرير حركة صنف
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Report" asp-action="ProfitReport">
+                                        <i class="bi bi-graph-up-arrow"></i> تقرير الأرباح
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-controller="Reservation" asp-action="Index">
+                                <i class="bi bi-calendar-check"></i> الحجوزات
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
+
+            <!-- تنبيهات النجاح والخطأ -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i> @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - MaterialManagement - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="border-top footer text-muted py-3">
+        <div class="container text-center">
+            &copy; 2025 - MaterialManagement - <a asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
+
+    <!-- JS Libraries -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 </body>
 </html>

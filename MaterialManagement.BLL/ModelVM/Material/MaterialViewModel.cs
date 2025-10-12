@@ -8,6 +8,10 @@ namespace MaterialManagement.BLL.ModelVM.Material
         public string Name { get; set; }
         public string Code { get; set; }
         public decimal MinimumQuantity { get; set; }
+        public decimal ReservedQuantity { get; set; }
+
+        [Display(Name = "الكمية المتاحة")]
+        public decimal AvailableQuantity { get; set; }
         public string Unit { get; set; }
         public decimal Quantity { get; set; }
         public decimal PurchasePrice { get; set; }

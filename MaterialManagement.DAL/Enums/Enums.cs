@@ -31,4 +31,11 @@ namespace MaterialManagement.DAL.Enums
         Warehouse = 3,
         Other = 4
     }
+
+    public enum ReservationStatus
+    {
+        Active,
+        Fulfilled, 
+        Cancelled
+    }
 }

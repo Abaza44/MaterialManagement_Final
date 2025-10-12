@@ -1,0 +1,58 @@
+﻿@model MaterialManagement.BLL.ModelVM.Reservation.ReservationDetailsViewModel
+@using MaterialManagement.DAL.Entities
+@using MaterialManagement.DAL.Enums;
+@{
+    ViewData["Title"] = "تفاصيل الحجز";
+}
+
+<h2>تفاصيل الحجز رقم: @Model.ReservationNumber</h2>
+<hr />
+
+@* عرض أزرار الإجراءات فقط إذا كان الحجز نشطًا *@
+@if (Model.Status == ReservationStatus.Active)
+{
+    <div class="alert alert-warning d-flex justify-content-around">
+        <form asp-action="Fulfill" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('هل أنت متأكد من تسليم هذا الحجز وإنشاء فاتورة بيع؟')">
+            <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> تسليم وإنشاء فاتورة</button>
+        </form>
+        <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا الحجز؟ سيتم إعادة المبلغ لرصيد العميل وتحرير الكمية المحجوزة.')">
+            <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> إلغاء الحجز</button>
+        </form>
+    </div>
+}
+
+<dl class="row">
+    <dt class="col-sm-2">@Html.DisplayNameFor(model => model.ClientName)</dt>
+    <dd class="col-sm-10">@Model.ClientName</dd>
+
+    <dt class="col-sm-2">@Html.DisplayNameFor(model => model.ReservationDate)</dt>
+    <dd class="col-sm-10">@Model.ReservationDate.ToString("g")</dd>
+
+    <dt class="col-sm-2">@Html.DisplayNameFor(model => model.Status)</dt>
+    <dd class="col-sm-10">@Model.Status</dd>
+
+    <dt class="col-sm-2">@Html.DisplayNameFor(model => model.TotalAmount)</dt>
+    <dd class="col-sm-10">@Model.TotalAmount.ToString("C")</dd>
+</dl>
+
+<h4>الأصناف المحجوزة</h4>
+<table class="table">
+    <thead>
+        <tr><th>المادة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>@item.MaterialName</td>
+                <td>@item.Quantity</td>
+                <td>@item.UnitPrice.ToString("C")</td>
+                <td>@item.TotalPrice.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    <a asp-action="Index" class="btn btn-link">العودة إلى القائمة</a>
+</div>

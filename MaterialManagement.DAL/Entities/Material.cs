@@ -28,6 +28,7 @@ namespace MaterialManagement.DAL.Entities
         public decimal? PurchasePrice { get; set; }
         public decimal? SellingPrice { get; set; }
 
+        public decimal ReservedQuantity { get; set; } = 0;
         [StringLength(500)]
         public string? Description { get; set; }
 

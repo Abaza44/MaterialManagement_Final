@@ -18,9 +18,9 @@ namespace MaterialManagement.PL.Controllers
         private readonly ISupplierService _supplierService;
         private readonly ISalesInvoiceService _salesInvoiceService;
         private readonly IPurchaseInvoiceService _purchaseInvoiceService;
-        private readonly IEquipmentRepo _equipmentRepo;
-        private readonly IExpenseRepo _expenseRepo;
-        private readonly IEmployeeRepo _employeeRepo; // <<< تم إضافته
+        private readonly IEquipmentService _equipmentService;
+        private readonly IExpenseService _expenseService;
+        private readonly IEmployeeService _employeeService;
 
         public HomeController(
             ILogger<HomeController> logger,
@@ -29,9 +29,9 @@ namespace MaterialManagement.PL.Controllers
             ISupplierService supplierService,
             ISalesInvoiceService salesInvoiceService,
             IPurchaseInvoiceService purchaseInvoiceService,
-            IEquipmentRepo equipmentRepo,
-            IExpenseRepo expenseRepo,
-            IEmployeeRepo employeeRepo) // <<< تم إضافته
+            IEquipmentService equipmentService,
+            IExpenseService expenseService,
+            IEmployeeService employeeService) // <<< تم إضافته
         {
             _logger = logger;
             _materialService = materialService;
@@ -39,9 +39,9 @@ namespace MaterialManagement.PL.Controllers
             _supplierService = supplierService;
             _salesInvoiceService = salesInvoiceService;
             _purchaseInvoiceService = purchaseInvoiceService;
-            _equipmentRepo = equipmentRepo;
-            _expenseRepo = expenseRepo;
-            _employeeRepo = employeeRepo; // <<< تم إضافته
+            _equipmentService = equipmentService;
+            _expenseService = expenseService;
+            _employeeService = employeeService; // <<< تم إضافته
         }
 
         // This is the Dashboard
@@ -49,26 +49,14 @@ namespace MaterialManagement.PL.Controllers
         {
             try
             {
-                // Get all data in parallel for better performance
-                var materialsTask = _materialService.GetAllMaterialsAsync();
-                var clientsTask = _clientService.GetAllClientsAsync();
-                var suppliersTask = _supplierService.GetAllSuppliersAsync();
-                var salesInvoicesTask = _salesInvoiceService.GetAllInvoicesAsync();
-                var purchaseInvoicesTask = _purchaseInvoiceService.GetAllInvoicesAsync();
-                var equipmentTask = _equipmentRepo.GetAllAsync();
-                var employeesTask = _employeeRepo.GetAllAsync(); // <<< تم إضافته
-
-                await Task.WhenAll(
-                    materialsTask, clientsTask, suppliersTask,
-                    salesInvoicesTask, purchaseInvoicesTask, equipmentTask, employeesTask);
-
-                var materials = materialsTask.Result;
-                var clients = clientsTask.Result;
-                var suppliers = suppliersTask.Result;
-                var salesInvoices = salesInvoicesTask.Result;
-                var purchaseInvoices = purchaseInvoicesTask.Result;
-                var equipment = equipmentTask.Result;
-                var employees = employeesTask.Result; // <<< تم إضافته
+                // --- Run the queries sequentially ---
+                var materials = await _materialService.GetAllMaterialsAsync();
+                var clients = await _clientService.GetAllClientsAsync();
+                var suppliers = await _supplierService.GetAllSuppliersAsync();
+                var salesInvoices = await _salesInvoiceService.GetAllInvoicesAsync();
+                var purchaseInvoices = await _purchaseInvoiceService.GetAllInvoicesAsync();
+                var equipment = await _equipmentService.GetAllEquipmentAsync(); // Using service
+                var employees = await _employeeService.GetAllEmployeesAsync(); // Using service
 
                 // --- Calculations ---
                 var firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
@@ -82,7 +70,13 @@ namespace MaterialManagement.PL.Controllers
                     .Where(i => i.InvoiceDate >= firstDayOfMonth)
                     .Sum(i => i.TotalAmount);
 
-                ViewBag.TotalExpensesMonth = await _expenseRepo.GetTotalExpensesAsync(firstDayOfMonth, DateTime.Now);
+                // 1. Get all expenses
+                var allExpenses = await _expenseService.GetAllExpensesAsync();
+
+                // 2. Filter for the current month, then calculate the sum
+                ViewBag.TotalExpensesMonth = allExpenses
+                    .Where(e => e.ExpenseDate >= firstDayOfMonth) // Assuming your ExpenseViewModel has a 'Date' property
+                    .Sum(e => e.Amount);
 
                 // Balances
                 ViewBag.TotalClientDebt = clients.Where(c => c.Balance > 0).Sum(c => c.Balance);
@@ -90,12 +84,9 @@ namespace MaterialManagement.PL.Controllers
 
                 // Inventory & Operations
                 ViewBag.TotalMaterials = materials.Count();
-
-                // <<< تم إصلاح الشرط المنطقي هنا >>>
-                ViewBag.LowStockCount = materials.Count(m => m.Quantity <= m.MinimumQuantity&& m.IsActive);
-
+                ViewBag.LowStockCount = materials.Count(m => m.Quantity <= m.MinimumQuantity && m.IsActive); // Assuming MinimumQuantity exists
                 ViewBag.TotalEquipment = equipment.Count();
-                ViewBag.TotalEmployees = employees.Count(e => e.IsActive); // <<< تم إضافته
+                ViewBag.TotalEmployees = employees.Count(e => e.IsActive);
 
                 return View();
             }
@@ -103,7 +94,7 @@ namespace MaterialManagement.PL.Controllers
             {
                 _logger.LogError(ex, "An error occurred while loading the dashboard.");
                 TempData["ErrorMessage"] = "حدث خطأ أثناء تحميل لوحة التحكم.";
-                return View();
+                return View("Error", new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
             }
         }
 

@@ -7,6 +7,7 @@ using MaterialManagement.BLL.ModelVM.Invoice;
 using MaterialManagement.BLL.ModelVM.Maintenance;
 using MaterialManagement.BLL.ModelVM.Material;
 using MaterialManagement.BLL.ModelVM.Payment;
+using MaterialManagement.BLL.ModelVM.Reservation;
 using MaterialManagement.BLL.ModelVM.Supplier;
 using MaterialManagement.DAL.Entities;
 
@@ -27,7 +28,9 @@ namespace MaterialManagement.BLL.Helper
             CreateMap<SupplierUpdateModel, Supplier>();
 
             // === Material Mappings ===
-            CreateMap<Material, MaterialViewModel>();
+            CreateMap<Material, MaterialViewModel>()
+                .ForMember(dest => dest.AvailableQuantity,
+                    opt => opt.MapFrom(src => src.Quantity - src.ReservedQuantity));
             CreateMap<MaterialCreateModel, Material>();
             CreateMap<MaterialUpdateModel, Material>();
 
@@ -74,11 +77,26 @@ namespace MaterialManagement.BLL.Helper
             CreateMap<PurchaseInvoiceCreateModel, PurchaseInvoice>();
             CreateMap<PurchaseInvoiceItemCreateModel, PurchaseInvoiceItem>();
 
+            // Inside the public AutoMapperProfile() constructor
+
+            // This is the map for the Details page (you already have this)
+            CreateMap<Reservation, ReservationDetailsViewModel>()
+                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client.Name));
+
+            // --- ADD THIS MISSING MAP FOR THE INDEX PAGE ---
+            CreateMap<Reservation, ReservationIndexViewModel>()
+                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client.Name));
+
+            // This is the map for the items (you already have this)
+            CreateMap<ReservationItem, ReservationItemModel>()
+                .ForMember(dest => dest.MaterialName, opt => opt.MapFrom(src => src.Material.Name));
+
             // === Payment Mappings ===
             CreateMap<ClientPayment, ClientPaymentViewModel>();
             CreateMap<ClientPaymentCreateModel, ClientPayment>();
             CreateMap<SupplierPayment, SupplierPaymentViewModel>();
             CreateMap<SupplierPaymentCreateModel, SupplierPayment>();
+            CreateMap<ReservationCreateModel, Reservation>();
         }
     }
 }
