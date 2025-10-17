@@ -1,93 +1,91 @@
-﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Material.MaterialViewModel>
-
-@{
+﻿@{
     ViewData["Title"] = "إدارة المواد";
 }
 
-<div class="container mt-4">
+<h1>@ViewData["Title"]</h1>
+<p><a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> إضافة مادة جديدة</a></p>
 
-    <h2 class="mb-4 fw-bold text-center">📦 إدارة المواد</h2>
-
-    <!-- ✅ رسائل التنبيه -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="card shadow-sm mb-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> فلاتر</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="isActiveFilter" class="form-label">عرض المواد</label>
+                <select id="isActiveFilter" class="form-select">
+                    <option value="true" selected>النشطة فقط</option>
+                    <option value="false">غير النشطة فقط</option>
+                    <option value="">عرض الكل</option>
+                </select>
+            </div>
         </div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <!-- ✅ شريط البحث -->
-    <form asp-action="Index" method="get" class="row g-2 mb-3 align-items-center">
-        <div class="col-md-4">
-            <input type="text" name="searchTerm" value="@ViewBag.SearchTerm"
-                   class="form-control" placeholder="ابحث بالاسم أو الكود..." />
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">🔍 بحث</button>
-        </div>
-        <div class="col-md-6 text-md-end text-center">
-            <a asp-action="Create" class="btn btn-success me-2">➕ مادة جديدة</a>
-            <a asp-action="LowStock" class="btn btn-warning">⚠️ المواد منخفضة المخزون</a>
-        </div>
-    </form>
-
-    <!-- ✅ جدول المواد -->
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark text-center">
-                <tr>
-                    <th>الاسم</th>
-                    <th>الكمية بالمخزن</th>
-                    <th>الكمية المحجوزة</th>
-                    <th>الكمية المتاحة</th>
-                    <th>سعر البيع</th>
-                    <th>إجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var item in Model)
-                    {
-                        <tr>
-                            <td>@item.Name</td>
-                            <td>@item.Quantity</td>
-                            <td>@item.ReservedQuantity</td>
-
-                            <td>
-                                @if (item.AvailableQuantity < 0)
-                                {
-                                    <span class="text-danger fw-bold">@item.AvailableQuantity</span>
-                                }
-                                else
-                                {
-                                    <span>@item.AvailableQuantity</span>
-                                }
-                            </td>
-
-                            <td>@item.SellingPrice</td>
-                            <td>
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
-                            لا توجد مواد مسجلة حاليًا 💤
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
     </div>
 </div>
+
+<table id="materialsTable" class="table table-striped table-bordered" style="width:100%">
+    <thead>
+        <tr>
+            <th data-name="Code">الكود</th>
+            <th data-name="Name">الاسم</th>
+            <th data-name="Quantity">الكمية بالمخزن</th>
+            <th data-name="ReservedQuantity">المحجوزة</th>
+            <th data-name="AvailableQuantity">المتاحة</th>
+            <th>الإجراءات</th>
+        </tr>
+    </thead>
+</table>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // تعريف الجدول لسهولة الاستخدام
+            var materialsDataTable = $('#materialsTable').DataTable({
+                "processing": true,       // لإظهار رسالة "جاري التحميل..."
+                "serverSide": true,       // *** هذا هو أهم سطر، يفعل المعالجة من جانب الخادم ***
+                "filter": true,           // لتفعيل صندوق البحث
+                "ajax": {
+                    "url": "/Material/LoadData",
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": function (d) {
+                        
+                        d.isActiveFilter = $('#isActiveFilter').val();
+                    }
+                },
+                "columns": [
+                    { "data": "code", "name": "Code", "autoWidth": true },
+                    { "data": "name", "name": "Name", "autoWidth": true },
+                    { "data": "quantity", "name": "Quantity", "autoWidth": true },
+                    { "data": "reservedQuantity", "name": "ReservedQuantity", "autoWidth": true },
+                    {
+                        "data": "availableQuantity",
+                        "name": "AvailableQuantity",
+                        "autoWidth": true,
+                        "render": function(data) {
+                            return data < 0 ? `<span class="text-danger fw-bold">${data}</span>` : data;
+                        }
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            // دالة لرسم أزرار الإجراءات ديناميكيًا
+                            return `<a href='/Material/Edit/${data}' class='btn btn-sm btn-info'>تعديل</a> ` +
+                                   `<a href='/Material/Details/${data}' class='btn btn-sm btn-secondary'>تفاصيل</a>`;
+                        },
+                        "orderable": false,
+                        "searchable": false
+                    }
+                ],
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json"
+                }
+            });
+
+            // عند تغيير قيمة الفلتر، قم بإعادة تحميل بيانات الجدول
+            $('#isActiveFilter').on('change', function() {
+                materialsDataTable.draw();
+            });
+        });
+    </script>
+}

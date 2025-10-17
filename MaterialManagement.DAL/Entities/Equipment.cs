@@ -20,7 +20,7 @@ namespace MaterialManagement.DAL.Entities
 
         // --- تم حذف هذه الخصائص ---
         // public DateTime? LastMaintenanceDate { get; set; }
-        // public DateTime? NextMaintenanceDate { get; set; }
+
 
         // --- وأضفنا هذه العلاقة بدلاً منها ---
         public virtual ICollection<MaintenanceRecord> MaintenanceHistory { get; set; } = new List<MaintenanceRecord>();

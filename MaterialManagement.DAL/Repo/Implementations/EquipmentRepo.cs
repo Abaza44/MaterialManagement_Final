@@ -22,12 +22,12 @@ namespace MaterialManagement.DAL.Repo.Implementations
                 .ToListAsync();
         }
 
-        // في دالة GetByCodeAsync
+
         public async Task<Equipment?> GetByCodeAsync(int code)
         {
             return await _context.Equipment
-                .Include(e => e.MaintenanceHistory) // <-- أضف هذا السطر
-                .AsNoTracking()
+                .Include(e => e.MaintenanceHistory)
+                .AsNoTracking() // تجعلها سريعة وللقراءة فقط
                 .FirstOrDefaultAsync(e => e.Code == code);
         }
 
@@ -40,7 +40,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
 
         public async Task UpdateAsync(Equipment equipment)
         {
-            _context.Entry(equipment).State = EntityState.Modified;
+            _context.Equipment.Update(equipment); 
             await _context.SaveChangesAsync();
         }
 
@@ -52,6 +52,19 @@ namespace MaterialManagement.DAL.Repo.Implementations
             _context.Equipment.Remove(equipment);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public IQueryable<Equipment> GetAsQueryable()
+        {
+            
+            return _context.Equipment.Include(e => e.MaintenanceHistory).AsQueryable();
+        }
+
+        public async Task<Equipment?> GetByCodeForUpdateAsync(int code)
+        {
+            return await _context.Equipment
+                .Include(e => e.MaintenanceHistory)
+                .FirstOrDefaultAsync(e => e.Code == code);
         }
     }
 }

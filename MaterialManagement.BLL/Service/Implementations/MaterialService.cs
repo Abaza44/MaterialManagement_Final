@@ -144,5 +144,11 @@ namespace MaterialManagement.BLL.Service.Implementations
             var existingMaterial = await _materialRepo.GetByCodeAsync(code);
             return existingMaterial != null && (excludeId == null || existingMaterial.Id != excludeId);
         }
+
+        public IQueryable<Material> GetMaterialsAsQueryable()
+        {
+            
+            return _materialRepo.GetAsQueryable();
+        }
     }
 }

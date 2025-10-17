@@ -81,5 +81,11 @@ namespace MaterialManagement.DAL.Repo.Implementations
             
             return await _context.Materials.FindAsync(id);
         }
+
+        public IQueryable<Material> GetAsQueryable()
+        {
+            
+            return _context.Materials.AsQueryable();
+        }
     }
 }

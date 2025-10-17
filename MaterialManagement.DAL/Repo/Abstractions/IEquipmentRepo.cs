@@ -11,5 +11,7 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task<Equipment> CreateAsync(Equipment equipment);
         Task UpdateAsync(Equipment equipment);
         Task<bool> DeleteAsync(int code);
+        Task<Equipment?> GetByCodeForUpdateAsync(int code);
+        IQueryable<Equipment> GetAsQueryable();
     }
 }

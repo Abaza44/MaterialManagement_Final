@@ -11,5 +11,8 @@ namespace MaterialManagement.BLL.Service.Abstractions
         Task<EquipmentViewModel> CreateEquipmentAsync(EquipmentCreateModel model);
         Task<EquipmentViewModel> UpdateEquipmentAsync(EquipmentUpdateModel model);
         Task<bool> DeleteEquipmentAsync(int code);
+        Task<EquipmentUpdateModel?> GetEquipmentForUpdateAsync(int code);
+
+        IQueryable<EquipmentViewModel> GetEquipmentAsQueryable();
     }
 }

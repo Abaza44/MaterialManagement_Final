@@ -42,7 +42,12 @@ namespace MaterialManagement.BLL.Helper
 
             // === Equipment & Maintenance Mappings ===
             CreateMap<Equipment, EquipmentViewModel>()
-                .ForMember(dest => dest.MaintenanceHistory, opt => opt.MapFrom(src => src.MaintenanceHistory));
+                .ForMember(dest => dest.MaintenanceHistory, opt => opt.MapFrom(src => src.MaintenanceHistory))
+                .ForMember(dest => dest.LastMaintenanceDate, opt => opt.MapFrom(src =>
+                    src.MaintenanceHistory.Any()
+                    ? src.MaintenanceHistory.OrderByDescending(m => m.MaintenanceDate).FirstOrDefault().MaintenanceDate
+                    : (DateTime?)null
+                ));
             CreateMap<EquipmentCreateModel, Equipment>();
 
             CreateMap<EquipmentUpdateModel, Equipment>();

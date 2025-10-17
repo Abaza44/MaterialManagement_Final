@@ -1,4 +1,5 @@
 using MaterialManagement.BLL.ModelVM.Material;
+using MaterialManagement.DAL.Entities;
 
 namespace MaterialManagement.BLL.Service.Abstractions
 {
@@ -13,5 +14,6 @@ namespace MaterialManagement.BLL.Service.Abstractions
         Task<IEnumerable<MaterialViewModel>> GetLowStockMaterialsAsync();
         Task UpdateMaterialQuantityAsync(int materialId, decimal quantity, bool isAddition);
         Task<bool> IsCodeExistsAsync(string code, int? excludeId = null);
+        IQueryable<Material> GetMaterialsAsQueryable();
     }
 }

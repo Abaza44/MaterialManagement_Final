@@ -1,18 +1,82 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using MaterialManagement.BLL.ModelVM.Material;
 using MaterialManagement.BLL.Service.Abstractions;
-using MaterialManagement.BLL.ModelVM.Material;
-
+using MaterialManagement.DAL.Entities;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Dynamic.Core;
+using AutoMapper;
 namespace MaterialManagement.PL.Controllers
 {
     public class MaterialController : Controller
     {
         private readonly IMaterialService _materialService;
-
-        public MaterialController(IMaterialService materialService)
+        private readonly IMapper _mapper;
+        public MaterialController(IMaterialService materialService, IMapper mapper)
         {
             _materialService = materialService;
+            _mapper = mapper;
         }
 
+        [HttpPost]
+        public async Task<IActionResult> LoadData()
+        {
+            try
+            {
+                // --- 1. قراءة البيانات التي يرسلها الجدول الذكي ---
+                var draw = Request.Form["draw"].FirstOrDefault();
+                var start = Request.Form["start"].FirstOrDefault(); // من أي سجل أبدأ
+                var length = Request.Form["length"].FirstOrDefault(); // كم سجل أعرض
+                var sortColumn = Request.Form["columns[" + Request.Form["order[0][column]"].FirstOrDefault() + "][name]"].FirstOrDefault();
+                var sortColumnDirection = Request.Form["order[0][dir]"].FirstOrDefault();
+                var searchValue = Request.Form["search[value]"].FirstOrDefault(); // قيمة البحث
+                var isActiveFilter = Request.Form["isActiveFilter"].FirstOrDefault(); // قيمة الفلتر المخصص
+
+                int pageSize = length != null ? Convert.ToInt32(length) : 10;
+                int skip = start != null ? Convert.ToInt32(start) : 0;
+
+                // --- 2. بناء الاستعلام الديناميكي ---
+                IQueryable<Material> query = _materialService.GetMaterialsAsQueryable();
+
+                // أ. الفلترة المخصصة (الحالة: نشط/غير نشط)
+                if (!string.IsNullOrEmpty(isActiveFilter))
+                {
+                    bool isActive = Convert.ToBoolean(isActiveFilter);
+                    query = query.Where(m => m.IsActive == isActive);
+                }
+
+                // ب. الفلترة العامة (صندوق البحث)
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    query = query.Where(m => m.Name.Contains(searchValue) || m.Code.Contains(searchValue));
+                }
+
+                // ج. الترتيب (Sorting)
+                if (!string.IsNullOrEmpty(sortColumn) && !string.IsNullOrEmpty(sortColumnDirection))
+                {
+                    query = query.OrderBy(sortColumn + " " + sortColumnDirection);
+                }
+
+                // د. حساب عدد السجلات (بعد الفلترة)
+                int recordsFiltered = await query.CountAsync();
+
+                
+                List<Material> pagedData = await query.Skip(skip).Take(pageSize).ToListAsync();
+
+                
+                var viewModelData = _mapper.Map<IEnumerable<MaterialViewModel>>(pagedData);
+
+                // --- 3. إرسال الرد بالصيغة التي يفهمها الجدول الذكي ---
+                int recordsTotal = await _materialService.GetMaterialsAsQueryable().CountAsync();
+                var jsonData = new { draw = draw, recordsFiltered = recordsFiltered, recordsTotal = recordsTotal, data = viewModelData };
+
+                return Ok(jsonData);
+            }
+            catch (Exception ex)
+            {
+                // يمكنك تسجيل الخطأ هنا
+                return BadRequest(new { error = ex.Message });
+            }
+        }
         // GET: Material
         public async Task<IActionResult> Index(string searchTerm)
         {

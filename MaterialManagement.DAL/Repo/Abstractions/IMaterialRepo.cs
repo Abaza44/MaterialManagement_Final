@@ -19,5 +19,7 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task<Material?> GetByCodeAsync(string code);
 
         Task<Material?> GetByIdForUpdateAsync(int id);
+
+        IQueryable<Material> GetAsQueryable();
     }
 }
