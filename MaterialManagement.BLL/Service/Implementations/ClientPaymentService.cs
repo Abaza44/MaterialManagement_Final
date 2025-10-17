@@ -4,6 +4,7 @@ using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.DB;
 using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions;
+using MaterialManagement.DAL.Repo.Implementations;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
@@ -13,14 +14,16 @@ namespace MaterialManagement.BLL.Service.Implementations
     public class ClientPaymentService : IClientPaymentService
     {
         
-        private readonly MaterialManagementContext _context; // نحتاج السياق مباشرة لإدارة الـ Transaction
+        private readonly MaterialManagementContext _context; 
         private readonly IMapper _mapper;
+        private readonly IClientPaymentRepo _clientPaymentRepo;
 
-        public ClientPaymentService(IClientPaymentRepo paymentRepo, MaterialManagementContext context, IMapper mapper)
+        public ClientPaymentService(IClientPaymentRepo paymentRepo, MaterialManagementContext context, IMapper mapper, IClientPaymentRepo clientPaymentRepo)
         {
-            
+
             _context = context;
             _mapper = mapper;
+            _clientPaymentRepo = clientPaymentRepo;
         }
 
         public async Task<ClientPaymentViewModel> AddPaymentAsync(ClientPaymentCreateModel model)
@@ -42,7 +45,7 @@ namespace MaterialManagement.BLL.Service.Implementations
 
                 client.Balance -= model.Amount;
 
-                // 3. تحديث الفاتورة (إذا كانت مرتبطة)
+
                 if (model.SalesInvoiceId.HasValue)
                 {
                     var invoice = await _context.SalesInvoices.FindAsync(model.SalesInvoiceId.Value);
@@ -67,6 +70,14 @@ namespace MaterialManagement.BLL.Service.Implementations
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+        public async Task<IEnumerable<ClientPaymentViewModel>> GetPaymentsForClientAsync(int clientId)
+        {
+            
+            var payments = await _clientPaymentRepo.GetByClientIdAsync(clientId);
+
+            
+            return _mapper.Map<IEnumerable<ClientPaymentViewModel>>(payments);
         }
     }
 }

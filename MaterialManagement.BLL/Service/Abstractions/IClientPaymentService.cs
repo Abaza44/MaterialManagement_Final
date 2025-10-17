@@ -6,5 +6,6 @@ namespace MaterialManagement.BLL.Service.Abstractions
     public interface IClientPaymentService
     {
         Task<ClientPaymentViewModel> AddPaymentAsync(ClientPaymentCreateModel model);
+        Task<IEnumerable<ClientPaymentViewModel>> GetPaymentsForClientAsync(int clientId);
     }
 }

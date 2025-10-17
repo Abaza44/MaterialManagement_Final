@@ -36,5 +36,10 @@ namespace MaterialManagement.DAL.Repo.Implementations
                 await _context.SaveChangesAsync();
             }
         }
+
+        public IQueryable<Employee> GetAsQueryable()
+        {
+            return _context.Employees.AsQueryable();
+        }
     }
 }

@@ -33,5 +33,10 @@ namespace MaterialManagement.BLL.Service.Implementations
         }
 
         public async Task DeleteEmployeeAsync(int id) => await _employeeRepo.DeleteAsync(id);
+
+        public IQueryable<Employee> GetEmployeesAsQueryable()
+        {
+            return _employeeRepo.GetAsQueryable();
+        }
     }
 }

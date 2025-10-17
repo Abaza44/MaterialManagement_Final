@@ -25,6 +25,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
             return await _context.ClientPayments
                 .Where(p => p.ClientId == clientId)
                 .OrderByDescending(p => p.PaymentDate)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

@@ -16,5 +16,7 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task DeleteAsync(int id);
         Task<IEnumerable<Client>> SearchAsync(string searchTerm);
         Task<IEnumerable<Client>> GetClientsWithBalanceAsync();
+        Task<bool> PhoneExistsAsync(string phone, int excludeClientId = 0);
+        IQueryable<Client> GetAsQueryable();
     }
 }

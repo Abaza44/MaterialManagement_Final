@@ -31,7 +31,7 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task<ClientViewModel> CreateClientAsync(ClientCreateModel model)
         {
-            // تحقق لو فيه عميل بنفس رقم الهاتف
+            
             var allClients = await _clientRepo.GetAllAsync();
             if (!string.IsNullOrEmpty(model.Phone) && allClients.Any(c => c.Phone == model.Phone))
             {
@@ -102,6 +102,9 @@ namespace MaterialManagement.BLL.Service.Implementations
             client.IsActive = true;
             await _clientRepo.UpdateAsync(client);
         }
-
+        public IQueryable<Client> GetClientsAsQueryable()
+        {
+            return _clientRepo.GetAsQueryable();
+        }
     }
 }

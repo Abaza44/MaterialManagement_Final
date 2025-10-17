@@ -4,6 +4,7 @@ using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.DB;
 using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions;
+using MaterialManagement.DAL.Repo.Implementations;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
@@ -12,12 +13,17 @@ namespace MaterialManagement.BLL.Service.Implementations
 {
     public class SupplierPaymentService : ISupplierPaymentService
     {
-        // تم حذف _paymentRepo لأنه لم نعد نستخدمه
+        private readonly ISupplierPaymentRepo _supplierPaymentRepo; 
         private readonly MaterialManagementContext _context;
         private readonly IMapper _mapper;
 
-        public SupplierPaymentService(MaterialManagementContext context, IMapper mapper)
+
+        public SupplierPaymentService(
+            ISupplierPaymentRepo supplierPaymentRepo,
+            MaterialManagementContext context,
+            IMapper mapper)
         {
+            _supplierPaymentRepo = supplierPaymentRepo;
             _context = context;
             _mapper = mapper;
         }
@@ -66,6 +72,15 @@ namespace MaterialManagement.BLL.Service.Implementations
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<SupplierPaymentViewModel>> GetPaymentsForSupplierAsync(int supplierId)
+        {
+
+            var payments = await _supplierPaymentRepo.GetBySupplierIdAsync(supplierId);
+
+
+            return _mapper.Map<IEnumerable<SupplierPaymentViewModel>>(payments);
         }
     }
 }

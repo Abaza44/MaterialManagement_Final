@@ -8,6 +8,7 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task<Employee?> GetByIdAsync(int id);
         Task<Employee> CreateAsync(Employee employee);
         Task<Employee> UpdateAsync(Employee employee);
-        Task DeleteAsync(int id); // Soft delete
+        Task DeleteAsync(int id);
+        IQueryable<Employee> GetAsQueryable();
     }
 }

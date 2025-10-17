@@ -32,6 +32,11 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task<SupplierViewModel> CreateSupplierAsync(SupplierCreateModel model)
         {
+            
+            if (!string.IsNullOrEmpty(model.Phone) && await _supplierRepo.PhoneExistsAsync(model.Phone))
+            {
+                throw new InvalidOperationException("❌ يوجد مورد مسجل بنفس رقم الهاتف بالفعل");
+            }
             var allSuppliers = await _supplierRepo.GetAllAsync();
             if (!string.IsNullOrEmpty(model.Phone) && allSuppliers.Any(s => s.Phone == model.Phone))
             {
@@ -47,6 +52,11 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task<SupplierViewModel> UpdateSupplierAsync(int id, SupplierUpdateModel model)
         {
+            
+            if (!string.IsNullOrEmpty(model.Phone) && await _supplierRepo.PhoneExistsAsync(model.Phone))
+            {
+                throw new InvalidOperationException("❌ يوجد مورد مسجل بنفس رقم الهاتف بالفعل");
+            }
             var existingSupplier = await _supplierRepo.GetByIdAsync(id);
             if (existingSupplier == null)
                 throw new InvalidOperationException("❌ المورد غير موجود");
@@ -96,6 +106,9 @@ namespace MaterialManagement.BLL.Service.Implementations
             await _supplierRepo.UpdateAsync(supplier);
         }
 
-        
+        public IQueryable<Supplier> GetSuppliersAsQueryable()
+        {
+            return _supplierRepo.GetAsQueryable();
+        }
     }
 }

@@ -1,98 +1,82 @@
-﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Supplier.SupplierViewModel>
-
-@{
+﻿@{
     ViewData["Title"] = "إدارة الموردين";
 }
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-}
-<div class="container mt-4">
 
-    <h2 class="mb-3">🧑‍🤝‍🧑 إدارة الموردين</h2>
+<h2 class="mb-3">🧑‍🤝‍🧑 @ViewData["Title"]</h2>
+<p><a asp-action="Create" class="btn btn-success">➕ إضافة مورد جديد</a></p>
 
-    <!-- Search Form -->
-    <form asp-action="Index" method="get" class="row mb-3">
-        <div class="col-md-4">
-            <input type="text" name="searchTerm" value="@ViewBag.SearchTerm"
-                   class="form-control" placeholder="ابحث بالاسم أو الهاتف أو العنوان..." />
+<div class="card shadow-sm mb-3">
+    <div class="card-header"><h5 class="mb-0"><i class="bi bi-funnel"></i> فلاتر</h5></div>
+    <div class="card-body">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="" id="hasCreditFilter">
+            <label class="form-check-label" for="hasCreditFilter">
+                عرض الموردين أصحاب المستحقات فقط
+            </label>
         </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary">🔍 بحث</button>
-        </div>
-    </form>
-
-    <!-- Alert Messages -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-    }
-
-    <!-- Create New -->
-    <div class="mb-3">
-        <a asp-action="Create" class="btn btn-success">➕ إضافة مورد جديد</a>
     </div>
-
-    <!-- Suppliers Table -->
-    <table class="table table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>الاسم</th>
-                <th>الهاتف</th>
-                <th>العنوان</th>
-                <th>الرصيد</th>
-                <th>الحالة</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (Model != null && Model.Any())
-            {
-                foreach (var item in Model)
-                {
-                    <tr>
-                        <td>@item.Name</td>
-                        <td>@item.Phone</td>
-                        <td>@item.Address</td>
-                        <td>@item.Balance</td>
-                        <td>
-                            @if (item.IsActive)
-                            {
-                                <span class="badge bg-success">نشط</span>
-                            }
-                            else
-                            {
-
-                                <span class="badge bg-danger">غير نشط</span>
-                            }
-                            @if (!item.IsActive)
-                            {
-                                <a asp-action="Reactivate" asp-route-id="@item.Id"
-                                   class="btn btn-success btn-sm">🔄 تفعيل</a>
-                            }
-                        </td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">👁 تفاصيل</a>
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">✏️ تعديل</a>
-                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">🗑 حذف</a>
-                        </td>
-                    </tr>
-                }
-            }
-            else
-            {
-                <tr>
-                    <td colspan="6" class="text-center">لا يوجد موردين مسجلين</td>
-                </tr>
-            }
-        </tbody>
-    </table>
 </div>
+
+<table id="suppliersTable" class="table table-bordered table-hover" style="width:100%">
+    <thead class="table-dark">
+        <tr>
+            <th>الاسم</th>
+            <th>الهاتف</th>
+            <th>الرصيد (المستحقات)</th>
+            <th>الحالة</th>
+            <th>إجراءات</th>
+        </tr>
+    </thead>
+</table>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var suppliersDataTable = $('#suppliersTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "ajax": {
+                    "url": "/Supplier/LoadData",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.hasCreditFilter = $('#hasCreditFilter').is(':checked');
+                    }
+                },
+                "columns": [
+                    { "data": "name" },
+                    { "data": "phone" },
+                    {
+                        "data": "balance",
+                        "render": function(data) {
+                            return data > 0 ? `<span class="text-success fw-bold">${data.toFixed(2)}</span>` : data.toFixed(2);
+                        }
+                    },
+                    {
+                        "data": "isActive",
+                        "render": function(data) {
+                            return data ? '<span class="badge bg-success">نشط</span>' : '<span class="badge bg-danger">غير نشط</span>';
+                        }
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data, type, row) {
+                            let buttons = `<a href='/Supplier/Details/${data}' class='btn btn-info btn-sm'>👁</a> ` +
+                                          `<a href='/Supplier/Edit/${data}' class='btn btn-warning btn-sm'>✏️</a> ` +
+                                          `<a href='/Supplier/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>`;
+                            if (!row.isActive) {
+                                buttons += ` <a href='/Supplier/Reactivate/${data}' class='btn btn-success btn-sm'>🔄</a>`;
+                            }
+                            return buttons;
+                        },
+                        "orderable": false
+                    }
+                ],
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" }
+            });
+
+            $('#hasCreditFilter').on('change', function() {
+                suppliersDataTable.draw();
+            });
+        });
+    </script>
+}

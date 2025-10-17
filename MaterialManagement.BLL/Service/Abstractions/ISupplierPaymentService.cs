@@ -6,5 +6,6 @@ namespace MaterialManagement.BLL.Service.Abstractions
     public interface ISupplierPaymentService
     {
         Task<SupplierPaymentViewModel> AddPaymentAsync(SupplierPaymentCreateModel model);
+        Task<IEnumerable<SupplierPaymentViewModel>> GetPaymentsForSupplierAsync(int supplierId);
     }
 }

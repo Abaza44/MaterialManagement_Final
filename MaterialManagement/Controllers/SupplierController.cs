@@ -1,24 +1,25 @@
 ﻿using MaterialManagement.BLL.ModelVM.Supplier;
 using MaterialManagement.BLL.Service.Abstractions;
-using MaterialManagement.DAL.Entities; // <-- أضف هذا
+using MaterialManagement.DAL.Entities; 
 using MaterialManagement.DAL.Repo.Abstractions;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic; // <-- أضف هذا
-using System.Threading.Tasks; // <-- أضف هذا
-using System; // <-- أضف هذا
-
+using System; 
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 namespace MaterialManagement.PL.Controllers
 {
     public class SupplierController : Controller
     {
         private readonly ISupplierService _supplierService;
-        private readonly ISupplierPaymentRepo _supplierPaymentRepo; // <<< تم إضافته هنا
-
-        // <<< تم تحديث الـ Constructor هنا >>>
-        public SupplierController(ISupplierService supplierService, ISupplierPaymentRepo supplierPaymentRepo)
+        private readonly ISupplierPaymentService _supplierPaymentService;
+        private readonly IMapper _mapper;
+        public SupplierController(ISupplierService supplierService, ISupplierPaymentService supplierPaymentService, IMapper mapper)
         {
             _supplierService = supplierService;
-            _supplierPaymentRepo = supplierPaymentRepo; // <<< تم إضافته هنا
+            _supplierPaymentService = supplierPaymentService;
+            _mapper = mapper;
         }
 
         // GET: Supplier
@@ -47,10 +48,9 @@ namespace MaterialManagement.PL.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // <<< الآن هذا الكود سيعمل بشكل صحيح >>>
-            var payments = await _supplierPaymentRepo.GetBySupplierIdAsync(id);
-            ViewBag.Payments = payments;
 
+            var payments = await _supplierPaymentService.GetPaymentsForSupplierAsync(id); 
+            ViewBag.Payments = payments;
             return View(supplier);
         }
 
@@ -163,6 +163,41 @@ namespace MaterialManagement.PL.Controllers
                 TempData["ErrorMessage"] = ex.Message;
             }
             return RedirectToAction(nameof(Index));
+        }
+        [HttpPost]
+        public async Task<IActionResult> LoadData()
+        {
+            var draw = Request.Form["draw"].FirstOrDefault();
+            var start = Request.Form["start"].FirstOrDefault();
+            var length = Request.Form["length"].FirstOrDefault();
+            var searchValue = Request.Form["search[value]"].FirstOrDefault();
+
+            // فلتر مخصص للموردين الذين لهم مستحقات
+            var hasCreditFilter = Request.Form["hasCreditFilter"].FirstOrDefault();
+
+            int pageSize = length != null ? Convert.ToInt32(length) : 10;
+            int skip = start != null ? Convert.ToInt32(start) : 0;
+
+            IQueryable<Supplier> query = _supplierService.GetSuppliersAsQueryable();
+
+            
+            if (!string.IsNullOrEmpty(hasCreditFilter) && Convert.ToBoolean(hasCreditFilter))
+            {
+                query = query.Where(s => s.Balance > 0);
+            }
+
+            if (!string.IsNullOrEmpty(searchValue))
+            {
+                query = query.Where(s => s.Name.Contains(searchValue) || (s.Phone != null && s.Phone.Contains(searchValue)));
+            }
+
+            var recordsFiltered = await query.CountAsync();
+            var pagedData = await query.Skip(skip).Take(pageSize).ToListAsync();
+            var viewModelData = _mapper.Map<IEnumerable<SupplierViewModel>>(pagedData);
+            var recordsTotal = await _supplierService.GetSuppliersAsQueryable().CountAsync();
+
+            var jsonData = new { draw = draw, recordsFiltered = recordsFiltered, recordsTotal = recordsTotal, data = viewModelData };
+            return Ok(jsonData);
         }
     }
 }

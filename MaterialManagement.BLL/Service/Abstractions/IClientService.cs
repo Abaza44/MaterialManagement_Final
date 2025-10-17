@@ -1,4 +1,5 @@
 using MaterialManagement.BLL.ModelVM.Client;
+using MaterialManagement.DAL.Entities;
 
 namespace MaterialManagement.BLL.Service.Abstractions
 {
@@ -12,5 +13,6 @@ namespace MaterialManagement.BLL.Service.Abstractions
         Task<IEnumerable<ClientViewModel>> SearchClientsAsync(string searchTerm);
         Task<IEnumerable<ClientViewModel>> GetClientsWithBalanceAsync();
         Task ReactivateClientAsync(int id);
+        IQueryable<Client> GetClientsAsQueryable();
     }
 }

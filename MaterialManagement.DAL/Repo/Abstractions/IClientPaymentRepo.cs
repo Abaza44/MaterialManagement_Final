@@ -9,5 +9,6 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task<ClientPayment> CreateAsync(ClientPayment payment);
         Task<IEnumerable<ClientPayment>> GetByClientIdAsync(int clientId);
         Task<IEnumerable<ClientPayment>> GetByInvoiceIdAsync(int invoiceId);
+
     }
 }

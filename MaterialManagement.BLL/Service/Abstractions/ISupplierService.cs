@@ -1,4 +1,5 @@
 using MaterialManagement.BLL.ModelVM.Supplier;
+using MaterialManagement.DAL.Entities;
 
 namespace MaterialManagement.BLL.Service.Abstractions
 {
@@ -12,5 +13,6 @@ namespace MaterialManagement.BLL.Service.Abstractions
         Task<IEnumerable<SupplierViewModel>> SearchSuppliersAsync(string searchTerm);
         Task<IEnumerable<SupplierViewModel>> GetSuppliersWithBalanceAsync();
         Task ReactivateSupplierAsync(int id);
+        IQueryable<Supplier> GetSuppliersAsQueryable();
     }
 }

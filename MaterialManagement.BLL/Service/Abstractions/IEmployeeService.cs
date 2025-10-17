@@ -1,4 +1,5 @@
 using MaterialManagement.BLL.ModelVM.Employee;
+using MaterialManagement.DAL.Entities;
 
 namespace MaterialManagement.BLL.Service.Abstractions
 {
@@ -9,5 +10,7 @@ namespace MaterialManagement.BLL.Service.Abstractions
         Task<EmployeeViewModel> CreateEmployeeAsync(EmployeeCreateModel model);
         Task<EmployeeViewModel> UpdateEmployeeAsync(EmployeeUpdateModel model);
         Task DeleteEmployeeAsync(int id);
+
+        IQueryable<Employee> GetEmployeesAsQueryable();
     }
 }

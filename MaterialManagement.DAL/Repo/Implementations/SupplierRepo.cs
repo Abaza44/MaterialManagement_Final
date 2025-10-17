@@ -78,5 +78,13 @@ namespace MaterialManagement.DAL.Repo.Implementations
                 await UpdateAsync(supplier);
             }
         }
+        public async Task<bool> PhoneExistsAsync(string phone, int excludeSupplierId = 0)
+        {
+            return await _context.Suppliers.AnyAsync(s => s.Phone == phone && s.Id != excludeSupplierId);
+        }
+        public IQueryable<Supplier> GetAsQueryable()
+        {
+            return _context.Suppliers.AsQueryable();
+        }
     }
 }

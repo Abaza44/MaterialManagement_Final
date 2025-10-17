@@ -1,81 +1,84 @@
-﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Client.ClientViewModel>
+﻿@{
+    ViewData["Title"] = "إدارة العملاء";
+}
 
-@{
-    ViewData["Title"] = "العملاء";
-}
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-}
-<div class="container mt-4">
-    <h2 class="mb-3">👥 إدارة العملاء</h2>
+<h2 class="mb-3">👥 @ViewData["Title"]</h2>
+<p><a asp-action="Create" class="btn btn-success">➕ إضافة عميل جديد</a></p>
 
-    <div class="mb-3">
-        <a asp-action="Create" class="btn btn-success">➕ إضافة عميل جديد</a>
+<div class="card shadow-sm mb-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> فلاتر</h5>
     </div>
-
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-    }
-
-    <table class="table table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>الاسم</th>
-                <th>الهاتف</th>
-                <th>العنوان</th>
-                <th>الرصيد</th>
-                <th>الحالة</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (Model.Any())
-            {
-                foreach (var client in Model)
-                {
-                    <tr>
-                        <td>@client.Name</td>
-                        <td>@client.Phone</td>
-                        <td>@client.Address</td>
-                        <td>@client.Balance</td>
-                        <td>
-                            @if (client.IsActive)
-                            {
-                                <span class="badge bg-success">نشط</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger">غير نشط</span>
-                            }
-                            @if (!client.IsActive)
-                            {
-                                <a asp-action="Reactivate" asp-route-id="@client.Id" class="btn btn-success btn-sm">🔄 تفعيل</a>
-                            }
-                        </td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@client.Id" class="btn btn-info btn-sm">👁 تفاصيل</a>
-                            <a asp-action="Edit" asp-route-id="@client.Id" class="btn btn-warning btn-sm">✏️ تعديل</a>
-                            <a asp-action="Delete" asp-route-id="@client.Id" class="btn btn-danger btn-sm">🗑 حذف</a>
-                        </td>
-                    </tr>
-                }
-            }
-            else
-            {
-                <tr>
-                    <td colspan="6" class="text-center">لا يوجد عملاء</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card-body">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="" id="hasDebtFilter">
+            <label class="form-check-label" for="hasDebtFilter">
+                عرض العملاء أصحاب المديونيات فقط
+            </label>
+        </div>
+    </div>
 </div>
+
+<table id="clientsTable" class="table table-bordered table-hover" style="width:100%">
+    <thead class="table-dark">
+        <tr>
+            <th>الاسم</th>
+            <th>الهاتف</th>
+            <th>الرصيد (المديونية)</th>
+            <th>الحالة</th>
+            <th>إجراءات</th>
+        </tr>
+    </thead>
+</table>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var clientsDataTable = $('#clientsTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "ajax": {
+                    "url": "/Client/LoadData",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.hasDebtFilter = $('#hasDebtFilter').is(':checked');
+                    }
+                },
+                "columns": [
+                    { "data": "name" },
+                    { "data": "phone" },
+                    {
+                        "data": "balance",
+                        "render": function(data) {
+                            return data > 0 ? `<span class="text-danger fw-bold">${data.toFixed(2)}</span>` : data.toFixed(2);
+                        }
+                    },
+                    {
+                        "data": "isActive",
+                        "render": function(data) {
+                            return data ? '<span class="badge bg-success">نشط</span>' : '<span class="badge bg-danger">غير نشط</span>';
+                        }
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data, type, row) {
+                            let buttons = `<a href='/Client/Details/${data}' class='btn btn-info btn-sm'>👁</a> ` +
+                                          `<a href='/Client/Edit/${data}' class='btn btn-warning btn-sm'>✏️</a> ` +
+                                          `<a href='/Client/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>`;
+                            if (!row.isActive) {
+                                buttons += ` <a href='/Client/Reactivate/${data}' class='btn btn-success btn-sm'>🔄</a>`;
+                            }
+                            return buttons;
+                        },
+                        "orderable": false
+                    }
+                ],
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" }
+            });
+
+            $('#hasDebtFilter').on('change', function() {
+                clientsDataTable.draw();
+            });
+        });
+    </script>
+}

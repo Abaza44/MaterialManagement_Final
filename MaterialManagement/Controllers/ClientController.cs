@@ -1,23 +1,26 @@
 ﻿using MaterialManagement.BLL.ModelVM.Client;
 using MaterialManagement.BLL.Service.Abstractions;
+using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions;
 using MaterialManagement.DAL.Repo.Implementations;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic; // <-- أضف هذا
-using System.Threading.Tasks; // <-- أضف هذا
-
-using System; // <-- أضف هذا
+using Microsoft.EntityFrameworkCore;
+using System; 
+using System.Collections.Generic; 
+using System.Threading.Tasks;
+using AutoMapper;
 namespace MaterialManagement.PL.Controllers
 {
     public class ClientController : Controller
     {
-        private readonly IClientPaymentRepo _clientPaymentRepo;
+        private readonly IClientPaymentService _clientPaymentService;
         private readonly IClientService _clientService;
-
-        public ClientController(IClientService clientService,IClientPaymentRepo clientPaymentRepo)
+        private readonly IMapper _mapper;
+        public ClientController(IClientService clientService, IClientPaymentService clientPaymentService, IMapper mapper)
         {
             _clientService = clientService;
-            _clientPaymentRepo = clientPaymentRepo;
+            _clientPaymentService = clientPaymentService;
+            _mapper = mapper;
         }
 
         // GET: Client
@@ -50,9 +53,8 @@ namespace MaterialManagement.PL.Controllers
             }
 
             // <<< الآن هذا الكود سيعمل بشكل صحيح >>>
-            var payments = await _clientPaymentRepo.GetByClientIdAsync(id);
+            var payments = await _clientPaymentService.GetPaymentsForClientAsync(id); 
             ViewBag.Payments = payments;
-
             return View(client);
         }
 
@@ -166,6 +168,42 @@ namespace MaterialManagement.PL.Controllers
                 TempData["ErrorMessage"] = ex.Message;
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> LoadData()
+        {
+            var draw = Request.Form["draw"].FirstOrDefault();
+            var start = Request.Form["start"].FirstOrDefault();
+            var length = Request.Form["length"].FirstOrDefault();
+            var searchValue = Request.Form["search[value]"].FirstOrDefault();
+
+            // فلتر مخصص للعملاء الذين عليهم مديونية
+            var hasDebtFilter = Request.Form["hasDebtFilter"].FirstOrDefault();
+
+            int pageSize = length != null ? Convert.ToInt32(length) : 10;
+            int skip = start != null ? Convert.ToInt32(start) : 0;
+
+            IQueryable<Client> query = _clientService.GetClientsAsQueryable();
+
+            // تطبيق فلتر المديونية
+            if (!string.IsNullOrEmpty(hasDebtFilter) && Convert.ToBoolean(hasDebtFilter))
+            {
+                query = query.Where(c => c.Balance > 0);
+            }
+
+            if (!string.IsNullOrEmpty(searchValue))
+            {
+                query = query.Where(c => c.Name.Contains(searchValue) || (c.Phone != null && c.Phone.Contains(searchValue)));
+            }
+
+            var recordsFiltered = await query.CountAsync();
+            var pagedData = await query.Skip(skip).Take(pageSize).ToListAsync();
+            var viewModelData = _mapper.Map<IEnumerable<ClientViewModel>>(pagedData);
+            var recordsTotal = await _clientService.GetClientsAsQueryable().CountAsync();
+
+            var jsonData = new { draw = draw, recordsFiltered = recordsFiltered, recordsTotal = recordsTotal, data = viewModelData };
+            return Ok(jsonData);
         }
     }
 }
