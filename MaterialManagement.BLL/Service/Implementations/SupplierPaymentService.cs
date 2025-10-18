@@ -17,7 +17,6 @@ namespace MaterialManagement.BLL.Service.Implementations
         private readonly MaterialManagementContext _context;
         private readonly IMapper _mapper;
 
-
         public SupplierPaymentService(
             ISupplierPaymentRepo supplierPaymentRepo,
             MaterialManagementContext context,
@@ -79,6 +78,14 @@ namespace MaterialManagement.BLL.Service.Implementations
 
             var payments = await _supplierPaymentRepo.GetBySupplierIdAsync(supplierId);
 
+
+            return _mapper.Map<IEnumerable<SupplierPaymentViewModel>>(payments);
+        }
+
+        public async Task<IEnumerable<SupplierPaymentViewModel>> GetPaymentsForInvoiceAsync(int invoiceId)
+        {
+            
+            var payments = await _supplierPaymentRepo.GetByInvoiceIdAsync(invoiceId);
 
             return _mapper.Map<IEnumerable<SupplierPaymentViewModel>>(payments);
         }

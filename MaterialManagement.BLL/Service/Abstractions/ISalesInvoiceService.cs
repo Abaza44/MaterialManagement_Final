@@ -1,4 +1,5 @@
 using MaterialManagement.BLL.ModelVM.Invoice;
+using MaterialManagement.DAL.Entities;
 
 namespace MaterialManagement.BLL.Service.Abstractions
 {
@@ -9,5 +10,8 @@ namespace MaterialManagement.BLL.Service.Abstractions
         Task<SalesInvoiceViewModel> CreateInvoiceAsync(SalesInvoiceCreateModel model);
         Task DeleteInvoiceAsync(int id);
         Task<IEnumerable<SalesInvoiceViewModel>> GetUnpaidInvoicesForClientAsync(int clientId);
+        IQueryable<SalesInvoice> GetInvoicesAsQueryable();
+
+        Task<IEnumerable<ClientInvoiceSummaryViewModel>> GetClientInvoiceSummariesAsync();
     }
 }

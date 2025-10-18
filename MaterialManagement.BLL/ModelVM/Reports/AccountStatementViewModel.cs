@@ -10,5 +10,7 @@ namespace MaterialManagement.BLL.ModelVM.Reports
         public decimal Debit { get; set; } // مدين (المبلغ المطلوب منه - يزيد الدين)
         public decimal Credit { get; set; } // دائن (المبلغ الذي دفعه - يقلل الدين)
         public decimal Balance { get; set; } // الرصيد بعد الحركة
+        public int? DocumentId { get; set; }
+        public string? DocumentType { get; set; }
     }
 }

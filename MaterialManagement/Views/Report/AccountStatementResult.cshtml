@@ -1,79 +1,57 @@
-﻿@model List<MaterialManagement.BLL.ModelVM.Reports.AccountStatementViewModel>
+﻿@model MaterialManagement.BLL.ModelVM.Reports.AccountStatementViewModel
 @using MaterialManagement.BLL.ModelVM.Client
 @using MaterialManagement.BLL.ModelVM.Supplier
 
 @{
-    ViewData["Title"] = "نتيجة كشف الحساب";
-    string accountName = "غير محدد";
-    string? accountPhone = null;
-    if (ViewBag.AccountHolder is ClientViewModel client)
-    {
-        accountName = client.Name;
-        accountPhone = client.Phone;
-    }
-    else if (ViewBag.AccountHolder is SupplierViewModel supplier)
-    {
-        accountName = supplier.Name;
-        accountPhone = supplier.Phone;
-    }
+    var holder = ViewBag.AccountHolder;
+    string accountName = (holder as ClientViewModel)?.Name ?? (holder as SupplierViewModel)?.Name ?? "الحساب";
+    bool isClient = ViewBag.IsClient;
+    int accountId = ViewBag.AccountId;
+
+    ViewData["Title"] = $"كشف حساب: {accountName}";
 }
 
-<div class="report-header mb-4 p-3 bg-light rounded">
-    <h3>كشف حساب: <strong>@accountName</strong></h3>
-    @if (!string.IsNullOrEmpty(accountPhone))
-    {
-        <h5 class="text-muted"><i class="bi bi-telephone-fill"></i> @accountPhone</h5>
-    }
-    <p>
-        الفترة من: <strong>@(((DateTime)ViewBag.FromDate).ToString("D"))</strong>
-        إلى: <strong>@(((DateTime)ViewBag.ToDate).ToString("D"))</strong>
-    </p>
+<h1><i class="bi bi-clipboard-data"></i> كشف حساب: @accountName</h1>
+<hr />
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="fromDateFilter" class="form-label">من تاريخ</label>
+                <input type="date" id="fromDateFilter" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label for="toDateFilter" class="form-label">إلى تاريخ</label>
+                <input type="date" id="toDateFilter" class="form-control" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button id="applyFilterBtn" class="btn btn-primary w-100"><i class="bi bi-filter"></i> تصفية</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="table-responsive">
-    <table class="table table-bordered table-striped" id="reportTable">
+    <table id="statementTable" class="table table-bordered table-hover" style="width:100%">
         <thead class="table-dark">
             <tr>
                 <th>التاريخ</th>
-                <th>نوع الحركة</th>
-                <th>المرجع</th>
-                <th class="text-danger">مدين</th>
-                <th class="text-success">دائن</th>
+                <th>البيان</th>
+                <th>مدين (له)</th>
+                <th>دائن (عليه)</th>
                 <th>الرصيد</th>
+                <th>رقم المستند</th>
             </tr>
         </thead>
-        <tbody>
-            @if (Model != null)
-            {
-                @foreach (var item in Model)
-                {
-                    // <<< تم الإصلاح هنا >>>
-                    string rowClass = "";
-                    if (item.TransactionType == "رصيد مرحل") { rowClass = "table-light fw-bold"; }
-                    else if (item.TransactionType == "مرتجع بيع") { rowClass = "table-warning"; }
-
-                    <tr class="@rowClass">
-                        <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
-                        <td>@item.TransactionType</td>
-                        <td>@item.Reference</td>
-                        <td class="text-danger">@(item.Debit > 0 ? item.Debit.ToString("N2") : "-")</td>
-                        <td class="text-success">@(item.Credit > 0 ? item.Credit.ToString("N2") : "-")</td>
-                        <td class="fw-bold">@item.Balance.ToString("N2")</td>
-                    </tr>
-                }
-            }
-        </tbody>
-        @if (Model != null && Model.Count > 1)
-        {
-            <tfoot class="table-group-divider">
-                <tr class="fw-bolder fs-5">
-                    <td colspan="3" class="text-end">الإجماليات / الرصيد النهائي:</td>
-                    <td class="text-danger">@Model.Sum(i => i.Debit).ToString("N2")</td>
-                    <td class="text-success">@Model.Sum(i => i.Credit).ToString("N2")</td>
-                    <td>@Model.Last().Balance.ToString("N2")</td>
-                </tr>
-            </tfoot>
-        }
+        <tfoot>
+            <tr class="fw-bolder fs-5">
+                <td colspan="3" class="text-end">الإجماليات / الرصيد النهائي:</td>
+                <td id="totalDebit" class="text-danger">0.00</td>
+                <td id="totalCredit" class="text-success">0.00</td>
+                <td id="finalBalance">0.00</td>
+            </tr>
+        </tfoot>
     </table>
 </div>
 
@@ -89,12 +67,56 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            $('#reportTable').DataTable({
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" },
-                "order": [[ 0, "asc" ]],
-                "paging": false,
-                "searching": false,
-                "info": false
+            var statementTable = $('#statementTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "paging": true, // تفعيل الترقيم الآن
+                "searching": true, // تفعيل البحث
+                "order": [[0, "asc"]],
+                "ajax": {
+                    "url": "/Report/LoadAccountStatementData",
+                    "type": "POST",
+                    "data": function (d) {
+                        // تمرير كل بيانات التصفية الضرورية للـ API
+                        d.accountId = @accountId;
+                        d.isClient = @(isClient.ToString().ToLower());
+                        d.fromDate = $('#fromDateFilter').val() || null; // إرسال null إذا كانت فارغة
+                        d.toDate = $('#toDateFilter').val() || null;
+                    },
+                    "dataSrc": function(json) {
+                         // تحديث الإجماليات في الـ tfoot بناءً على البيانات القادمة من الخادم
+                         // يجب على دالة LoadAccountStatementData أن ترجع هذه الإجماليات
+                         var lastRow = json.data[json.data.length - 1];
+                         $('#totalDebit').text(json.totalDebit.toFixed(2));
+                         $('#totalCredit').text(json.totalCredit.toFixed(2));
+                         $('#finalBalance').text(lastRow ? lastRow.balance.toFixed(2) : '0.00');
+                         return json.data;
+                    }
+                },
+                "columns": [
+                    { "data": "transactionDate", "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); } },
+                    { "data": "transactionType" },
+                    { "data": "debit", "render": $.fn.dataTable.render.number(',', '.', 2) },
+                    { "data": "credit", "render": $.fn.dataTable.render.number(',', '.', 2) },
+                    { "data": "balance", "render": $.fn.dataTable.render.number(',', '.', 2), "orderable": false },
+                    {
+                        "data": "reference",
+                        "render": function (data, type, row) {
+                            if (row.documentId && row.documentNumber) {
+                                var controller = row.documentType.includes('بيع') ? 'SalesInvoice' : 'PurchaseInvoice';
+                                return `<a href='/${controller}/Details/${row.documentId}' target='_blank'>${data}</a>`;
+                            }
+                            return data;
+                        },
+                        "orderable": false
+                    }
+                ],
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" }
+            });
+
+            // ربط زر التصفية بإعادة تحميل الجدول
+            $('#applyFilterBtn').on('click', function() {
+                statementTable.draw();
             });
         });
     </script>

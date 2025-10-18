@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using MaterialManagement.BLL.ModelVM.Expense;
 using MaterialManagement.BLL.Service.Abstractions;
+using MaterialManagement.DAL.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -131,6 +133,86 @@ namespace MaterialManagement.PL.Controllers
 
             ViewBag.MonthlyTotal = totalMonthly;
             return View(monthlyExpenses);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> LoadData()
+        {
+            try
+            {
+                var draw = Request.Form["draw"].FirstOrDefault();
+                var start = Request.Form["start"].FirstOrDefault();
+                var length = Request.Form["length"].FirstOrDefault();
+                var searchValue = Request.Form["search[value]"].FirstOrDefault();
+
+                // <<< الفلتر المخصص الجديد >>>
+                var categoryFilter = Request.Form["categoryFilter"].FirstOrDefault();
+                var startDateFilter = Request.Form["startDate"].FirstOrDefault();
+                var endDateFilter = Request.Form["endDate"].FirstOrDefault();
+
+                int pageSize = length != null ? Convert.ToInt32(length) : 10;
+                int skip = start != null ? Convert.ToInt32(start) : 0;
+
+                IQueryable<Expense> query = _expenseService.GetExpensesAsQueryable()
+                                               .Where(e => e.IsActive); // فقط المصاريف النشطة
+
+                // أ. الفلترة حسب الفئة
+                if (!string.IsNullOrEmpty(categoryFilter))
+                {
+                    query = query.Where(e => e.Category == categoryFilter);
+                }
+
+                // ب. الفلترة حسب التاريخ
+                if (!string.IsNullOrEmpty(startDateFilter) && DateTime.TryParse(startDateFilter, out DateTime startDate))
+                {
+                    query = query.Where(e => e.ExpenseDate >= startDate.Date);
+                }
+                if (!string.IsNullOrEmpty(endDateFilter) && DateTime.TryParse(endDateFilter, out DateTime endDate))
+                {
+                    // ليشمل اليوم بالكامل
+                    var inclusiveEndDate = endDate.Date.AddDays(1).AddTicks(-1);
+                    query = query.Where(e => e.ExpenseDate <= inclusiveEndDate);
+                }
+
+                // ج. الفلترة العامة (صندوق البحث)
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    query = query.Where(e => e.Description.Contains(searchValue)
+                                           || e.Category.Contains(searchValue)
+                                           || (e.PaymentTo != null && e.PaymentTo.Contains(searchValue)));
+                }
+
+                // د. حساب الإجمالي الكلي للمصاريف (للفلاتر المطبقة)
+                var totalAmountFiltered = await query.SumAsync(e => e.Amount);
+
+                // هـ. الترتيب (نستخدم الترتيب الافتراضي حسب التاريخ)
+                query = query.OrderByDescending(e => e.ExpenseDate);
+
+                // و. تطبيق الترقيم
+                var recordsFiltered = await query.CountAsync();
+                var pagedData = await query.Skip(skip).Take(pageSize).ToListAsync();
+
+                // ز. تحويل البيانات
+                var viewModelData = _mapper.Map<IEnumerable<ExpenseViewModel>>(pagedData);
+
+                var recordsTotal = await _expenseService.GetExpensesAsQueryable().Where(e => e.IsActive).CountAsync();
+
+                var jsonData = new
+                {
+                    draw = draw,
+                    recordsFiltered = recordsFiltered,
+                    recordsTotal = recordsTotal,
+                    data = viewModelData,
+                    // تمرير الإجمالي المحسوب كإحصائية إضافية
+                    totalFilteredAmount = totalAmountFiltered.ToString("N2")
+                };
+
+                return Ok(jsonData);
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using MaterialManagement.BLL.ModelVM.Expense;
+using MaterialManagement.DAL.Entities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -16,5 +17,7 @@ namespace MaterialManagement.BLL.Service.Abstractions
         // <<< أضف هاتين الدالتين >>>
         Task<decimal> GetTotalExpensesAsync(DateTime? startDate = null, DateTime? endDate = null);
         Task<IEnumerable<ExpenseViewModel>> GetExpensesByDateRangeAsync(DateTime startDate, DateTime endDate);
+
+        IQueryable<Expense> GetExpensesAsQueryable();
     }
 }

@@ -86,5 +86,9 @@ namespace MaterialManagement.DAL.Repo.Implementations
         {
             return _context.Suppliers.AsQueryable();
         }
+        public async Task<Supplier?> GetByIdForUpdateAsync(int id)
+        {
+            return await _context.Suppliers.FirstOrDefaultAsync(s => s.Id == id);
+        }
     }
 }

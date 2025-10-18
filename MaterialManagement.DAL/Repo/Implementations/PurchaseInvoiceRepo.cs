@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MaterialManagement.DAL.DB;
+﻿using MaterialManagement.DAL.DB;
+using MaterialManagement.DAL.DTOs;
 using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaterialManagement.DAL.Repo.Implementations
 {
@@ -81,6 +82,31 @@ namespace MaterialManagement.DAL.Repo.Implementations
             return await _context.PurchaseInvoices
                 .OrderByDescending(i => i.Id)
                 .FirstOrDefaultAsync();
+        }
+        public IQueryable<PurchaseInvoice> GetAsQueryable()
+        {
+
+            return _context.PurchaseInvoices
+                .Include(pi => pi.Supplier)
+                .Include(pi => pi.Client)
+                .AsQueryable();
+        }
+
+        public async Task<IEnumerable<SupplierInvoicesDto>> GetSupplierInvoiceSummariesAsync()
+        {
+            return await _context.PurchaseInvoices
+                .Where(pi => pi.IsActive && pi.SupplierId != null)
+                .GroupBy(pi => pi.Supplier)
+                .Select(group => new SupplierInvoicesDto
+                {
+                    SupplierId = group.Key.Id,
+                    SupplierName = group.Key.Name,
+                    InvoiceCount = group.Count(),
+                    TotalCredit = group.Sum(pi => pi.RemainingAmount)
+                })
+                .OrderBy(summary => summary.SupplierName)
+                .AsNoTracking()
+                .ToListAsync();
         }
     }
 }

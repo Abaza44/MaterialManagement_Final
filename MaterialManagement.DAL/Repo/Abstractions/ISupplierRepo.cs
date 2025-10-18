@@ -14,5 +14,6 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task<bool> PhoneExistsAsync(string phone, int excludeSupplierId = 0);
 
         IQueryable<Supplier> GetAsQueryable();
+        Task<Supplier?> GetByIdForUpdateAsync(int id);
     }
 }

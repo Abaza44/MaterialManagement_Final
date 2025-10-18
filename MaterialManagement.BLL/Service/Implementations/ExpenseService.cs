@@ -88,5 +88,9 @@ namespace MaterialManagement.BLL.Service.Implementations
             var expenses = await _expenseRepo.GetExpensesByDateRangeAsync(startDate, endDate);
             return _mapper.Map<IEnumerable<ExpenseViewModel>>(expenses);
         }
+        public IQueryable<Expense> GetExpensesAsQueryable()
+        {
+            return _expenseRepo.GetAsQueryable();
+        }
     }
 }

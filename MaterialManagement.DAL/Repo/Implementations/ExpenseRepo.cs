@@ -82,5 +82,10 @@ namespace MaterialManagement.DAL.Repo.Implementations
                .OrderByDescending(e => e.ExpenseDate)
                .ToListAsync();
         }
+
+        public IQueryable<Expense> GetAsQueryable()
+        {
+            return _context.Expenses.Include(e => e.Employee).AsQueryable();
+        }
     }
 }

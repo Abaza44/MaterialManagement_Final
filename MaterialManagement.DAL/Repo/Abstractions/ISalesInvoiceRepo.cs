@@ -1,7 +1,9 @@
-﻿using MaterialManagement.DAL.Entities;
+﻿using MaterialManagement;
+using MaterialManagement.DAL.DTOs;
+using MaterialManagement.DAL.Entities;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-
 namespace MaterialManagement.DAL.Repo.Abstractions
 {
     public interface ISalesInvoiceRepo
@@ -13,5 +15,11 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task UpdateAsync(SalesInvoice invoice); // لا ترجع شيئًا
         Task DeleteAsync(int id);
         Task<SalesInvoice?> GetLastInvoiceAsync();
+
+        IQueryable<SalesInvoice> GetAsQueryable();
+
+        Task<IEnumerable<ClientInvoiceSummaryDto>> GetClientInvoiceSummariesAsync();
     }
+
+
 }

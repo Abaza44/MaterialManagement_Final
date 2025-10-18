@@ -1,5 +1,5 @@
+using MaterialManagement.DAL.DTOs;
 using MaterialManagement.DAL.Entities;
-
 namespace MaterialManagement.DAL.Repo.Abstractions
 {
     public interface IPurchaseInvoiceRepo
@@ -13,5 +13,8 @@ namespace MaterialManagement.DAL.Repo.Abstractions
         Task<IEnumerable<PurchaseInvoice>> GetBySupplierIdAsync(int supplierId);
 
         Task<PurchaseInvoice?> GetLastInvoiceAsync();
+        IQueryable<PurchaseInvoice> GetAsQueryable();
+        Task<IEnumerable<SupplierInvoicesDto>> GetSupplierInvoiceSummariesAsync();
+
     }
 }

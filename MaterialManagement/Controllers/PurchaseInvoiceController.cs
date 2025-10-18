@@ -1,11 +1,11 @@
-﻿using MaterialManagement.BLL.ModelVM.Invoice;
+﻿using AutoMapper;
+using MaterialManagement.BLL.ModelVM.Invoice;
+using MaterialManagement.BLL.ModelVM.Payment;
+using MaterialManagement.BLL.ModelVM.Supplier;
 using MaterialManagement.BLL.Service.Abstractions;
-using MaterialManagement.DAL.Repo.Abstractions; 
+using MaterialManagement.DAL.Entities;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaterialManagement.PL.Controllers
 {
@@ -13,32 +13,35 @@ namespace MaterialManagement.PL.Controllers
     {
         private readonly IPurchaseInvoiceService _purchaseInvoiceService;
         private readonly ISupplierService _supplierService;
-        private readonly IClientService _clientService; 
+        private readonly IClientService _clientService;
         private readonly IMaterialService _materialService;
-        private readonly ISupplierPaymentRepo _supplierPaymentRepo;
+        private readonly ISupplierPaymentService _supplierPaymentService;
+        private readonly IMapper _mapper;
 
         public PurchaseInvoiceController(
             IPurchaseInvoiceService purchaseInvoiceService,
             ISupplierService supplierService,
-            IClientService clientService, 
+            IClientService clientService,
             IMaterialService materialService,
-            ISupplierPaymentRepo supplierPaymentRepo)
+            ISupplierPaymentService supplierPaymentService,
+            IMapper mapper)
         {
             _purchaseInvoiceService = purchaseInvoiceService;
             _supplierService = supplierService;
             _clientService = clientService;
             _materialService = materialService;
-            _supplierPaymentRepo = supplierPaymentRepo;
+            _supplierPaymentService = supplierPaymentService;
+            _mapper = mapper;
         }
 
-        
+
         public async Task<IActionResult> Index()
         {
-            var invoices = await _purchaseInvoiceService.GetAllInvoicesAsync();
-            return View(invoices);
+            var supplierSummaries = await _purchaseInvoiceService.GetSupplierInvoiceSummariesAsync();
+            return View(supplierSummaries);
         }
 
-        
+
         public async Task<IActionResult> Details(int id)
         {
             var invoice = await _purchaseInvoiceService.GetInvoiceByIdAsync(id);
@@ -48,29 +51,35 @@ namespace MaterialManagement.PL.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // جلب سجل الدفعات الخاص بالمورد فقط (لأن المرتجعات لا يتم سدادها هنا)
+            var payments = new List<SupplierPaymentViewModel>();
             if (invoice.SupplierId.HasValue)
             {
-                var payments = await _supplierPaymentRepo.GetByInvoiceIdAsync(id);
-                ViewBag.Payments = payments;
+                payments = (await _supplierPaymentService.GetPaymentsForInvoiceAsync(id)).ToList();
             }
 
-            return View(invoice);
+            var viewModel = new PurchaseInvoiceDetailsViewModel
+            {
+                Invoice = invoice,
+                Payments = payments
+            };
+
+            return View(viewModel);
         }
 
-        // GET: PurchaseInvoice/Create
+
+        [HttpGet]
+        public async Task<IActionResult> SupplierInvoices(int id)
+        {
+            var supplier = await _supplierService.GetSupplierByIdAsync(id);
+            if (supplier == null) return NotFound();
+            return View(new SupplierViewModel { Id = supplier.Id, Name = supplier.Name });
+        }
         public async Task<IActionResult> Create()
         {
-            // <<< تم التحديث هنا لجلب العملاء والموردين >>>
             ViewBag.Suppliers = await _supplierService.GetAllSuppliersAsync();
             ViewBag.Clients = await _clientService.GetAllClientsAsync();
             ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
-
-            var model = new PurchaseInvoiceCreateModel
-            {
-                Items = new List<PurchaseInvoiceItemCreateModel> { new PurchaseInvoiceItemCreateModel() }
-            };
-
+            var model = new PurchaseInvoiceCreateModel { Items = new List<PurchaseInvoiceItemCreateModel> { new PurchaseInvoiceItemCreateModel() } };
             return View(model);
         }
 
@@ -88,7 +97,6 @@ namespace MaterialManagement.PL.Controllers
                     ModelState.AddModelError("Items", "يجب إضافة بند واحد على الأقل.");
                 }
 
-                // <<< إعادة تحميل كل القوائم في حالة الخطأ >>>
                 ViewBag.Suppliers = await _supplierService.GetAllSuppliersAsync();
                 ViewBag.Clients = await _clientService.GetAllClientsAsync();
                 ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
@@ -139,6 +147,62 @@ namespace MaterialManagement.PL.Controllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+        [HttpPost]
+        public async Task<IActionResult> LoadSupplierInvoices()
+        {
+            var draw = Request.Form["draw"].FirstOrDefault();
+            var start = Request.Form["start"].FirstOrDefault();
+            var length = Request.Form["length"].FirstOrDefault();
+            var searchValue = Request.Form["search[value]"].FirstOrDefault();
+            var supplierId = int.Parse(Request.Form["supplierId"].FirstOrDefault());
+
+            int pageSize = length != null ? Convert.ToInt32(length) : 10;
+            int skip = start != null ? Convert.ToInt32(start) : 0;
+
+            IQueryable<PurchaseInvoice> query = _purchaseInvoiceService.GetInvoicesAsQueryable()
+                                               .Where(i => i.SupplierId == supplierId && i.IsActive);
+
+            if (!string.IsNullOrEmpty(searchValue))
+            {
+                query = query.Where(i => i.InvoiceNumber.Contains(searchValue));
+            }
+
+            var recordsFiltered = await query.CountAsync();
+            var pagedData = await query.OrderByDescending(i => i.InvoiceDate).Skip(skip).Take(pageSize).ToListAsync();
+            var viewModelData = _mapper.Map<IEnumerable<PurchaseInvoiceViewModel>>(pagedData);
+            var recordsTotal = await _purchaseInvoiceService.GetInvoicesAsQueryable().Where(i => i.SupplierId == supplierId && i.IsActive).CountAsync();
+
+            var jsonData = new { draw = draw, recordsFiltered = recordsFiltered, recordsTotal = recordsTotal, data = viewModelData };
+            return Ok(jsonData);
+        }
+        [HttpPost]
+        public async Task<IActionResult> LoadData()
+        {
+            var draw = Request.Form["draw"].FirstOrDefault();
+            var start = Request.Form["start"].FirstOrDefault();
+            var length = Request.Form["length"].FirstOrDefault();
+            var searchValue = Request.Form["search[value]"].FirstOrDefault();
+            int pageSize = length != null ? Convert.ToInt32(length) : 10;
+            int skip = start != null ? Convert.ToInt32(start) : 0;
+
+            IQueryable<PurchaseInvoice> query = _purchaseInvoiceService.GetInvoicesAsQueryable()
+                                                    .Where(i => i.IsActive); 
+
+            if (!string.IsNullOrEmpty(searchValue))
+            {
+                query = query.Where(i => i.InvoiceNumber.Contains(searchValue)
+                                       || (i.Supplier != null && i.Supplier.Name.Contains(searchValue))
+                                       || (i.Client != null && i.Client.Name.Contains(searchValue)));
+            }
+
+            var recordsFiltered = await query.CountAsync();
+            var pagedData = await query.OrderByDescending(i => i.InvoiceDate).Skip(skip).Take(pageSize).ToListAsync();
+            var viewModelData = _mapper.Map<IEnumerable<PurchaseInvoiceViewModel>>(pagedData);
+            var recordsTotal = await _purchaseInvoiceService.GetInvoicesAsQueryable().Where(i => i.IsActive).CountAsync();
+
+            var jsonData = new { draw = draw, recordsFiltered = recordsFiltered, recordsTotal = recordsTotal, data = viewModelData };
+            return Ok(jsonData);
         }
     }
 }

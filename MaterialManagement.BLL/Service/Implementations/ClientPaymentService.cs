@@ -13,53 +13,60 @@ namespace MaterialManagement.BLL.Service.Implementations
 {
     public class ClientPaymentService : IClientPaymentService
     {
-        
-        private readonly MaterialManagementContext _context; 
-        private readonly IMapper _mapper;
+
         private readonly IClientPaymentRepo _clientPaymentRepo;
+        private readonly IClientRepo _clientRepo;
+        private readonly ISalesInvoiceRepo _invoiceRepo;
+        private readonly MaterialManagementContext _context;
+        private readonly IMapper _mapper;
 
-        public ClientPaymentService(IClientPaymentRepo paymentRepo, MaterialManagementContext context, IMapper mapper, IClientPaymentRepo clientPaymentRepo)
+
+        // --- 2. UPDATE THE CONSTRUCTOR TO ASSIGN IT ---
+        public ClientPaymentService(
+        IClientPaymentRepo clientPaymentRepo,
+        IClientRepo clientRepo,
+        ISalesInvoiceRepo invoiceRepo,
+        MaterialManagementContext context,
+        IMapper mapper)
         {
-
+           
+            _clientPaymentRepo = clientPaymentRepo;
+            _clientRepo = clientRepo;
+            _invoiceRepo = invoiceRepo;
             _context = context;
             _mapper = mapper;
-            _clientPaymentRepo = clientPaymentRepo;
         }
 
         public async Task<ClientPaymentViewModel> AddPaymentAsync(ClientPaymentCreateModel model)
         {
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. إنشاء كيان الدفع (في الذاكرة فقط)
+
                 var payment = _mapper.Map<ClientPayment>(model);
                 payment.PaymentDate = DateTime.Now;
+                await _clientPaymentRepo.CreateAsync(payment);
 
-                // <<< الإصلاح الحاسم (1): الإضافة مباشرة إلى الـ context >>>
-                _context.ClientPayments.Add(payment);
 
-                // 2. جلب العميل للتتبع والتحديث
-                // <<< الإصلاح الحاسم (2): استخدام _context مباشرة >>>
-                var client = await _context.Clients.FindAsync(model.ClientId);
-                if (client == null) throw new InvalidOperationException("Client not found");
+                var client = await _clientRepo.GetByIdForUpdateAsync(model.ClientId);
+                if (client == null) throw new InvalidOperationException("العميل غير موجود");
 
                 client.Balance -= model.Amount;
 
 
                 if (model.SalesInvoiceId.HasValue)
                 {
-                    var invoice = await _context.SalesInvoices.FindAsync(model.SalesInvoiceId.Value);
-                    if (invoice == null) throw new InvalidOperationException("Invoice not found");
+                    var invoice = await _invoiceRepo.GetByIdForUpdateAsync(model.SalesInvoiceId.Value);
+                    if (invoice == null) throw new InvalidOperationException("الفاتورة غير موجودة");
 
                     invoice.PaidAmount += model.Amount;
                     invoice.RemainingAmount = invoice.TotalAmount - invoice.PaidAmount;
                 }
 
-                // 4. حفظ كل التغييرات التي يتتبعها _context
                 await _context.SaveChangesAsync();
-
-                // 5. تأكيد الـ Transaction
                 await transaction.CommitAsync();
+
 
                 var viewModel = _mapper.Map<ClientPaymentViewModel>(payment);
                 viewModel.ClientName = client.Name;

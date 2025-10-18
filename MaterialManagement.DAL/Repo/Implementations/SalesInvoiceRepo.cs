@@ -5,7 +5,7 @@ using MaterialManagement.DAL.Repo.Abstractions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
+using MaterialManagement.DAL.DTOs;
 namespace MaterialManagement.DAL.Repo.Implementations
 {
     public class SalesInvoiceRepo : ISalesInvoiceRepo
@@ -40,9 +40,10 @@ namespace MaterialManagement.DAL.Repo.Implementations
 
         public async Task<SalesInvoice?> GetByIdForUpdateAsync(int id)
         {
-            // لا نستخدم AsNoTracking لأننا سنقوم بتعديل هذا الكائن
             return await _context.SalesInvoices
-                .Include(i => i.SalesInvoiceItems) // مهم لعملية الحذف الآمن
+                .Include(i => i.Client)
+                .Include(i => i.SalesInvoiceItems)
+                    .ThenInclude(item => item.Material)
                 .FirstOrDefaultAsync(i => i.Id == id && i.IsActive);
         }
 
@@ -65,8 +66,8 @@ namespace MaterialManagement.DAL.Repo.Implementations
             var invoice = await GetByIdForUpdateAsync(id);
             if (invoice != null)
             {
-                invoice.IsActive = false; // Soft delete
-                // الـ Service هو الذي سيستدعي SaveChangesAsync
+                invoice.IsActive = false; 
+
             }
         }
 
@@ -75,6 +76,28 @@ namespace MaterialManagement.DAL.Repo.Implementations
             return await _context.SalesInvoices
                 .OrderByDescending(i => i.Id)
                 .FirstOrDefaultAsync();
+        }
+
+        public IQueryable<SalesInvoice> GetAsQueryable()
+        {
+            return _context.SalesInvoices.Include(si => si.Client).AsQueryable();
+        }
+
+        public async Task<IEnumerable<ClientInvoiceSummaryDto>> GetClientInvoiceSummariesAsync()
+        {
+            return await _context.SalesInvoices
+                .Where(si => si.IsActive)
+                .GroupBy(si => si.Client)
+                .Select(group => new ClientInvoiceSummaryDto // <<< Use the DTO here
+                {
+                    ClientId = group.Key.Id,
+                    ClientName = group.Key.Name,
+                    InvoiceCount = group.Count(),
+                    TotalDebt = group.Sum(si => si.RemainingAmount)
+                })
+                .OrderBy(summary => summary.ClientName)
+                .AsNoTracking()
+                .ToListAsync();
         }
     }
 }

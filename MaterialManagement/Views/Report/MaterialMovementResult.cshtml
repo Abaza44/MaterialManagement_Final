@@ -1,51 +1,105 @@
-﻿@model List<MaterialManagement.BLL.ModelVM.Reports.MaterialMovementViewModel>
+﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Reports.MaterialMovementViewModel>
+@using System.Globalization
 
 @{
-    ViewData["Title"] = "نتيجة تقرير حركة الصنف";
+    // هذه البيانات تأتي من دالة MaterialMovement في الكنترولر (GET)
+    string materialName = ViewBag.MaterialName ?? "غير محدد";
+    DateTime fromDate = (DateTime)ViewBag.FromDate;
+    DateTime toDate = (DateTime)ViewBag.ToDate;
+    int materialId = (ViewBag.MaterialId as int?) ?? 0;
 }
 
-<h3>حركة الصنف: <strong>@ViewBag.MaterialName</strong></h3>
+<h1>تقرير حركة الصنف: @materialName</h1>
 <p>
-    الفترة من: <strong>@(((DateTime)ViewBag.FromDate).ToString("D"))</strong> 
-    إلى: <strong>@(((DateTime)ViewBag.ToDate).ToString("D"))</strong>
+    الفترة من: <strong>@fromDate.ToString("D")</strong>
+    إلى: <strong>@toDate.ToString("D")</strong>
 </p>
+<hr/>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="fromDateFilter" class="form-label">من تاريخ</label>
+                <input type="date" id="fromDateFilter" class="form-control" value="@fromDate.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label for="toDateFilter" class="form-label">إلى تاريخ</label>
+                <input type="date" id="toDateFilter" class="form-control" value="@toDate.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button id="applyFilterBtn" class="btn btn-primary w-100"><i class="bi bi-filter"></i> تصفية</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="table-responsive">
-    <table class="table table-bordered table-striped">
+    <table id="movementTable" class="table table-bordered table-striped" style="width:100%">
         <thead class="table-dark">
             <tr>
                 <th>التاريخ</th>
                 <th>نوع الحركة</th>
                 <th>رقم الفاتورة</th>
-                <th>(المصدر (عميل/مورد</th>
+                <th>المصدر/الوجهة</th>
                 <th class="text-success">وارد (+)</th>
                 <th class="text-danger">صادر (-)</th>
                 <th>الرصيد</th>
             </tr>
         </thead>
-        <tbody>
-            @foreach(var item in Model)
-            {
-                <tr class="@(item.TransactionType == "رصيد افتتاحي" ? "table-light fw-bold" : "")">
-                    <td>@item.TransactionDate.ToString("yyyy-MM-dd")</td>
-                    <td>@item.TransactionType</td>
-                    <td>@item.InvoiceNumber</td>
-                    <td>@item.Source</td>
-                    <td class="text-success">@(item.QuantityIn > 0 ? item.QuantityIn.ToString("N2") : "-")</td>
-                    <td class="text-danger">@(item.QuantityOut > 0 ? item.QuantityOut.ToString("N2") : "-")</td>
-                    <td class="fw-bold">@item.Balance.ToString("N2")</td>
-                </tr>
-            }
-        </tbody>
-         <tfoot class="table-group-divider">
-             <tr class="fw-bolder fs-5">
+        <tfoot>
+            <tr class="fw-bolder fs-5 table-light">
                 <td colspan="4" class="text-end">الإجماليات / الرصيد النهائي:</td>
-                <td class="text-success">@Model.Sum(i => i.QuantityIn).ToString("N2")</td>
-                <td class="text-danger">@Model.Sum(i => i.QuantityOut).ToString("N2")</td>
-                <td>@Model.Last().Balance.ToString("N2")</td>
+                <td id="totalIn" class="text-success">0.00</td>
+                <td id="totalOut" class="text-danger">0.00</td>
+                <td id="finalBalance">0.00</td>
             </tr>
         </tfoot>
     </table>
 </div>
 
 <a asp-action="MaterialMovement" class="btn btn-secondary mt-3"><i class="bi bi-arrow-clockwise"></i> بحث جديد</a>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var movementTable = $('#movementTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "ajax": {
+                    "url": "/Report/LoadMaterialMovementData",
+                    "type": "POST",
+                    "data": function (d) {
+                        // إرسال المعرف والتواريخ التي أدخلها المستخدم
+                        d.materialId = @materialId; 
+                        d.fromDate = $('#fromDateFilter').val() || null;
+                        d.toDate = $('#toDateFilter').val() || null;
+                    },
+                    "dataSrc": function (json) {
+                        // تحديث الإجماليات في الـ tfoot
+                        $('#totalIn').text(json.totalIn);
+                        $('#totalOut').text(json.totalOut);
+                        $('#finalBalance').text(json.finalBalance);
+                        return json.data;
+                    }
+                },
+                "columns": [
+                    { "data": "transactionDate", "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); } },
+                    { "data": "transactionType" },
+                    { "data": "invoiceNumber" },
+                    { "data": "source" },
+                    { "data": "quantityIn", "render": function(data) { return data > 0 ? data.toFixed(2) : '-'; }, "className": "text-success" },
+                    { "data": "quantityOut", "render": function(data) { return data > 0 ? data.toFixed(2) : '-'; }, "className": "text-danger" },
+                    { "data": "balance" }
+                ],
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
+                "order": [[0, "asc"]]
+            });
+
+            // ربط زر التصفية بإعادة تحميل الجدول
+            $('#applyFilterBtn').on('click', function() {
+                movementTable.draw();
+            });
+        });
+    </script>
+}

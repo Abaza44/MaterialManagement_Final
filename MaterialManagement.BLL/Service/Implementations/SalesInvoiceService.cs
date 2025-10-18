@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+
 namespace MaterialManagement.BLL.Service.Implementations
 {
     public class SalesInvoiceService : ISalesInvoiceService
@@ -149,6 +150,19 @@ namespace MaterialManagement.BLL.Service.Implementations
             // <<< تم إضافة هذه الخطوة >>>
             // قم بتحويل قائمة الـ entities إلى قائمة الـ view models
             return _mapper.Map<IEnumerable<SalesInvoiceViewModel>>(unpaidInvoices);
+        }
+
+        public IQueryable<SalesInvoice> GetInvoicesAsQueryable()
+        {
+            return _invoiceRepo.GetAsQueryable();
+        }
+
+        public async Task<IEnumerable<ClientInvoiceSummaryViewModel>> GetClientInvoiceSummariesAsync()
+        {
+
+            var summariesDto = await _invoiceRepo.GetClientInvoiceSummariesAsync();
+
+            return _mapper.Map<IEnumerable<ClientInvoiceSummaryViewModel>>(summariesDto);
         }
     }
 }

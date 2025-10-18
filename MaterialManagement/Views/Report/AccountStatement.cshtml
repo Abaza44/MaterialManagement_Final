@@ -1,68 +1,100 @@
-﻿@{
+﻿@using MaterialManagement.BLL.ModelVM.Client
+@using MaterialManagement.BLL.ModelVM.Supplier
+
+@{
     ViewData["Title"] = "تقرير كشف الحساب";
 }
 
-<h1><i class="bi bi-file-earmark-person"></i> تقرير كشف الحساب</h1>
+<h1><i class="bi bi-file-earmark-person"></i> @ViewData["Title"]</h1>
 <hr />
 
 <div class="row">
-    <!-- Client Statement Form -->
     <div class="col-md-6">
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
                 <h5>كشف حساب عميل</h5>
             </div>
             <div class="card-body">
-                <form asp-action="AccountStatement" method="post">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">العميل</label>
-                        <select name="clientId" class="form-select" asp-items="ViewBag.Clients" required>
-                            <option value="">-- اختر عميل --</option>
-                        </select>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">من تاريخ</label>
-                            <input type="date" name="fromDate" class="form-control" required />
-                        </div>
-                         <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">إلى تاريخ</label>
-                            <input type="date" name="toDate" class="form-control" required />
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> عرض تقرير العميل</button>
-                </form>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">العميل</label>
+                    <select id="clientSearchDropdown" class="form-select" style="width: 100%;">
+                        <option value="">ابدأ بكتابة الاسم أو رقم الهاتف...</option>
+                    </select>
+                </div>
+                <button type="button" id="btnClientReport" class="btn btn-primary w-100">
+                    <i class="bi bi-arrow-right-circle"></i> الانتقال لكشف الحساب
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Supplier Statement Form -->
     <div class="col-md-6">
         <div class="card shadow-sm">
             <div class="card-header bg-secondary text-white">
                 <h5>كشف حساب مورد</h5>
             </div>
             <div class="card-body">
-                 <form asp-action="AccountStatement" method="post">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">المورد</label>
-                        <select name="supplierId" class="form-select" asp-items="ViewBag.Suppliers" required>
-                            <option value="">-- اختر مورد --</option>
-                        </select>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">من تاريخ</label>
-                            <input type="date" name="fromDate" class="form-control" required />
-                        </div>
-                         <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">إلى تاريخ</label>
-                            <input type="date" name="toDate" class="form-control" required />
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-secondary"><i class="bi bi-search"></i> عرض تقرير المورد</button>
-                </form>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">المورد</label>
+                    <select id="supplierSearchDropdown" class="form-select" style="width: 100%;">
+                        <option value="">ابدأ بكتابة الاسم أو رقم الهاتف...</option>
+                    </select>
+                </div>
+                <button type="button" id="btnSupplierReport" class="btn btn-secondary w-100">
+                    <i class="bi bi-arrow-right-circle"></i> الانتقال لكشف الحساب
+                </button>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        function initializeSelect2(selector, url) {
+            $(selector).select2({
+                placeholder: 'ابحث بالاسم أو رقم الهاتف...',
+                allowClear: true,
+                theme: "bootstrap-5",
+                ajax: {
+                    url: url,
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { searchTerm: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: data.results };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 2
+            });
+        }
+
+        $(document).ready(function () {
+            // تهيئة حقول البحث الفوري
+            initializeSelect2('#clientSearchDropdown', '/Report/SearchClients');
+            initializeSelect2('#supplierSearchDropdown', '/Report/SearchSuppliers');
+
+            // ربط أزرار الانتقال
+            $('#btnClientReport').on('click', function() {
+                var id = $('#clientSearchDropdown').val();
+                if (id) {
+                    window.location.href = `/Report/AccountStatementResult?clientId=${id}`;
+                } else {
+                    alert('يرجى اختيار عميل أولاً.');
+                }
+            });
+
+            $('#btnSupplierReport').on('click', function() {
+                var id = $('#supplierSearchDropdown').val();
+                if (id) {
+                    window.location.href = `/Report/AccountStatementResult?supplierId=${id}`;
+                } else {
+                    alert('يرجى اختيار مورد أولاً.');
+                }
+            });
+        });
+    </script>
+}

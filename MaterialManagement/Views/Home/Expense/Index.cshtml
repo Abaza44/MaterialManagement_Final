@@ -1,0 +1,132 @@
+﻿@{
+    ViewData["Title"] = "إدارة المصاريف";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1><i class="bi bi-cash-stack"></i> @ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Report" class="btn btn-outline-info"><i class="bi bi-file-earmark-bar-graph"></i> عرض التقرير</a>
+        <a asp-action="Create" class="btn btn-success"><i class="bi bi-plus-circle"></i> إضافة مصروف جديد</a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> فلاتر المصاريف</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="categoryFilter" class="form-label">الفئة</label>
+                <select id="categoryFilter" class="form-select">
+                    <option value="" selected>كل الفئات</option>
+                    @* يجب ملء هذا الخيار ديناميكيًا من الكنترولر *@
+                    <option value="رواتب">رواتب</option>
+                    <option value="إيجار">إيجار</option>
+                    <option value="كهرباء">كهرباء</option>
+                    @* أضف فئاتك هنا *@
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="startDateFilter" class="form-label">من تاريخ</label>
+                <input type="date" id="startDateFilter" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label for="endDateFilter" class="form-label">إلى تاريخ</label>
+                <input type="date" id="endDateFilter" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <button id="applyFilterBtn" class="btn btn-primary w-100"><i class="bi bi-search"></i> تصفية</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>قائمة المصاريف</h5>
+        <h6>الإجمالي المصفى: <span id="totalFilteredAmount" class="badge bg-danger rounded-pill">0.00</span></h6>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover align-middle" id="expensesTable" style="width:100%">
+            <thead class="table-light">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الوصف</th>
+                    <th>المبلغ</th>
+                    <th>الفئة</th>
+                    <th>مدفوع إلى</th>
+                    <th class="text-center">العمليات</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // تهيئة الجدول
+            var expensesDataTable = $('#expensesTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "ajax": {
+                    "url": "/Expense/LoadData",
+                    "type": "POST",
+                    "data": function (d) {
+                        // إرسال بيانات الفلترة مع طلب AJAX
+                        d.categoryFilter = $('#categoryFilter').val();
+                        d.startDate = $('#startDateFilter').val();
+                        d.endDate = $('#endDateFilter').val();
+                    },
+                    "dataSrc": function (json) {
+                        // تحديث الإجمالي الكلي عند استقبال البيانات
+                        $('#totalFilteredAmount').text(json.totalFilteredAmount + ' EGP');
+                        return json.data;
+                    }
+                },
+                "columns": [
+                    { "data": "expenseDate", "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); } },
+                    { "data": "description" },
+                    { "data": "amount", "render": $.fn.dataTable.render.number(',', '.', 2), "orderable": true },
+                    { "data": "category" },
+                    {
+                        "data": null, // لدمج اسم الموظف و PaymentTo
+                        "render": function(data, type, row) {
+                            return row.employeeName || row.paymentTo || '---';
+                        },
+                        "orderable": false
+                    },
+                    {
+                        "data": "id",
+                        "render": function (data) {
+                            return `<div class="btn-group btn-group-sm">
+                                        <a href='/Expense/Edit/${data}' class='btn btn-outline-warning' title='تعديل'><i class='bi bi-pencil'></i></a>
+                                        <form asp-action="Delete" asp-route-id="${data}" method="post" class="d-inline" onsubmit="return confirm('هل أنت متأكد؟');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>`;
+                        },
+                        "orderable": false,
+                        "searchable": false
+                    }
+                ],
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
+                "order": [[0, "desc"]]
+            });
+
+            // ربط زر التصفية بإعادة تحميل الجدول
+            $('#applyFilterBtn').on('click', function() {
+                expensesDataTable.draw();
+            });
+
+            // ربط فلتر الفئة بتغيير قيمة البحث وإعادة تحميل الجدول
+            $('#categoryFilter').on('change', function() {
+                 expensesDataTable.draw();
+            });
+        });
+    </script>
+}
