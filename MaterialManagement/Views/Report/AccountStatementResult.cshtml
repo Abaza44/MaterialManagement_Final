@@ -1,122 +1,232 @@
-﻿@model MaterialManagement.BLL.ModelVM.Reports.AccountStatementViewModel
+﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Reports.AccountStatementViewModel>
 @using MaterialManagement.BLL.ModelVM.Client
 @using MaterialManagement.BLL.ModelVM.Supplier
 
 @{
     var holder = ViewBag.AccountHolder;
     string accountName = (holder as ClientViewModel)?.Name ?? (holder as SupplierViewModel)?.Name ?? "الحساب";
+    string accountPhone = (holder as ClientViewModel)?.Phone ?? (holder as SupplierViewModel)?.Phone ?? "غير متوفر";
+    string accountAddress = (holder as ClientViewModel)?.Address ?? (holder as SupplierViewModel)?.Address ?? "غير متوفر";
     bool isClient = ViewBag.IsClient;
     int accountId = ViewBag.AccountId;
 
     ViewData["Title"] = $"كشف حساب: {accountName}";
 }
 
-<h1><i class="bi bi-clipboard-data"></i> كشف حساب: @accountName</h1>
-<hr />
+<style>
+    body {
+        background-color: #f9f9f9;
+    }
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label for="fromDateFilter" class="form-label">من تاريخ</label>
-                <input type="date" id="fromDateFilter" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label for="toDateFilter" class="form-label">إلى تاريخ</label>
-                <input type="date" id="toDateFilter" class="form-control" />
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button id="applyFilterBtn" class="btn btn-primary w-100"><i class="bi bi-filter"></i> تصفية</button>
+    .card {
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .card-header {
+        background-color: #ffffff;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .text-primary {
+        color: #007bff !important;
+    }
+
+    .info-label {
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .info-value {
+        color: #212529;
+        font-weight: 600;
+    }
+
+    .filter-section {
+        background-color: #ffffff;
+    }
+
+    #statementTable th {
+        background-color: #f0f2f5;
+        color: #333;
+        font-weight: 600;
+    }
+
+    #statementTable td {
+        background-color: #fff;
+    }
+
+    tfoot {
+        background-color: #f8f9fa;
+    }
+
+    .btn-sm {
+        border-radius: 8px;
+    }
+
+    @@media print {
+        .print-hidden,
+        .filter-section {
+            display: none !important;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+
+    <!-- بطاقة معلومات الحساب -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h4 class="mb-2 mb-md-0 text-primary">
+                    <i class="bi bi-clipboard-data"></i> كشف حساب: <span>@accountName</span>
+                </h4>
+                <div class="d-flex flex-wrap gap-4">
+                    <div>
+                        <span class="info-label">📞 رقم الهاتف:</span>
+                        <span class="info-value">@accountPhone</span>
+                    </div>
+                    <div>
+                        <span class="info-label">📍 العنوان:</span>
+                        <span class="info-value">@accountAddress</span>
+                    </div>
+                    <div>
+                        <span class="info-label">🧾 نوع الحساب:</span>
+                        <span class="info-value">@(isClient ? "عميل" : "مورد")</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="table-responsive">
-    <table id="statementTable" class="table table-bordered table-hover" style="width:100%">
-        <thead class="table-dark">
-            <tr>
-                <th>التاريخ</th>
-                <th>البيان</th>
-                <th>مدين (له)</th>
-                <th>دائن (عليه)</th>
-                <th>الرصيد</th>
-                <th>رقم المستند</th>
-            </tr>
-        </thead>
-        <tfoot>
-            <tr class="fw-bolder fs-5">
-                <td colspan="3" class="text-end">الإجماليات / الرصيد النهائي:</td>
-                <td id="totalDebit" class="text-danger">0.00</td>
-                <td id="totalCredit" class="text-success">0.00</td>
-                <td id="finalBalance">0.00</td>
-            </tr>
-        </tfoot>
-    </table>
-</div>
+    <!-- تصفية البيانات -->
+    <div class="card shadow-sm border-0 mb-4 filter-section">
+        <div class="card-body p-3">
+            <h6 class="card-title mb-2 text-secondary">
+                <i class="bi bi-funnel"></i> تصفية البيانات
+            </h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3 col-sm-6">
+                    <label for="fromDateFilter" class="form-label small">من تاريخ</label>
+                    <input type="date" id="fromDateFilter" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <label for="toDateFilter" class="form-label small">إلى تاريخ</label>
+                    <input type="date" id="toDateFilter" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <button id="applyFilterBtn" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-filter"></i> تطبيق
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="mt-3">
-    <a asp-action="AccountStatement" class="btn btn-secondary">
-        <i class="bi bi-arrow-clockwise"></i> بحث جديد
-    </a>
-    <button onclick="window.print()" class="btn btn-primary">
-        <i class="bi bi-printer"></i> طباعة
-    </button>
+    <!-- جدول كشف الحساب -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-3">
+            <div class="table-responsive">
+                <table id="statementTable" class="table table-bordered table-hover align-middle text-center" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>📅 التاريخ</th>
+                            <th>البيان</th>
+                            <th class="text-danger">مدين (له)</th>
+                            <th class="text-success">دائن (عليه)</th>
+                            <th>الرصيد</th>
+                            <th>رقم المستند</th>
+                        </tr>
+                    </thead>
+                    <tfoot class="fw-bold">
+                        <tr>
+                            <td colspan="2" class="text-end">الإجماليات / الرصيد النهائي:</td>
+                            <td id="totalDebit" class="text-danger">0.00</td>
+                            <td id="totalCredit" class="text-success">0.00</td>
+                            <td id="finalBalance" colspan="2" class="text-primary">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- الأزرار -->
+    <div class="mt-3 d-flex justify-content-between print-hidden">
+        <a asp-action="AccountStatement" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> بحث جديد
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-printer"></i> طباعة
+        </button>
+    </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function () {
-            var statementTable = $('#statementTable').DataTable({
+            const currencyFormat = $.fn.dataTable.render.number(',', '.', 2).display;
+
+            var table = $('#statementTable').DataTable({
                 "processing": true,
-                "serverSide": true,
-                "paging": true, // تفعيل الترقيم الآن
-                "searching": true, // تفعيل البحث
-                "order": [[0, "asc"]],
+                "serverSide": false,
                 "ajax": {
                     "url": "/Report/LoadAccountStatementData",
                     "type": "POST",
                     "data": function (d) {
-                        // تمرير كل بيانات التصفية الضرورية للـ API
                         d.accountId = @accountId;
                         d.isClient = @(isClient.ToString().ToLower());
-                        d.fromDate = $('#fromDateFilter').val() || null; // إرسال null إذا كانت فارغة
+                        d.fromDate = $('#fromDateFilter').val() || null;
                         d.toDate = $('#toDateFilter').val() || null;
                     },
-                    "dataSrc": function(json) {
-                         // تحديث الإجماليات في الـ tfoot بناءً على البيانات القادمة من الخادم
-                         // يجب على دالة LoadAccountStatementData أن ترجع هذه الإجماليات
-                         var lastRow = json.data[json.data.length - 1];
-                         $('#totalDebit').text(json.totalDebit.toFixed(2));
-                         $('#totalCredit').text(json.totalCredit.toFixed(2));
-                         $('#finalBalance').text(lastRow ? lastRow.balance.toFixed(2) : '0.00');
-                         return json.data;
+                    "dataSrc": function (json) {
+                        if (json.error) {
+                            alert(json.error);
+                            return [];
+                        }
+
+                        $('#totalDebit').text(json.totalDebit);
+                        $('#totalCredit').text(json.totalCredit);
+                        $('#finalBalance').text(json.finalBalance);
+
+                        return json.data;
                     }
                 },
                 "columns": [
-                    { "data": "transactionDate", "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); } },
+                    { "data": "transactionDate", "render": function (data) { return new Date(data).toLocaleDateString('ar-EG'); } },
                     { "data": "transactionType" },
-                    { "data": "debit", "render": $.fn.dataTable.render.number(',', '.', 2) },
-                    { "data": "credit", "render": $.fn.dataTable.render.number(',', '.', 2) },
-                    { "data": "balance", "render": $.fn.dataTable.render.number(',', '.', 2), "orderable": false },
-                    {
-                        "data": "reference",
-                        "render": function (data, type, row) {
-                            if (row.documentId && row.documentNumber) {
-                                var controller = row.documentType.includes('بيع') ? 'SalesInvoice' : 'PurchaseInvoice';
-                                return `<a href='/${controller}/Details/${row.documentId}' target='_blank'>${data}</a>`;
-                            }
-                            return data;
-                        },
-                        "orderable": false
-                    }
+                    { "data": "debit", "render": currencyFormat, "className": "text-end text-danger" },
+                    { "data": "credit", "render": currencyFormat, "className": "text-end text-success" },
+                    { "data": "balance", "render": currencyFormat, "className": "text-end fw-bold text-primary" },
+                    { "data": "reference" }
                 ],
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" }
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
+
+                "drawCallback": function (settings) {
+                    var api = this.api();
+                    api.rows().every(function () {
+                        var data = this.data();
+                        if (data.items && data.items.length > 0) {
+                            let childHtml = '<table class="table table-sm child-table">';
+                            childHtml += '<thead><tr><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>السعر</th></tr></thead><tbody>';
+                            data.items.forEach(item => {
+                                childHtml += `<tr>
+                                    <td>${item.materialName}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${item.unit}</td>
+                                    <td>${currencyFormat(item.price)}</td>
+                                </tr>`;
+                            });
+                            childHtml += '</tbody></table>';
+                            this.child(childHtml).show();
+                            $(this.node()).addClass('shown');
+                        }
+                    });
+                }
             });
 
-            // ربط زر التصفية بإعادة تحميل الجدول
-            $('#applyFilterBtn').on('click', function() {
-                statementTable.draw();
+            $('#applyFilterBtn').on('click', function () {
+                table.ajax.reload();
             });
         });
     </script>

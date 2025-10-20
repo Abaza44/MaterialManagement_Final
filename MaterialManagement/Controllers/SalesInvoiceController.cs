@@ -17,7 +17,7 @@ namespace MaterialManagement.PL.Controllers
         private readonly IClientService _clientService;
         private readonly IMaterialService _materialService;
         private readonly IClientPaymentRepo _clientPaymentRepo; // <<< تم إضافته هنا
-        private readonly IMapper _mapper; 
+        private readonly IMapper _mapper;
         // <<< تم تحديث الـ Constructor >>>
         public SalesInvoiceController(
             ISalesInvoiceService salesInvoiceService,
@@ -29,7 +29,7 @@ namespace MaterialManagement.PL.Controllers
             _salesInvoiceService = salesInvoiceService;
             _clientService = clientService;
             _materialService = materialService;
-            _clientPaymentRepo = clientPaymentRepo; 
+            _clientPaymentRepo = clientPaymentRepo;
             _mapper = mapper;
         }
 
@@ -135,42 +135,78 @@ namespace MaterialManagement.PL.Controllers
 
             return RedirectToAction(nameof(Index));
         }
- 
+
         public async Task<IActionResult> ClientInvoices(int id)
         {
             var client = await _clientService.GetClientByIdAsync(id);
             if (client == null) return NotFound();
 
-            return View(new ClientViewModel { Id = client.Id, Name = client.Name });
+            return View(_mapper.Map<ClientViewModel>(client));
+
         }
+
+        // في SalesInvoiceController.cs
 
         [HttpPost]
         public async Task<IActionResult> LoadClientInvoices()
         {
-            var draw = Request.Form["draw"].FirstOrDefault();
-            var start = Request.Form["start"].FirstOrDefault();
-            var length = Request.Form["length"].FirstOrDefault();
-            var searchValue = Request.Form["search[value]"].FirstOrDefault();
-            var clientId = int.Parse(Request.Form["clientId"].FirstOrDefault());
-
-            int pageSize = length != null ? Convert.ToInt32(length) : 10;
-            int skip = start != null ? Convert.ToInt32(start) : 0;
-
-            IQueryable<SalesInvoice> query = _salesInvoiceService.GetInvoicesAsQueryable()
-                                               .Where(i => i.ClientId == clientId && i.IsActive);
-
-            if (!string.IsNullOrEmpty(searchValue))
+            try
             {
-                query = query.Where(i => i.InvoiceNumber.Contains(searchValue));
+                // 1. قراءة متغيرات DataTables
+                var draw = Request.Form["draw"].FirstOrDefault();
+                var start = Request.Form["start"].FirstOrDefault();
+                var length = Request.Form["length"].FirstOrDefault();
+                var searchValue = Request.Form["search[value]"].FirstOrDefault();
+                var clientIdStr = Request.Form["clientId"].FirstOrDefault();
+
+                int pageSize = length != null ? Convert.ToInt32(length) : 10;
+                int skip = start != null ? Convert.ToInt32(start) : 0;
+                if (!int.TryParse(clientIdStr, out int clientId))
+                {
+                    return BadRequest(new { error = "معرف العميل غير صالح." });
+                }
+
+                // 2. بناء الاستعلام الأساسي وتطبيق الفلترة
+                IQueryable<SalesInvoice> query = _salesInvoiceService.GetInvoicesAsQueryable()
+                    .Where(i => i.ClientId == clientId && i.IsActive);
+
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    query = query.Where(i => i.InvoiceNumber.Contains(searchValue));
+                }
+
+                // 3. حساب الإجماليات الكلية (قبل الترقيم)
+                var grandTotalRemaining = await query.SumAsync(i => i.RemainingAmount);
+
+                // 4. جلب البيانات المرقّمة للصفحة الحالية
+                var recordsFiltered = await query.CountAsync();
+                var pagedData = await query.OrderByDescending(i => i.InvoiceDate).Skip(skip).Take(pageSize).ToListAsync();
+                var viewModelData = _mapper.Map<IEnumerable<InvoiceSummaryViewModel>>(pagedData);
+
+                // 5. جلب الرصيد الإجمالي للعميل وحساب الرصيد المرحل
+                var client = await _clientService.GetClientByIdAsync(clientId);
+                decimal clientCurrentBalance = client?.Balance ?? 0;
+                decimal openingBalance = clientCurrentBalance - grandTotalRemaining; // الرصيد قبل هذه الفواتير
+
+                var recordsTotal = await _salesInvoiceService.GetInvoicesAsQueryable().Where(i => i.ClientId == clientId && i.IsActive).CountAsync();
+
+                // 6. إرسال الرد مع كل الإحصائيات المطلوبة
+                var jsonData = new
+                {
+                    draw = draw,
+                    recordsFiltered = recordsFiltered,
+                    recordsTotal = recordsTotal,
+                    data = viewModelData,
+                    openingBalance = openingBalance.ToString("N2"), // <<< الرصيد المرحل
+                    grandTotalRemaining = grandTotalRemaining.ToString("N2"), // إجمالي المتبقي من الفواتير
+                    clientTotalBalance = clientCurrentBalance.ToString("N2") // الرصيد النهائي
+                };
+                return Ok(jsonData);
             }
-
-            var recordsFiltered = await query.CountAsync();
-            var pagedData = await query.OrderByDescending(i => i.InvoiceDate).Skip(skip).Take(pageSize).ToListAsync();
-            var viewModelData = _mapper.Map<IEnumerable<InvoiceSummaryViewModel>>(pagedData);
-            var recordsTotal = await _salesInvoiceService.GetInvoicesAsQueryable().Where(i => i.ClientId == clientId && i.IsActive).CountAsync();
-
-            var jsonData = new { draw = draw, recordsFiltered = recordsFiltered, recordsTotal = recordsTotal, data = viewModelData };
-            return Ok(jsonData);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "حدث خطأ في جلب بيانات الفواتير: " + ex.Message });
+            }
         }
     }
 }

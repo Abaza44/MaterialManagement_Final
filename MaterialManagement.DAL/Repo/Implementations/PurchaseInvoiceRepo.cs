@@ -102,11 +102,12 @@ namespace MaterialManagement.DAL.Repo.Implementations
                     SupplierId = group.Key.Id,
                     SupplierName = group.Key.Name,
                     InvoiceCount = group.Count(),
-                    TotalCredit = group.Sum(pi => pi.RemainingAmount)
+                    TotalCredit = group.Key.Balance
                 })
                 .OrderBy(summary => summary.SupplierName)
                 .AsNoTracking()
                 .ToListAsync();
         }
+
     }
 }

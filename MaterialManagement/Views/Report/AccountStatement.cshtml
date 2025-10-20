@@ -1,89 +1,119 @@
-﻿@using MaterialManagement.BLL.ModelVM.Client
-@using MaterialManagement.BLL.ModelVM.Supplier
-
-@{
+﻿@{
     ViewData["Title"] = "تقرير كشف الحساب";
 }
 
-<h1><i class="bi bi-file-earmark-person"></i> @ViewData["Title"]</h1>
-<hr />
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5>كشف حساب عميل</h5>
+            <div class="text-center mb-4">
+                <h1><i class="bi bi-file-earmark-person"></i> @ViewData["Title"]</h1>
+                <p class="lead text-muted">ابحث عن عميل أو مورد لعرض كشف حساب تفصيلي لمعاملاته.</p>
             </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">العميل</label>
-                    <select id="clientSearchDropdown" class="form-select" style="width: 100%;">
-                        <option value="">ابدأ بكتابة الاسم أو رقم الهاتف...</option>
-                    </select>
-                </div>
-                <button type="button" id="btnClientReport" class="btn btn-primary w-100">
-                    <i class="bi bi-arrow-right-circle"></i> الانتقال لكشف الحساب
-                </button>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-secondary text-white">
-                <h5>كشف حساب مورد</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">المورد</label>
-                    <select id="supplierSearchDropdown" class="form-select" style="width: 100%;">
-                        <option value="">ابدأ بكتابة الاسم أو رقم الهاتف...</option>
-                    </select>
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="client-tab" data-bs-toggle="tab" data-bs-target="#client-panel" type="button" role="tab">
+                                <i class="bi bi-person"></i> كشف حساب عميل
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="supplier-tab" data-bs-toggle="tab" data-bs-target="#supplier-panel" type="button" role="tab">
+                                <i class="bi bi-truck"></i> كشف حساب مورد
+                            </button>
+                        </li>
+                    </ul>
                 </div>
-                <button type="button" id="btnSupplierReport" class="btn btn-secondary w-100">
-                    <i class="bi bi-arrow-right-circle"></i> الانتقال لكشف الحساب
-                </button>
+                <div class="card-body">
+                    <div class="tab-content" id="myTabContent">
+
+                        <div class="tab-pane fade show active" id="client-panel" role="tabpanel">
+                            <h5 class="card-title">الخطوة 1: اختر العميل</h5>
+                            <div class="mb-3">
+                                <select id="clientSearchDropdown" class="form-select-lg" style="width: 100%;">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <button type="button" id="btnClientReport" class="btn btn-primary w-100" disabled>
+                                <i class="bi bi-arrow-right-circle"></i> الانتقال لكشف الحساب
+                            </button>
+                        </div>
+
+                        <div class="tab-pane fade" id="supplier-panel" role="tabpanel">
+                            <h5 class="card-title">الخطوة 1: اختر المورد</h5>
+                            <div class="mb-3">
+                                <select id="supplierSearchDropdown" class="form-select-lg" style="width: 100%;">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <button type="button" id="btnSupplierReport" class="btn btn-secondary w-100" disabled>
+                                <i class="bi bi-arrow-right-circle"></i> الانتقال لكشف الحساب
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
             </div>
+
         </div>
     </div>
 </div>
 
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+}
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        function initializeSelect2(selector, url) {
-            $(selector).select2({
-                placeholder: 'ابحث بالاسم أو رقم الهاتف...',
-                allowClear: true,
-                theme: "bootstrap-5",
-                ajax: {
-                    url: url,
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return { searchTerm: params.term };
-                    },
-                    processResults: function (data) {
-                        return { results: data.results };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 2
-            });
-        }
-
         $(document).ready(function () {
-            // تهيئة حقول البحث الفوري
-            initializeSelect2('#clientSearchDropdown', '/Report/SearchClients');
-            initializeSelect2('#supplierSearchDropdown', '/Report/SearchSuppliers');
 
-            // ربط أزرار الانتقال
+            function initializeSelect2(selector, url, buttonSelector) {
+                const $select = $(selector);
+                const $button = $(buttonSelector);
+
+                $select.select2({
+                    placeholder: 'ابحث بالاسم أو رقم الهاتف...',
+                    allowClear: true,
+                    theme: "bootstrap-5",
+                    ajax: {
+                        url: url,
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return { searchTerm: params.term };
+                        },
+                        processResults: function (data) {
+                            return { results: data.results };
+                        },
+                        cache: true
+                    },
+                    minimumInputLength: 2
+                });
+
+                // Enable/disable the button based on selection
+                $select.on('select2:select', function (e) {
+                    $button.prop('disabled', false);
+                });
+
+                $select.on('select2:unselect', function (e) {
+                    $button.prop('disabled', true);
+                });
+            }
+
+            // Initialize search boxes
+            initializeSelect2('#clientSearchDropdown', '/Report/SearchClients', '#btnClientReport');
+            initializeSelect2('#supplierSearchDropdown', '/Report/SearchSuppliers', '#btnSupplierReport');
+
+            // Attach click events to buttons
             $('#btnClientReport').on('click', function() {
                 var id = $('#clientSearchDropdown').val();
                 if (id) {
                     window.location.href = `/Report/AccountStatementResult?clientId=${id}`;
-                } else {
-                    alert('يرجى اختيار عميل أولاً.');
                 }
             });
 
@@ -91,8 +121,6 @@
                 var id = $('#supplierSearchDropdown').val();
                 if (id) {
                     window.location.href = `/Report/AccountStatementResult?supplierId=${id}`;
-                } else {
-                    alert('يرجى اختيار مورد أولاً.');
                 }
             });
         });

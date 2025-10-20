@@ -175,75 +175,60 @@ namespace MaterialManagement.PL.Controllers
         {
             try
             {
+                var statementData = isClient
+                    ? await _reportService.GetClientAccountStatementAsync(accountId, fromDate, toDate)
+                    : await _reportService.GetSupplierAccountStatementAsync(accountId, fromDate, toDate);
 
-
-                List<AccountStatementViewModel> statementData;
-
-                if (isClient)
-                {
-                    statementData = await _reportService.GetClientAccountStatementAsync(
-                        accountId,
-                        fromDate,
-                        toDate);
-                }
-                else
-                {
-                    statementData = await _reportService.GetSupplierAccountStatementAsync(
-                        accountId,
-                        fromDate,
-                        toDate);
-                }
-
-                if (!fromDate.HasValue && !toDate.HasValue)
-                {
-
-
-                    statementData = statementData
-
-                        .OrderByDescending(d => d.TransactionDate)
-
-                        .Take(10)
-
-                        .OrderBy(d => d.TransactionDate)
-                        .ToList();
-                }
-
-
+                if (statementData == null)
+                    statementData = new List<AccountStatementViewModel>();
 
                 var draw = Request.Form["draw"].FirstOrDefault();
-                var start = Request.Form["start"].FirstOrDefault();
-                var length = Request.Form["length"].FirstOrDefault();
+                var start = Convert.ToInt32(Request.Form["start"].FirstOrDefault() ?? "0");
+                var length = Convert.ToInt32(Request.Form["length"].FirstOrDefault() ?? "10");
 
-                var pageSize = length != null ? Convert.ToInt32(length) : 10;
-                var skip = start != null ? Convert.ToInt32(start) : 0;
+                var totalRecords = statementData.Count;
+                var displayedData = statementData.Skip(start).Take(length).ToList();
 
-                // الإجمالي قبل التصفية (لأننا طبقنا فلترة الـ 10 سجلات بالفعل، نستخدم عدد السجلات بعد الفلترة)
-                var totalRecords = statementData.Count();
+                var totalDebit = statementData.Sum(i => i.Debit);
+                var totalCredit = statementData.Sum(i => i.Credit);
+                var finalBalance = statementData.LastOrDefault()?.Balance ?? 0;
+                var openingBalance = statementData.FirstOrDefault()?.Balance ?? 0;
 
-                // تطبيق الترقيم النهائي
-                var displayedData = statementData.Skip(skip).Take(pageSize).ToList();
-
-                // 4. إرجاع الرد
-                var jsonData = new
+                return Json(new
                 {
-                    draw = draw,
+                    draw,
                     recordsFiltered = totalRecords,
                     recordsTotal = totalRecords,
-                    data = displayedData,
-                    // يجب عليك إرجاع الإجماليات والرصيد النهائي ليعرضها الجدول (كما اتفقنا في الخطوة السابقة)
-                    totalDebit = statementData.Sum(i => i.Debit),
-                    totalCredit = statementData.Sum(i => i.Credit),
-                    finalBalance = statementData.LastOrDefault()?.Balance ?? 0
-                };
-
-                return Ok(jsonData);
+                    data = displayedData.Select(x => new
+                    {
+                        transactionDate = x.TransactionDate,
+                        transactionType = x.TransactionType,
+                        debit = x.Debit,
+                        credit = x.Credit,
+                        balance = x.Balance,
+                        reference = x.Reference,
+                        documentId = x.DocumentId,
+                        documentType = x.DocumentType,
+                        items = x.Items?.Select(i => new
+                        {
+                            materialName = i.MaterialName,
+                            quantity = i.Quantity,
+                            unit = i.Unit,
+                            price = i.UnitPrice
+                        }).ToList()
+                    }),
+                    totalDebit = totalDebit.ToString("N2"),
+                    totalCredit = totalCredit.ToString("N2"),
+                    finalBalance = finalBalance.ToString("N2"),
+                    openingBalance = openingBalance.ToString("N2")
+                });
             }
             catch (Exception ex)
             {
-                // ...
-                return StatusCode(500, new { error = $"حدث خطأ غير متوقع: {ex.Message}" });
+                return Json(new { error = $"حدث خطأ غير متوقع: {ex.Message}" });
             }
         }
+
         [HttpPost]
         public async Task<IActionResult> LoadMaterialMovementData()
         {
@@ -253,7 +238,7 @@ namespace MaterialManagement.PL.Controllers
                 var draw = Request.Form["draw"].FirstOrDefault();
                 var start = Request.Form["start"].FirstOrDefault();
                 var length = Request.Form["length"].FirstOrDefault();
-                var materialId = int.Parse(Request.Form["materialId"].FirstOrDefault()); // معرّف المادة
+                var materialId = int.Parse(Request.Form["materialId"].FirstOrDefault());
 
 
                 DateTime? fromDate = null;

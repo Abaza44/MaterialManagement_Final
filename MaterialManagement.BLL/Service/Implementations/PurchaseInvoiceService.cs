@@ -18,22 +18,22 @@ namespace MaterialManagement.BLL.Service.Implementations
         private readonly IPurchaseInvoiceRepo _invoiceRepo;
         private readonly IMaterialRepo _materialRepo;
         private readonly ISupplierRepo _supplierRepo;
-        private readonly IClientRepo _clientRepo;     
+        private readonly IClientRepo _clientRepo;
         private readonly MaterialManagementContext _context;
         private readonly IMapper _mapper;
 
         public PurchaseInvoiceService(
         IPurchaseInvoiceRepo invoiceRepo,
         IMaterialRepo materialRepo,
-        ISupplierRepo supplierRepo, 
-        IClientRepo clientRepo,    
+        ISupplierRepo supplierRepo,
+        IClientRepo clientRepo,
         MaterialManagementContext context,
         IMapper mapper)
         {
             _invoiceRepo = invoiceRepo;
             _materialRepo = materialRepo;
-            _supplierRepo = supplierRepo; 
-            _clientRepo = clientRepo;     
+            _supplierRepo = supplierRepo;
+            _clientRepo = clientRepo;
             _context = context;
             _mapper = mapper;
         }

@@ -1,13 +1,28 @@
 ﻿@model MaterialManagement.BLL.ModelVM.Client.ClientViewModel
 
 @{
+    // العنوان الرئيسي للصفحة
     ViewData["Title"] = $"فواتير العميل: {Model.Name}";
 }
 
-<h2 class="mb-3">🧾 فواتير العميل: <span class="text-primary">@Model.Name</span></h2>
-<p><a asp-action="Index" class="btn btn-secondary">العودة لقائمة العملاء</a></p>
+<h2 class="mb-3">
+    🧾 فواتير العميل:
+    <span class="text-primary">@Model.Name</span>
+</h2>
 
-<div class="card shadow-sm">
+<!-- عرض رقم العميل -->
+@if (!string.IsNullOrEmpty(Model.Phone))
+{
+    <p class="text-muted">
+        📞 <strong>رقم العميل:</strong> @Model.Phone
+    </p>
+}
+
+<p>
+    <a asp-action="Index" class="btn btn-secondary">⬅ العودة لقائمة العملاء</a>
+</p>
+
+<div class="card shadow-sm mt-3">
     <div class="card-body">
         <table id="invoicesTable" class="table table-bordered table-hover" style="width:100%">
             <thead class="table-dark">
@@ -20,6 +35,23 @@
                     <th>إجراءات</th>
                 </tr>
             </thead>
+            <tfoot>
+                <tr class="table-light">
+                    <td colspan="4" class="text-end fw-bold">رصيد سابق / مرحل:</td>
+                    <td id="openingBalance" class="text-end fw-bold">0.00</td>
+                    <td></td>
+                </tr>
+                <tr class="table-light">
+                    <td colspan="4" class="text-end">إجمالي المتبقي من الفواتير المعروضة:</td>
+                    <td id="grandTotalRemaining" class="text-end text-danger">0.00</td>
+                    <td></td>
+                </tr>
+                <tr class="table-dark text-white fw-bolder">
+                    <td colspan="4" class="text-end fs-5">الرصيد الإجمالي النهائي:</td>
+                    <td id="finalBalance" class="text-end fs-5">0.00</td>
+                    <td></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </div>
@@ -27,42 +59,60 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            const currencyFormat = $.fn.dataTable.render.number(',', '.', 2).display;
+
             $('#invoicesTable').DataTable({
-                "processing": true,
-                "serverSide": true,
-                "ajax": {
-                    "url": "/SalesInvoice/LoadClientInvoices",
-                    "type": "POST",
-                    "data": function (d) {
-                        // إرسال رقم العميل مع كل طلب
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "/SalesInvoice/LoadClientInvoices",
+                    type: "POST",
+                    data: function (d) {
                         d.clientId = @Model.Id;
+                    },
+                    dataSrc: function (json) {
+                        // تحديث الإحصائيات في الـ tfoot
+                        $('#openingBalance').text(json.openingBalance);
+                        $('#grandTotalRemaining').text(json.grandTotalRemaining);
+                        $('#finalBalance').text(json.clientTotalBalance);
+
+                        // فقط بيانات الفواتير
+                        return json.data;
                     }
                 },
-                "columns": [
-                    { "data": "invoiceNumber" },
+                columns: [
+                    { data: "invoiceNumber" },
                     {
-                        "data": "invoiceDate",
-                        "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); }
-                    },
-                    { "data": "totalAmount", "render": $.fn.dataTable.render.number(',', '.', 2) },
-                    { "data": "paidAmount", "render": $.fn.dataTable.render.number(',', '.', 2) },
-                    {
-                        "data": "remainingAmount",
-                        "render": function(data) {
-                            return data > 0 ? `<span class="badge bg-danger">${$.fn.dataTable.render.number(',', '.', 2).display(data)}</span>` : `<span class="badge bg-success">✔</span>`;
+                        data: "invoiceDate",
+                        render: function (data) {
+                            return new Date(data).toLocaleDateString('ar-EG');
                         }
                     },
+                    { data: "totalAmount", render: currencyFormat, className: "text-end" },
+                    { data: "paidAmount", render: currencyFormat, className: "text-end" },
                     {
-                        "data": "id",
-                        "render": function (data) {
-                            return `<a href='/SalesInvoice/Details/${data}' class='btn btn-info btn-sm'>👁</a> ` +
-                                   `<a href='/SalesInvoice/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>`;
+                        data: "remainingAmount",
+                        render: function (data) {
+                            return data > 0
+                                ? `<span class="badge bg-danger">${currencyFormat(data)}</span>`
+                                : `<span class="badge bg-success">✔</span>`;
                         },
-                        "orderable": false
+                        className: "text-end"
+                    },
+                    {
+                        data: "id",
+                        render: function (data) {
+                            return `
+                                <a href='/SalesInvoice/Details/${data}' class='btn btn-info btn-sm'>👁</a>
+                                <a href='/SalesInvoice/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>
+                            `;
+                        },
+                        orderable: false,
+                        searchable: false
                     }
                 ],
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
-                "order": [[ 1, "desc" ]]
+                language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
+                order: [[1, "desc"]]
             });
         });
     </script>

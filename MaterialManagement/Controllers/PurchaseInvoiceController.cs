@@ -72,7 +72,7 @@ namespace MaterialManagement.PL.Controllers
         {
             var supplier = await _supplierService.GetSupplierByIdAsync(id);
             if (supplier == null) return NotFound();
-            return View(new SupplierViewModel { Id = supplier.Id, Name = supplier.Name });
+            return View(_mapper.Map<SupplierViewModel>(supplier));
         }
         public async Task<IActionResult> Create()
         {
@@ -106,7 +106,7 @@ namespace MaterialManagement.PL.Controllers
             try
             {
                 await _purchaseInvoiceService.CreateInvoiceAsync(model);
-                TempData["SuccessMessage"] = "تم إنشاء العملية بنجاح"; 
+                TempData["SuccessMessage"] = "تم إنشاء العملية بنجاح";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
@@ -148,33 +148,66 @@ namespace MaterialManagement.PL.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+        // في PurchaseInvoiceController.cs
         [HttpPost]
         public async Task<IActionResult> LoadSupplierInvoices()
         {
-            var draw = Request.Form["draw"].FirstOrDefault();
-            var start = Request.Form["start"].FirstOrDefault();
-            var length = Request.Form["length"].FirstOrDefault();
-            var searchValue = Request.Form["search[value]"].FirstOrDefault();
-            var supplierId = int.Parse(Request.Form["supplierId"].FirstOrDefault());
-
-            int pageSize = length != null ? Convert.ToInt32(length) : 10;
-            int skip = start != null ? Convert.ToInt32(start) : 0;
-
-            IQueryable<PurchaseInvoice> query = _purchaseInvoiceService.GetInvoicesAsQueryable()
-                                               .Where(i => i.SupplierId == supplierId && i.IsActive);
-
-            if (!string.IsNullOrEmpty(searchValue))
+            try
             {
-                query = query.Where(i => i.InvoiceNumber.Contains(searchValue));
+                // 1. قراءة متغيرات DataTables
+                var draw = Request.Form["draw"].FirstOrDefault();
+                var start = Request.Form["start"].FirstOrDefault();
+                var length = Request.Form["length"].FirstOrDefault();
+                var searchValue = Request.Form["search[value]"].FirstOrDefault();
+                var supplierIdStr = Request.Form["supplierId"].FirstOrDefault();
+
+                int pageSize = length != null ? Convert.ToInt32(length) : 10;
+                int skip = start != null ? Convert.ToInt32(start) : 0;
+                if (!int.TryParse(supplierIdStr, out int supplierId))
+                {
+                    return BadRequest(new { error = "معرف المورد غير صالح." });
+                }
+
+
+                IQueryable<PurchaseInvoice> query = _purchaseInvoiceService.GetInvoicesAsQueryable()
+                    .Where(i => i.SupplierId == supplierId && i.IsActive);
+
+                if (!string.IsNullOrEmpty(searchValue))
+                {
+                    query = query.Where(i => i.InvoiceNumber.Contains(searchValue));
+                }
+
+                var grandTotalRemaining = await query.SumAsync(i => i.RemainingAmount);
+
+                var recordsFiltered = await query.CountAsync();
+                var pagedData = await query.OrderByDescending(i => i.InvoiceDate).Skip(skip).Take(pageSize).ToListAsync();
+                var viewModelData = _mapper.Map<IEnumerable<PurchaseInvoiceViewModel>>(pagedData);
+
+                // 5. جلب الرصيد الإجمالي للمورد وحساب الرصيد المرحل
+                var supplier = await _supplierService.GetSupplierByIdAsync(supplierId);
+                decimal supplierCurrentBalance = supplier?.Balance ?? 0;
+                // الرصيد المرحل = الرصيد النهائي - إجمالي المتبقي من الفواتير
+                decimal openingBalance = supplierCurrentBalance - grandTotalRemaining;
+
+                var recordsTotal = await _purchaseInvoiceService.GetInvoicesAsQueryable().Where(i => i.SupplierId == supplierId && i.IsActive).CountAsync();
+
+                // 6. إرسال الرد مع كل الإحصائيات المطلوبة
+                var jsonData = new
+                {
+                    draw = draw,
+                    recordsFiltered = recordsFiltered,
+                    recordsTotal = recordsTotal,
+                    data = viewModelData,
+                    openingBalance = openingBalance.ToString("N2"), // <<< الرصيد المرحل
+                    grandTotalRemaining = grandTotalRemaining.ToString("N2"), // إجمالي المتبقي من الفواتير
+                    finalBalance = supplierCurrentBalance.ToString("N2") // الرصيد النهائي
+                };
+                return Ok(jsonData);
             }
-
-            var recordsFiltered = await query.CountAsync();
-            var pagedData = await query.OrderByDescending(i => i.InvoiceDate).Skip(skip).Take(pageSize).ToListAsync();
-            var viewModelData = _mapper.Map<IEnumerable<PurchaseInvoiceViewModel>>(pagedData);
-            var recordsTotal = await _purchaseInvoiceService.GetInvoicesAsQueryable().Where(i => i.SupplierId == supplierId && i.IsActive).CountAsync();
-
-            var jsonData = new { draw = draw, recordsFiltered = recordsFiltered, recordsTotal = recordsTotal, data = viewModelData };
-            return Ok(jsonData);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "حدث خطأ في جلب بيانات الفواتير: " + ex.Message });
+            }
         }
         [HttpPost]
         public async Task<IActionResult> LoadData()
@@ -187,7 +220,7 @@ namespace MaterialManagement.PL.Controllers
             int skip = start != null ? Convert.ToInt32(start) : 0;
 
             IQueryable<PurchaseInvoice> query = _purchaseInvoiceService.GetInvoicesAsQueryable()
-                                                    .Where(i => i.IsActive); 
+                                                    .Where(i => i.IsActive);
 
             if (!string.IsNullOrEmpty(searchValue))
             {

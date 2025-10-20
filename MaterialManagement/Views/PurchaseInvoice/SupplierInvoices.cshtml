@@ -4,15 +4,42 @@
     ViewData["Title"] = $"فواتير المورد: {Model.Name}";
 }
 
-<h2 class="mb-3">🧾 فواتير المورد: <span class="text-primary">@Model.Name</span></h2>
-<p><a asp-action="Index" class="btn btn-secondary">العودة لقائمة الموردين</a></p>
-
+<div class="mb-3">
+    <h2>🧾 فواتير المورد: <span class="text-primary">@Model.Name</span></h2>
+    <p class="mb-1">📞 <strong>رقم الهاتف:</strong> @(string.IsNullOrWhiteSpace(Model.Phone) ? "غير متوفر" : Model.Phone)</p>
+    <p class="mb-1">📍 <strong>العنوان:</strong> @(string.IsNullOrWhiteSpace(Model.Address) ? "غير متوفر" : Model.Address)</p>
+    <p><a asp-action="Index" class="btn btn-secondary btn-sm">⬅ العودة لقائمة الموردين</a></p>
+</div>
 <div class="card shadow-sm">
     <div class="card-body">
         <table id="invoicesTable" class="table table-bordered table-hover" style="width:100%">
             <thead class="table-dark">
-                <tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الإجمالي</th><th>المتبقي</th><th>إجراءات</th></tr>
+                <tr>
+                    <th>رقم الفاتورة</th>
+                    <th>التاريخ</th>
+                    <th>الإجمالي</th>
+                    <th>المدفوع</th>
+                    <th>المتبقي</th>
+                    <th>إجراءات</th>
+                </tr>
             </thead>
+            <tfoot>
+                <tr class="table-light">
+                    <td colspan="4" class="text-end fw-bold">رصيد سابق / مرحل:</td>
+                    <td id="openingBalance" class="text-end fw-bold">0.00</td>
+                    <td></td>
+                </tr>
+                <tr class="table-light">
+                    <td colspan="4" class="text-end">إجمالي المتبقي من الفواتير:</td>
+                    <td id="grandTotalRemaining" class="text-end text-danger">0.00</td>
+                    <td></td>
+                </tr>
+                <tr class="table-dark text-white fw-bolder">
+                    <td colspan="4" class="text-end fs-5">الرصيد الإجمالي النهائي:</td>
+                    <td id="finalBalance" class="text-end fs-5">0.00</td>
+                    <td></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </div>
@@ -20,6 +47,8 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            const currencyFormat = $.fn.dataTable.render.number(',', '.', 2).display;
+
             $('#invoicesTable').DataTable({
                 "processing": true,
                 "serverSide": true,
@@ -28,20 +57,28 @@
                     "type": "POST",
                     "data": function (d) {
                         d.supplierId = @Model.Id;
+                    },
+                    "dataSrc": function (json) {
+                        // تحديث الإحصائيات في الـ tfoot
+                        $('#openingBalance').text(json.openingBalance);
+                        $('#grandTotalRemaining').text(json.grandTotalRemaining);
+                        $('#finalBalance').text(json.finalBalance);
+
+                        // فقط نرجع بيانات الفواتير
+                        return json.data;
                     }
                 },
                 "columns": [
                     { "data": "invoiceNumber" },
-                    {
-                        "data": "invoiceDate",
-                        "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); }
-                    },
-                    { "data": "totalAmount", "render": $.fn.dataTable.render.number(',', '.', 2) },
+                    { "data": "invoiceDate", "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); } },
+                    { "data": "totalAmount", "render": currencyFormat, "className": "text-end" },
+                    { "data": "paidAmount", "render": currencyFormat, "className": "text-end" },
                     {
                         "data": "remainingAmount",
                         "render": function(data) {
-                            return data > 0 ? `<span class="badge bg-danger">${$.fn.dataTable.render.number(',', '.', 2).display(data)}</span>` : `<span class="badge bg-success">✔</span>`;
-                        }
+                            return data > 0 ? `<span class="badge bg-danger">${currencyFormat(data)}</span>` : `<span class="badge bg-success">✔</span>`;
+                        },
+                        "className": "text-end"
                     },
                     {
                         "data": "id",
@@ -49,7 +86,7 @@
                             return `<a href='/PurchaseInvoice/Details/${data}' class='btn btn-info btn-sm'>👁</a> ` +
                                    `<a href='/PurchaseInvoice/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>`;
                         },
-                        "orderable": false
+                        "orderable": false, "searchable": false
                     }
                 ],
                 "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
