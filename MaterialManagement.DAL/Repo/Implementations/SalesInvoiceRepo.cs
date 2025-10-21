@@ -93,7 +93,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
                     ClientId = group.Key.Id,
                     ClientName = group.Key.Name,
                     InvoiceCount = group.Count(),
-                    TotalDebt = group.Sum(si => si.RemainingAmount)
+                    TotalDebt = group.Key.Balance
                 })
                 .OrderBy(summary => summary.ClientName)
                 .AsNoTracking()

@@ -1,0 +1,44 @@
+﻿@model MaterialManagement.BLL.ModelVM.Expense.ExpenseViewModel
+
+@{
+    ViewData["Title"] = "حذف المصروف";
+}
+
+<h1>حذف المصروف</h1>
+
+<div class="alert alert-danger">
+    <h3>هل أنت متأكد من حذف هذا المصروف؟</h3>
+</div>
+
+<div>
+    <h4>تفاصيل المصروف</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">الوصف</dt>
+        <dd class="col-sm-10">@Model.Description</dd>
+
+        <dt class="col-sm-2">المبلغ</dt>
+        <dd class="col-sm-10">@Model.Amount.ToString("C")</dd>
+
+        <dt class="col-sm-2">التاريخ</dt>
+        <dd class="col-sm-10">@Model.ExpenseDate.ToString("yyyy-MM-dd")</dd>
+
+        <dt class="col-sm-2">الفئة</dt>
+        <dd class="col-sm-10">@Model.Category</dd>
+
+        <dt class="col-sm-2">طريقة الدفع</dt>
+        <dd class="col-sm-10">@Model.PaymentMethod</dd>
+
+        <dt class="col-sm-2">الملاحظات</dt>
+        <dd class="col-sm-10">@Model.Notes</dd>
+
+        <dt class="col-sm-2">تاريخ الإضافة</dt>
+        <dd class="col-sm-10">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+    </dl>
+
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="حذف" class="btn btn-danger" /> |
+        <a asp-action="Index" class="btn btn-secondary">رجوع</a>
+    </form>
+</div>

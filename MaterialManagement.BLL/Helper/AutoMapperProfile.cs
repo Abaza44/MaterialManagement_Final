@@ -7,6 +7,7 @@ using MaterialManagement.BLL.ModelVM.Invoice;
 using MaterialManagement.BLL.ModelVM.Maintenance;
 using MaterialManagement.BLL.ModelVM.Material;
 using MaterialManagement.BLL.ModelVM.Payment;
+using MaterialManagement.BLL.ModelVM.Reports;
 using MaterialManagement.BLL.ModelVM.Reservation;
 using MaterialManagement.BLL.ModelVM.Supplier;
 using MaterialManagement.DAL.DTOs;
@@ -79,7 +80,7 @@ namespace MaterialManagement.BLL.Helper
             // === Purchase Invoice Mappings (مع دعم المرتجعات) ===
             CreateMap<PurchaseInvoice, PurchaseInvoiceViewModel>()
                 .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : null))
-                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client != null ? src.Client.Name : null)) 
+                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client != null ? src.Client.Name : null))
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.PurchaseInvoiceItems)); // <<< هذا هو الحل
             CreateMap<PurchaseInvoiceItem, PurchaseInvoiceItemViewModel>()
                 .ForMember(dest => dest.MaterialCode, opt => opt.MapFrom(src => src.Material.Code))
@@ -100,6 +101,13 @@ namespace MaterialManagement.BLL.Helper
             // This is the map for the items (you already have this)
             CreateMap<ReservationItem, ReservationItemModel>()
                 .ForMember(dest => dest.MaterialName, opt => opt.MapFrom(src => src.Material.Name));
+            // هذه الخريطة ستقوم بنسخ UnitPrice تلقائيًا بسبب تطابق الأسماء
+            CreateMap<SalesInvoiceItem, TransactionItemViewModel>()
+                .ForMember(dest => dest.Unit, opt => opt.MapFrom(src => src.Material.Unit));
+
+            // نفس الشيء بالنسبة لفواتير الشراء (المرتجعات)
+            CreateMap<PurchaseInvoiceItem, TransactionItemViewModel>()
+                .ForMember(dest => dest.Unit, opt => opt.MapFrom(src => src.Material.Unit));
 
             // === Payment Mappings ===
             CreateMap<ClientPayment, ClientPaymentViewModel>();
