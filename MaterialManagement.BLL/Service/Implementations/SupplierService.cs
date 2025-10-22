@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using MaterialManagement.BLL.ModelVM.Supplier;
 using MaterialManagement.BLL.Service.Abstractions;
+using MaterialManagement.DAL.DB;
 using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions;
 using MaterialManagement.DAL.Repo.Implementations;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaterialManagement.BLL.Service.Implementations
 {
@@ -11,11 +13,14 @@ namespace MaterialManagement.BLL.Service.Implementations
     {
         private readonly ISupplierRepo _supplierRepo;
         private readonly IMapper _mapper;
+        private readonly MaterialManagementContext _context;
 
-        public SupplierService(ISupplierRepo supplierRepo, IMapper mapper)
+        public SupplierService(ISupplierRepo supplierRepo, IMapper mapper, MaterialManagementContext context)
         {
             _supplierRepo = supplierRepo;
             _mapper = mapper;
+            _context = context;
+
         }
 
         public async Task<IEnumerable<SupplierViewModel>> GetAllSuppliersAsync()
@@ -74,7 +79,29 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task DeleteSupplierAsync(int id)
         {
+            // 1. Check for related purchase invoices directly in the database
+            bool hasPurchaseInvoices = await _context.PurchaseInvoices
+                                               .AnyAsync(inv => inv.SupplierId == id); // Add && inv.IsActive if using soft delete
+
+            // 2. Prevent deletion if invoices exist
+            if (hasPurchaseInvoices)
+            {
+                throw new InvalidOperationException("❌ لا يمكن حذف المورد لأنه مرتبط بفواتير مشتريات.");
+            }
+
+            // 3. Check if the supplier exists before trying to delete
+            var supplierToDelete = await _supplierRepo.GetByIdAsync(id); // Or however you fetch it
+            if (supplierToDelete == null)
+            {
+                throw new InvalidOperationException("❌ المورد المراد حذفه غير موجود أصلاً.");
+            }
+
+            // 4. Proceed with deletion if no invoices found and supplier exists
             await _supplierRepo.DeleteAsync(id);
+            // OR if using soft delete:
+            // supplierToDelete.IsActive = false;
+            // _supplierRepo.Update(supplierToDelete); // Assuming Update saves changes or you call SaveChangesAsync after
+            // await _context.SaveChangesAsync();
         }
 
         public async Task<IEnumerable<SupplierViewModel>> SearchSuppliersAsync(string searchTerm)

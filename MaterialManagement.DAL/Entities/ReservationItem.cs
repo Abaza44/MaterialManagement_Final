@@ -18,5 +18,6 @@ namespace MaterialManagement.DAL.Entities
         public decimal Quantity { get; set; } // الكمية المحجوزة
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
+        public decimal? FulfilledQuantity { get; set; } = 0; 
     }
 }

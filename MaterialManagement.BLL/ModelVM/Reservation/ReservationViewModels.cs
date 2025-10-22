@@ -48,6 +48,8 @@ namespace MaterialManagement.BLL.ModelVM.Reservation
         public decimal UnitPrice { get; set; }
 
         public decimal TotalPrice => Quantity * UnitPrice;
+
+        public int? FulfilledQuantity { get; internal set; }
     }
 
     // أضف هذا الكلاس الجديد بالكامل
@@ -87,5 +89,60 @@ namespace MaterialManagement.BLL.ModelVM.Reservation
         public int ClientId { get; set; }
         public string ClientName { get; set; }
         public List<ReservationSummaryViewModel> Reservations { get; set; } = new();
+    }
+    public class ReservationUpdateModel
+    {
+        [Required]
+        public int Id { get; set; } // رقم الحجز
+
+        [Required]
+        [Display(Name = "العميل")]
+        public int ClientId { get; set; }
+
+        [Display(Name = "ملاحظات")]
+        public string? Notes { get; set; }
+
+        // سيتم إرسال قائمة الأصناف للتعديل
+        public List<ReservationItemModel> Items { get; set; } = new();
+    }
+
+    // سنحتاج أيضًا لنموذج جلب البيانات للعرض في صفحة التعديل
+    public class ReservationGetForUpdateModel
+    {
+        public int Id { get; set; }
+        public int ClientId { get; set; }
+        public string? Notes { get; set; }
+        public List<ReservationItemModel> Items { get; set; } = new();
+    }
+
+    // نموذج بسيط يمثل بنداً واحداً نريد تسليمه جزئياً
+    public class ReservationFulfillmentModel
+    {
+        public int ReservationItemId { get; set; } // ID الخاص ببند الحجز
+        [Required, Range(0.01, double.MaxValue)]
+        public decimal QuantityToFulfill { get; set; } // الكمية المراد تسليمها الآن
+    }
+
+    public class ReservationFulfillmentViewModel
+    {
+        public int ReservationId { get; set; }
+        public string? ReservationNumber { get; set; } // <--- تعديل
+        public string? ClientName { get; set; }        // <--- تعديل
+        public List<FulfillmentItemModel> ItemsToFulfill { get; set; } = new();
+    }
+
+    public class FulfillmentItemModel
+    {
+        public int ReservationItemId { get; set; } // ID لبند الحجز المحدد
+        public int MaterialId { get; set; }
+        public string? MaterialName { get; set; }
+        public decimal QuantityReserved { get; set; }
+        public decimal QuantityFulfilled { get; set; }
+        public decimal QuantityRemaining { get; set; } // المتبقي للتسليم
+        [Display(Name = "الكمية للتسليم الآن")]
+        [Range(0, (double)decimal.MaxValue, ErrorMessage = "الكمية يجب أن تكون صفراً أو أكبر.")]
+        public decimal QuantityToFulfillNow { get; set; } = 0; // نعطيها قيمة افتراضية 0
+
+
     }
 }

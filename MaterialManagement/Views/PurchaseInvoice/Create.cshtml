@@ -109,8 +109,27 @@
             <div class="row justify-content-end">
                 <div class="col-md-4">
                     <div class="mb-3">
+                        <label class="form-label fw-bold">الإجمالي الكلي</label>
+                        <input id="grandTotalDisplay" class="form-control" value="0.00" readonly disabled style="background-color: #e9ecef; font-weight: bold; color: #000;" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label asp-for="DiscountAmount" class="form-label fw-bold"></label>
+                                <input asp-for="DiscountAmount" id="discountAmount" class="form-control" type="number" step="0.01" value="0" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">الصافي بعد الخصم</label>
+                        <input id="netTotalDisplay" class="form-control" value="0.00" readonly disabled style="background-color: #e9ecef; font-weight: bold; color: #198754;" />
+                    </div>
+
+                    <div class="mb-3">
                         <label asp-for="PaidAmount" class="form-label fw-bold"></label>
-                        <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" />
+                        <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" value="0" />
                         <span asp-validation-for="PaidAmount" class="text-danger"></span>
                     </div>
                     <div class="mb-3">
@@ -135,9 +154,17 @@
             const clientDiv = document.getElementById("clientDiv");
             const tableBody = document.querySelector("#itemsTable tbody");
 
-            // تبديل العرض بين مورد / عميل
+            // ▼▼▼ References to discount fields ▼▼▼
+            const grandTotalDisplay = document.getElementById('grandTotalDisplay');
+            const netTotalDisplay = document.getElementById('netTotalDisplay');
+            // const discountPercentInput = document.getElementById('discountPercent'); // REMOVED
+            const discountAmountInput = document.getElementById('discountAmount');
+            let currentGrandTotal = 0;
+
+            // Toggle Supplier/Client
             function toggleFields() {
-                if (transactionType.value === "supplier") {
+                // ... (This function remains the same) ...
+                 if (transactionType.value === "supplier") {
                     supplierDiv.style.display = "block";
                     clientDiv.style.display = "none";
                     clientDiv.querySelector("select").value = "";
@@ -150,9 +177,10 @@
             transactionType.addEventListener("change", toggleFields);
             toggleFields();
 
-            // حساب إجمالي صف واحد
+            // Calculate total for one row
             function updateRowCalculations(row) {
-                const qtyInput = row.querySelector('[name$=".Quantity"]');
+                // ... (This function remains the same) ...
+                 const qtyInput = row.querySelector('[name$=".Quantity"]');
                 const priceInput = row.querySelector('[name$=".UnitPrice"]');
                 const totalInput = row.querySelector('.total-item-price');
 
@@ -160,21 +188,48 @@
                 const price = parseFloat(priceInput.value) || 0;
                 const total = qty * price;
                 totalInput.value = total.toFixed(2);
-                updateGrandTotal();
+                updateGrandTotal(); // This will call calculateDiscount
             }
 
-            // حساب الإجمالي الكلي
+            // Calculate Grand Total and trigger discount calculation
             function updateGrandTotal() {
                 let grandTotal = 0;
                 tableBody.querySelectorAll('.total-item-price').forEach(input => {
                     grandTotal += parseFloat(input.value) || 0;
                 });
                 document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
+                grandTotalDisplay.value = grandTotal.toFixed(2);
+                currentGrandTotal = grandTotal;
+                calculateDiscount(); // Update discount based on new total
             }
 
-            // إعادة ترقيم الحقول قبل الإرسال أو بعد حذف/إضافة صف
+            // ▼▼▼ SIMPLIFIED Discount Calculation ▼▼▼
+            function calculateDiscount() {
+                const total = currentGrandTotal;
+                let amount = parseFloat(discountAmountInput.value) || 0;
+
+                // Ensure discount doesn't exceed total
+                if (amount > total) {
+                    amount = total;
+                    discountAmountInput.value = amount.toFixed(2);
+                }
+                 if (amount < 0) {
+                    amount = 0;
+                    discountAmountInput.value = amount.toFixed(2);
+                }
+
+
+                const netTotal = total - amount;
+                netTotalDisplay.value = netTotal.toFixed(2);
+            }
+
+            // ▼▼▼ Listener only for the amount input ▼▼▼
+            discountAmountInput.addEventListener('input', calculateDiscount);
+
+            // Reindex table rows
             function reindexTable() {
-                const rows = tableBody.querySelectorAll('tr');
+                // ... (This function remains the same) ...
+                 const rows = tableBody.querySelectorAll('tr');
                 rows.forEach((row, index) => {
                     const mat = row.querySelector('[name$=".MaterialId"]');
                     const qty = row.querySelector('[name$=".Quantity"]');
@@ -185,8 +240,9 @@
                 });
             }
 
-            // إضافة صف جديد — استخدم Razor داخل template string (آمن هنا)
+            // Add new row
             document.getElementById('addRow').addEventListener('click', function () {
+               // ... (This function remains the same, ensure it doesn't reference percentage) ...
                 const index = tableBody.rows.length;
                 const newRow = document.createElement('tr');
                 newRow.innerHTML = `
@@ -208,7 +264,7 @@
                 reindexTable();
             });
 
-            // حدث الاستماع للتغييرات داخل الجدول (حساب تلقائي)
+            // Event listener for row calculations
             tableBody.addEventListener('input', function (e) {
                 if (e.target.classList.contains('item-calc')) {
                     const row = e.target.closest('tr');
@@ -216,9 +272,10 @@
                 }
             });
 
-            // حذف صف
+            // Delete row
             tableBody.addEventListener('click', function (e) {
-                const rem = e.target.closest('.remove-row');
+               // ... (This function remains the same) ...
+                 const rem = e.target.closest('.remove-row');
                 if (rem) {
                     if (tableBody.rows.length > 1) {
                         rem.closest('tr').remove();
@@ -230,14 +287,16 @@
                 }
             });
 
-            // حساب مبدئي لأول صف إن كان فيه قيم
+            // Initial calculation
             if (tableBody.rows.length > 0) {
                 updateRowCalculations(tableBody.querySelector('tr'));
             }
 
-            // قبل إرسال الفورم، تأكد من إعادة الترقيم (مفيد لو تم إضافة/حذف)
+            // Before form submit
             document.getElementById('purchaseForm').addEventListener('submit', function () {
                 reindexTable();
+                // Ensure discount calculation is up-to-date before submit
+                calculateDiscount();
             });
         });
     </script>

@@ -9,11 +9,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
     public class PurchaseInvoiceRepo : IPurchaseInvoiceRepo
     {
         private readonly MaterialManagementContext _context;
-
-        public PurchaseInvoiceRepo(MaterialManagementContext context)
-        {
-            _context = context;
-        }
+        public PurchaseInvoiceRepo(MaterialManagementContext context) { _context = context; }
 
         public async Task<IEnumerable<PurchaseInvoice>> GetAllAsync()
         {
@@ -45,12 +41,6 @@ namespace MaterialManagement.DAL.Repo.Implementations
                 .FirstOrDefaultAsync(pi => pi.InvoiceNumber == invoiceNumber && pi.IsActive);
         }
 
-        public async Task<PurchaseInvoice> AddAsync(PurchaseInvoice invoice)
-        {
-            await _context.PurchaseInvoices.AddAsync(invoice);
-            await _context.SaveChangesAsync();
-            return invoice;
-        }
 
         public async Task<PurchaseInvoice> UpdateAsync(PurchaseInvoice invoice)
         {
@@ -58,17 +48,6 @@ namespace MaterialManagement.DAL.Repo.Implementations
             await _context.SaveChangesAsync();
             return invoice;
         }
-
-        public async Task DeleteAsync(int id)
-        {
-            var invoice = await GetByIdAsync(id);
-            if (invoice != null)
-            {
-                invoice.IsActive = false; // soft delete
-                await UpdateAsync(invoice);
-            }
-        }
-
         public async Task<IEnumerable<PurchaseInvoice>> GetBySupplierIdAsync(int supplierId)
         {
             return await _context.PurchaseInvoices
@@ -85,29 +64,71 @@ namespace MaterialManagement.DAL.Repo.Implementations
         }
         public IQueryable<PurchaseInvoice> GetAsQueryable()
         {
-
-            return _context.PurchaseInvoices
-                .Include(pi => pi.Supplier)
-                .Include(pi => pi.Client)
-                .AsQueryable();
+            return _context.PurchaseInvoices.Include(pi => pi.Supplier).Include(pi => pi.Client).AsQueryable();
         }
 
         public async Task<IEnumerable<SupplierInvoicesDto>> GetSupplierInvoiceSummariesAsync()
         {
             return await _context.PurchaseInvoices
-                .Where(pi => pi.IsActive && pi.SupplierId != null)
-                .GroupBy(pi => pi.Supplier)
-                .Select(group => new SupplierInvoicesDto
-                {
-                    SupplierId = group.Key.Id,
-                    SupplierName = group.Key.Name,
-                    InvoiceCount = group.Count(),
-                    TotalCredit = group.Key.Balance
-                })
-                .OrderBy(summary => summary.SupplierName)
-                .AsNoTracking()
-                .ToListAsync();
+               .Where(pi => pi.IsActive && pi.SupplierId != null)
+               .GroupBy(pi => pi.Supplier)
+               .Select(group => new SupplierInvoicesDto
+               {
+                   SupplierId = group.Key.Id,
+                   SupplierName = group.Key.Name,
+                   InvoiceCount = group.Count(),
+                   TotalCredit = group.Key.Balance
+               })
+               .OrderBy(summary => summary.SupplierName)
+               .AsNoTracking()
+               .ToListAsync();
         }
 
+        public void Delete(PurchaseInvoice invoice)
+        {
+            invoice.IsActive = false; 
+
+        }
+
+        public async Task<PurchaseInvoice?> GetByIdForUpdateAsync(int id)
+        {
+            return await _context.PurchaseInvoices
+                .Include(i => i.PurchaseInvoiceItems) // <<< مهم جدًا لخصم المخزون
+                    .ThenInclude(item => item.Material)
+                .Include(i => i.Supplier) // <<< مهم جدًا لتعديل رصيد المورد
+                .Include(i => i.Client)   // <<< مهم لعكس رصيد العميل (في حالة المرتجع)
+                .FirstOrDefaultAsync(i => i.Id == id && i.IsActive);
+        }
+
+        public Task AddAsync(PurchaseInvoice invoice)
+        {
+            _context.PurchaseInvoices.Add(invoice);
+            return Task.CompletedTask; // الـ Service هو من سيقوم بالحفظ
+        }
+
+        public void Update(PurchaseInvoice invoice)
+        {
+            _context.PurchaseInvoices.Update(invoice); 
+        }
+
+        public async Task<List<PurchaseInvoice>> GetInvoicesForSupplierByDateRangeAsync(int supplierId, DateTime? fromDate, DateTime? toDate)
+        {
+            var query = _context.PurchaseInvoices
+                .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material)
+                .Where(i => i.SupplierId == supplierId);
+            if (fromDate.HasValue) query = query.Where(i => i.InvoiceDate >= fromDate.Value);
+            if (toDate.HasValue) query = query.Where(i => i.InvoiceDate <= toDate.Value);
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<PurchaseInvoice>> GetReturnsForClientByDateRangeAsync(int clientId, DateTime? fromDate, DateTime? toDate)
+        {
+            var query = _context.PurchaseInvoices
+                .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material)
+                .Where(i => i.ClientId == clientId); 
+            if (fromDate.HasValue) query = query.Where(i => i.InvoiceDate >= fromDate.Value);
+            if (toDate.HasValue) query = query.Where(i => i.InvoiceDate <= toDate.Value);
+            return await query.ToListAsync();
+        }
     }
 }

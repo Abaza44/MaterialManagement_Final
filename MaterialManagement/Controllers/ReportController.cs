@@ -33,114 +33,14 @@ namespace MaterialManagement.PL.Controllers
         // 🔹 1) Account Statement Report (كشف الحساب)
         // ==========================================
 
+        // (صفحة البحث)
         [HttpGet]
         public IActionResult AccountStatement()
         {
             return View();
         }
 
-        [HttpPost]
-        public async Task<IActionResult> AccountStatement(int? clientId, int? supplierId, DateTime fromDate, DateTime toDate)
-        {
-            if (clientId.HasValue && clientId > 0)
-            {
-                var statement = await _reportService.GetClientAccountStatementAsync(clientId.Value, fromDate, toDate);
-                ViewBag.AccountHolder = await _clientService.GetClientByIdAsync(clientId.Value);
-                ViewBag.FromDate = fromDate;
-                ViewBag.ToDate = toDate;
-                return View("AccountStatementResult", statement);
-            }
-
-            if (supplierId.HasValue && supplierId > 0)
-            {
-                var statement = await _reportService.GetSupplierAccountStatementAsync(supplierId.Value, fromDate, toDate);
-                ViewBag.AccountHolder = await _supplierService.GetSupplierByIdAsync(supplierId.Value);
-                ViewBag.FromDate = fromDate;
-                ViewBag.ToDate = toDate;
-                return View("AccountStatementResult", statement);
-            }
-
-            TempData["Error"] = "يرجى تحديد عميل أو مورد للبحث.";
-            return RedirectToAction(nameof(AccountStatement));
-        }
-
-        public async Task<IActionResult> SearchClients(string searchTerm)
-        {
-            var clients = await _clientService.SearchClientsAsync(searchTerm);
-            var results = clients.Select(c => new
-            {
-                id = c.Id,
-                text = $"{c.Name} ({c.Phone})"
-            }).ToList();
-
-            return Json(new { results = results });
-        }
-
-
-        public async Task<IActionResult> SearchSuppliers(string searchTerm)
-        {
-            var suppliers = await _supplierService.SearchSuppliersAsync(searchTerm);
-            var results = suppliers.Select(s => new
-            {
-                id = s.Id,
-                text = $"{s.Name} ({s.Phone})"
-            }).ToList();
-
-            return Json(new { results = results });
-        }
-
-        // ==========================================
-        // 🔹 2) Material Movement Report (حركة المواد)
-        // ==========================================
-
-        [HttpGet]
-        public async Task<IActionResult> MaterialMovement()
-        {
-            ViewBag.Materials = new SelectList(await _materialService.GetAllMaterialsAsync(), "Id", "Name");
-            return View();
-        }
-
-
-        [HttpPost]
-        public async Task<IActionResult> MaterialMovement(int materialId, DateTime fromDate, DateTime toDate)
-        {
-            if (materialId <= 0)
-            {
-                TempData["Error"] = "يرجى تحديد مادة.";
-                return RedirectToAction(nameof(MaterialMovement));
-            }
-
-            var reportData = await _reportService.GetMaterialMovementAsync(materialId, fromDate, toDate);
-            var material = await _materialService.GetMaterialByIdAsync(materialId);
-
-            ViewBag.MaterialName = material?.Name;
-            ViewBag.FromDate = fromDate;
-            ViewBag.ToDate = toDate;
-
-            ViewBag.MaterialId = materialId;
-
-            return View("MaterialMovementResult", reportData);
-        }
-
-        // ==========================================
-        // 🔹 3) Profit Report (تقرير الأرباح)
-        // ==========================================
-
-        [HttpGet]
-        public IActionResult ProfitReport()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ProfitReport(DateTime fromDate, DateTime toDate)
-        {
-            var reportData = await _reportService.GetProfitReportAsync(fromDate, toDate);
-            ViewBag.FromDate = fromDate;
-            ViewBag.ToDate = toDate;
-            return View("ProfitReportResult", reportData);
-        }
-
+        // (صفحة عرض النتيجة - التي تحتوي على DataTables)
         [HttpGet]
         public async Task<IActionResult> AccountStatementResult(int? clientId, int? supplierId)
         {
@@ -150,10 +50,8 @@ namespace MaterialManagement.PL.Controllers
                 return RedirectToAction(nameof(AccountStatement));
             }
 
-            // 1. تحديد نوع الحساب
             var isClient = clientId.HasValue;
             int accountId = isClient ? clientId.Value : supplierId.Value;
-
 
             if (isClient)
             {
@@ -167,10 +65,11 @@ namespace MaterialManagement.PL.Controllers
             ViewBag.IsClient = isClient;
             ViewBag.AccountId = accountId;
 
-            return View();
+            return View(); // (هذه الصفحة ستقوم بطلب AJAX)
         }
 
-        [HttpPost]
+        // (الدالة التي يستدعيها AJAX لجلب بيانات كشف الحساب)
+        [HttpGet]
         public async Task<IActionResult> LoadAccountStatementData(int accountId, bool isClient, DateTime? fromDate, DateTime? toDate)
         {
             try
@@ -182,17 +81,17 @@ namespace MaterialManagement.PL.Controllers
                 if (statementData == null)
                     statementData = new List<AccountStatementViewModel>();
 
-                var draw = Request.Form["draw"].FirstOrDefault();
-                var start = Convert.ToInt32(Request.Form["start"].FirstOrDefault() ?? "0");
-                var length = Convert.ToInt32(Request.Form["length"].FirstOrDefault() ?? "10");
+                var draw = Request.Query["draw"].FirstOrDefault();
+                var start = Convert.ToInt32(Request.Query["start"].FirstOrDefault() ?? "0");
+                var length = Convert.ToInt32(Request.Query["length"].FirstOrDefault() ?? "10");
 
                 var totalRecords = statementData.Count;
-                var displayedData = statementData.Skip(start).Take(length).ToList();
-
                 var totalDebit = statementData.Sum(i => i.Debit);
                 var totalCredit = statementData.Sum(i => i.Credit);
                 var finalBalance = statementData.LastOrDefault()?.Balance ?? 0;
-                var openingBalance = statementData.FirstOrDefault()?.Balance ?? 0;
+                var openingBalance = statementData.FirstOrDefault(t => t.TransactionType.Contains("افتتاحي"))?.Balance ?? 0;
+
+                var displayedData = statementData.Skip(start).Take(length).ToList();
 
                 return Json(new
                 {
@@ -229,27 +128,83 @@ namespace MaterialManagement.PL.Controllers
             }
         }
 
-        [HttpPost]
-        public async Task<IActionResult> LoadMaterialMovementData()
+        // (دوال مساعدة للبحث في صفحة كشف الحساب)
+        public async Task<IActionResult> SearchClients(string searchTerm)
+        {
+            var clients = await _clientService.SearchClientsAsync(searchTerm);
+            var results = clients.Select(c => new
+            {
+                id = c.Id,
+                text = $"{c.Name} ({c.Phone})"
+            }).ToList();
+
+            return Json(new { results = results });
+        }
+
+        public async Task<IActionResult> SearchSuppliers(string searchTerm)
+        {
+            var suppliers = await _supplierService.SearchSuppliersAsync(searchTerm);
+            var results = suppliers.Select(s => new
+            {
+                id = s.Id,
+                text = $"{s.Name} ({s.Phone})"
+            }).ToList();
+
+            return Json(new { results = results });
+        }
+
+        // ==========================================
+        // 🔹 2) Material Movement Report (حركة المواد)
+        // ==========================================
+
+        // (صفحة البحث)
+        [HttpGet]
+        public async Task<IActionResult> MaterialMovement()
+        {
+            ViewBag.Materials = new SelectList(await _materialService.GetAllMaterialsAsync(), "Id", "Name");
+            return View();
+        }
+
+        // (صفحة عرض النتيجة - التي تحتوي على DataTables)
+        [HttpGet]
+        public async Task<IActionResult> MaterialMovementResult(int materialId, DateTime? fromDate, DateTime? toDate)
+        {
+            if (materialId <= 0)
+            {
+                TempData["Error"] = "يرجى تحديد مادة.";
+                return RedirectToAction(nameof(MaterialMovement));
+            }
+
+            var material = await _materialService.GetMaterialByIdAsync(materialId);
+            if (material == null)
+            {
+                TempData["Error"] = "المادة المحددة غير موجودة.";
+                return RedirectToAction(nameof(MaterialMovement));
+            }
+
+            ViewBag.MaterialName = material.Name;
+            ViewBag.MaterialId = materialId;
+            // (تمرير التواريخ للـ View ليستخدمها في طلب الـ AJAX)
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
+
+            return View(); // (هذه الصفحة ستقوم بطلب AJAX)
+        }
+
+        // (الدالة التي يستدعيها AJAX لجلب بيانات حركة المواد)
+        [HttpGet] // (الإصلاح 1: تغييرها إلى Get)
+        public async Task<IActionResult> LoadMaterialMovementData(int materialId, DateTime? fromDate, DateTime? toDate) // (الإصلاح 2: استقبال المتغيرات هنا)
         {
             try
             {
+                // (الإصلاح 3: القراءة من Request.Query بدلاً من Request.Form)
+                var draw = Request.Query["draw"].FirstOrDefault();
+                var start = Request.Query["start"].FirstOrDefault();
+                var length = Request.Query["length"].FirstOrDefault();
 
-                var draw = Request.Form["draw"].FirstOrDefault();
-                var start = Request.Form["start"].FirstOrDefault();
-                var length = Request.Form["length"].FirstOrDefault();
-                var materialId = int.Parse(Request.Form["materialId"].FirstOrDefault());
+                // (لم نعد بحاجة لعمل Parse للمتغيرات لأنها جاءت في الدالة)
 
-
-                DateTime? fromDate = null;
-                if (DateTime.TryParse(Request.Form["fromDate"].FirstOrDefault(), out DateTime tempFrom)) { fromDate = tempFrom; }
-
-                DateTime? toDate = null;
-                if (DateTime.TryParse(Request.Form["toDate"].FirstOrDefault(), out DateTime tempTo)) { toDate = tempTo; }
-
-                // 2. جلب البيانات من الـ Service
                 var reportData = await _reportService.GetMaterialMovementAsync(materialId, fromDate, toDate);
-
 
                 var totalRecords = reportData.Count;
 
@@ -258,12 +213,10 @@ namespace MaterialManagement.PL.Controllers
 
                 var displayedData = reportData.Skip(skip).Take(pageSize).ToList();
 
-                // 4. حساب الإجماليات والرصيد النهائي
                 var totalIn = reportData.Sum(i => i.QuantityIn);
                 var totalOut = reportData.Sum(i => i.QuantityOut);
                 var finalBalance = reportData.LastOrDefault()?.Balance ?? 0;
 
-                // 5. إرسال الرد
                 var jsonData = new
                 {
                     draw = draw,
@@ -280,6 +233,27 @@ namespace MaterialManagement.PL.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+        }
+
+
+        // ==========================================
+        // 🔹 3) Profit Report (تقرير الأرباح)
+        // ==========================================
+
+        [HttpGet]
+        public IActionResult ProfitReport()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProfitReport(DateTime fromDate, DateTime toDate)
+        {
+            // (هذه الدالة لا تستخدم AJAX، لذا من الطبيعي أن تكون Post)
+            var reportData = await _reportService.GetProfitReportAsync(fromDate, toDate);
+            ViewBag.FromDate = fromDate;
+            ViewBag.ToDate = toDate;
+            return View("ProfitReportResult", reportData);
         }
     }
 }

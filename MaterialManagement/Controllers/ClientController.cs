@@ -64,7 +64,6 @@ namespace MaterialManagement.PL.Controllers
             return View();
         }
 
-        // POST: Client/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ClientCreateModel model)

@@ -1,5 +1,4 @@
 ﻿using MaterialManagement.DAL.Entities;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace MaterialManagement.DAL.DB
 {
-    public class MaterialManagementContext : IdentityDbContext
+    public class MaterialManagementContext : DbContext
     {
 
         public MaterialManagementContext(DbContextOptions<MaterialManagementContext> options) : base(options)

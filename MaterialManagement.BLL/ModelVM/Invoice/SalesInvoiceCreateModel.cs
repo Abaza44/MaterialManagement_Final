@@ -1,5 +1,4 @@
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace MaterialManagement.BLL.ModelVM.Invoice
 {
@@ -19,6 +18,8 @@ namespace MaterialManagement.BLL.ModelVM.Invoice
 
         public decimal PaidAmount { get; set; }
         public string? Notes { get; set; }
+        [Display(Name = "مبلغ الخصم")]
+        public decimal DiscountAmount { get; set; } = 0;
     }
 
     public class SalesInvoiceItemCreateModel
@@ -31,6 +32,5 @@ namespace MaterialManagement.BLL.ModelVM.Invoice
 
         [Required]
         public decimal UnitPrice { get; set; }
-        public IFormFile? AttachmentFile { get; set; }
     }
 }

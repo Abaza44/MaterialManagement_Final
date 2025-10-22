@@ -80,7 +80,7 @@ namespace MaterialManagement.BLL.Helper
             // === Purchase Invoice Mappings (مع دعم المرتجعات) ===
             CreateMap<PurchaseInvoice, PurchaseInvoiceViewModel>()
                 .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : null))
-                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client != null ? src.Client.Name : null))
+                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client != null ? src.Client.Name : null)) 
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.PurchaseInvoiceItems)); // <<< هذا هو الحل
             CreateMap<PurchaseInvoiceItem, PurchaseInvoiceItemViewModel>()
                 .ForMember(dest => dest.MaterialCode, opt => opt.MapFrom(src => src.Material.Code))
@@ -97,7 +97,29 @@ namespace MaterialManagement.BLL.Helper
             // --- ADD THIS MISSING MAP FOR THE INDEX PAGE ---
             CreateMap<Reservation, ReservationIndexViewModel>()
                 .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client.Name));
+            // ... داخل public MappingProfile()
 
+            // (الإصلاح 1)
+            // أضف هذه الخريطة. هذه هي التي سببت الخطأ
+            CreateMap<ReservationUpdateModel, Reservation>()
+                // تجاهل قائمة الأصناف، لأنك تعالجها يدوياً
+                .ForMember(dest => dest.ReservationItems, opt => opt.Ignore())
+                // تجاهل الخصائص التي لا تريدها أن تتحدث تلقائياً
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalAmount, opt => opt.Ignore());
+
+            // (الإصلاح 2)
+            // ستحتاج إلى هذه الخريطة للسطر الذي يليه في الكود
+            // (لتحويل الأصناف الجديدة)
+            CreateMap<ReservationItemModel, ReservationItem>()
+                // تجاهل الخصائص التي لا توجد في الكيان
+                .ForMember(dest => dest.Material, opt => opt.Ignore()) 
+                .ForMember(dest => dest.FulfilledQuantity, opt => opt.Ignore())
+                // حساب الإجمالي يدوياً
+                .ForMember(dest => dest.TotalPrice, opt => opt.MapFrom(src => src.Quantity * src.UnitPrice))
+                // (اختياري ولكن موصى به) تجاهل المفاتيح الأساسية/الخارجية
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.ReservationId, opt => opt.Ignore());
             // This is the map for the items (you already have this)
             CreateMap<ReservationItem, ReservationItemModel>()
                 .ForMember(dest => dest.MaterialName, opt => opt.MapFrom(src => src.Material.Name));
@@ -116,7 +138,6 @@ namespace MaterialManagement.BLL.Helper
             CreateMap<SupplierPaymentCreateModel, SupplierPayment>();
             CreateMap<SupplierInvoicesDto, SupplierInvoicesViewModel>();
             CreateMap<SupplierInvoicesDto, SupplierInvoiceSummaryViewModel>();
-            CreateMap<ReservationCreateModel, Reservation>();
         }
     }
 }

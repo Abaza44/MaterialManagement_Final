@@ -2,6 +2,9 @@
 using MaterialManagement.BLL.Service.Abstractions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace MaterialManagement.PL.Controllers
@@ -22,13 +25,14 @@ namespace MaterialManagement.PL.Controllers
             _materialService = materialService;
         }
 
-        // GET: /Reservation (لعرض قائمة الحجوزات)
+        // ===========================================
+        // 🔹 عرض القائمة والبيانات (Index & Details)
+        // ===========================================
+
+        // GET: /Reservation
         public async Task<IActionResult> Index()
         {
-            // 1. جلب كل الحجوزات النشطة فقط مع تفاصيلها
-            var allReservations = await _reservationService.GetAllActiveReservationsWithDetailsAsync(); // سنقوم بإنشاء هذه الدالة
-
-            // 2. تجميع الحجوزات حسب العميل باستخدام LINQ
+            var allReservations = await _reservationService.GetAllActiveReservationsWithDetailsAsync();
             var groupedByClient = allReservations
                 .GroupBy(res => res.Client)
                 .Select(group => new ClientReservationsViewModel
@@ -46,11 +50,10 @@ namespace MaterialManagement.PL.Controllers
                 })
                 .OrderBy(c => c.ClientName)
                 .ToList();
-
             return View(groupedByClient);
         }
 
-        // GET: /Reservation/Details/5 (لعرض تفاصيل حجز)
+        // GET: /Reservation/Details/5
         public async Task<IActionResult> Details(int id)
         {
             var model = await _reservationService.GetReservationDetailsAsync(id);
@@ -58,14 +61,20 @@ namespace MaterialManagement.PL.Controllers
             return View(model);
         }
 
-        // GET: /Reservation/Create (لفتح صفحة إنشاء حجز جديد)
+        // ===========================================
+        // 🔹 الإنشاء والتعديل (Create & Edit)
+        // ===========================================
+
+        // GET: /Reservation/Create
         public async Task<IActionResult> Create()
         {
             await PopulateDropdowns();
-            return View();
+            ViewBag.IsUpdate = false;
+            return View(new ReservationGetForUpdateModel()); // <-- الكود الجديد
         }
 
-        // POST: /Reservation/Create (لحفظ الحجز الجديد)
+        // POST: /Reservation/Create
+        // POST: /Reservation/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ReservationCreateModel model)
@@ -78,39 +87,149 @@ namespace MaterialManagement.PL.Controllers
                     TempData["SuccessMessage"] = "تم إنشاء الحجز بنجاح!";
                     return RedirectToAction(nameof(Index));
                 }
+                catch (Exception ex) { ModelState.AddModelError(string.Empty, $"حدث خطأ: {ex.Message}"); }
+            }
+
+            if (model.Items.Count == 0) { ModelState.AddModelError("Items", "يجب إضافة صنف واحد على الأقل."); }
+
+            await PopulateDropdowns(model.ClientId);
+            ViewBag.IsUpdate = false;
+
+            // ▼▼▼ هذا هو الإصلاح ▼▼▼
+            // تحويل الموديل من "CreateModel" إلى "GetForUpdateModel"
+            var createViewModel = new ReservationGetForUpdateModel
+            {
+                ClientId = model.ClientId,
+                Notes = model.Notes,
+                Items = model.Items
+            };
+
+            return View(createViewModel); // <--- إرسال الموديل الصحيح
+        }
+
+        // GET: /Reservation/Edit/5
+        public async Task<IActionResult> Edit(int id)
+        {
+            var model = await _reservationService.GetReservationForUpdateAsync(id);
+            if (model == null) return NotFound();
+
+            await PopulateDropdowns(model.ClientId);
+            ViewBag.IsUpdate = true;
+            return View("Create", model); // استخدام نفس واجهة الإنشاء
+        }
+
+        // POST: /Reservation/Edit/5
+        // POST: /Reservation/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(ReservationUpdateModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    await _reservationService.UpdateReservationAsync(model);
+                    TempData["SuccessMessage"] = "تم تحديث الحجز بنجاح.";
+                    return RedirectToAction(nameof(Index));
+                }
                 catch (Exception ex)
                 {
-                    ModelState.AddModelError(string.Empty, $"حدث خطأ: {ex.Message}");
+                    ModelState.AddModelError(string.Empty, $"فشل التحديث: {ex.Message}");
                 }
             }
 
-            if (model.Items.Count == 0)
-            {
-                ModelState.AddModelError("Items", "يجب إضافة صنف واحد على الأقل.");
-            }
-
+            // إذا فشل التحقق أو حدث خطأ، نصل إلى هنا
             await PopulateDropdowns(model.ClientId);
-            return View(model);
+            ViewBag.IsUpdate = true;
+
+            // ▼▼▼ هذا هو الإصلاح ▼▼▼
+            // لا تقم بإرسال "model" مباشرة
+            // قم بإنشاء الموديل الصحيح الذي يتوقعه الـ View
+            var updateViewModel = new ReservationGetForUpdateModel
+            {
+                Id = model.Id,
+                ClientId = model.ClientId,
+                Notes = model.Notes,
+                Items = model.Items // قائمة الأصناف موجودة بالفعل في الموديل
+            };
+
+            return View("Create", updateViewModel); // <--- إرسال الموديل الصحيح
         }
 
-        // POST: /Reservation/Fulfill/5 (لتسليم الحجز وإنشاء فاتورة)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        // ===========================================
+        // 🔹 التسليم والإلغاء (Fulfill & Cancel)
+        // ===========================================
+
+        // GET: /Reservation/Fulfill/5 (للتسليم الجزئي)
+        [HttpGet]
         public async Task<IActionResult> Fulfill(int id)
         {
-            try
-            {
-                await _reservationService.FulfillReservationAsync(id);
-                TempData["SuccessMessage"] = "تم تسليم الحجز وإنشاء الفاتورة بنجاح!";
-            }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = $"فشل تسليم الحجز: {ex.Message}";
-            }
-            return RedirectToAction(nameof(Index));
+            var reservation = await _reservationService.GetReservationDetailsForFulfillmentAsync(id);
+            if (reservation == null) return NotFound();
+
+            return View(reservation);
         }
 
-        // POST: /Reservation/Cancel/5 (لإلغاء الحجز)
+        // POST: /Reservation/PartialFulfill/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Fulfill(ReservationFulfillmentViewModel model)
+        {
+            // 1. الآن هذا السطر سيعمل بفاعلية بسبب الـ [Range] الذي أضفناه
+            if (ModelState.IsValid)
+            {
+                // 2. فلترة الكميات التي أدخلها المستخدم (أكبر من صفر فقط)
+                var itemsToFulfill = model.ItemsToFulfill
+                    .Where(i => i.QuantityToFulfillNow > 0)
+                    .Select(i => new ReservationFulfillmentModel
+                    {
+                        ReservationItemId = i.ReservationItemId,
+                        QuantityToFulfill = i.QuantityToFulfillNow // <-- استخدام الخاصية الجديدة
+                    }).ToList();
+
+                // 3. التحقق إذا كان المستخدم أدخل أي كميات أصلاً
+                if (!itemsToFulfill.Any())
+                {
+                    ModelState.AddModelError(string.Empty, "يجب إدخال كمية (أكبر من صفر) لبند واحد على الأقل.");
+                    // (اذهب إلى الخطوة 5 لإعادة تحميل الصفحة)
+                }
+                else
+                {
+                    try
+                    {
+                        // 4. إرسال القائمة المفلترة فقط إلى الخدمة
+                        await _reservationService.PartialFulfillReservationAsync(model.ReservationId, itemsToFulfill);
+                        TempData["SuccessMessage"] = "تم تسليم جزئي للحجز وإنشاء فاتورة.";
+                        return RedirectToAction(nameof(Details), new { id = model.ReservationId });
+                    }
+                    catch (Exception ex)
+                    {
+                        ModelState.AddModelError(string.Empty, $"فشل التسليم الجزئي: {ex.Message}");
+                        // (اذهب إلى الخطوة 5 لإعادة تحميل الصفحة)
+                    }
+                }
+            }
+
+            // 5. (مهم جداً) عند فشل الـ ModelState أو حدوث خطأ أو عدم إدخال كميات:
+            // يجب إعادة تحميل الموديل من قاعدة البيانات لعرض البيانات الصحيحة (Stale Data)
+            var failedModel = await _reservationService.GetReservationDetailsForFulfillmentAsync(model.ReservationId);
+            if (failedModel == null) return NotFound();
+
+            // (اختياري لكن موصى به): إعادة ملء المدخلات الخاطئة التي أدخلها المستخدم
+            foreach (var item in failedModel.ItemsToFulfill)
+            {
+                var submittedItem = model.ItemsToFulfill.FirstOrDefault(i => i.ReservationItemId == item.ReservationItemId);
+                if (submittedItem != null)
+                {
+                    // أعد القيمة الخاطئة ليرى المستخدم ما أدخله
+                    item.QuantityToFulfillNow = submittedItem.QuantityToFulfillNow;
+                }
+            }
+
+            return View(failedModel);
+        }
+
+        // POST: /Reservation/Cancel/5 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(int id)
@@ -120,14 +239,11 @@ namespace MaterialManagement.PL.Controllers
                 await _reservationService.CancelReservationAsync(id);
                 TempData["SuccessMessage"] = "تم إلغاء الحجز بنجاح!";
             }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = $"فشل إلغاء الحجز: {ex.Message}";
-            }
+            catch (Exception ex) { TempData["ErrorMessage"] = $"فشل إلغاء الحجز: {ex.Message}"; }
             return RedirectToAction(nameof(Index));
         }
 
-        // دالة مساعدة لملء القوائم المنسدلة
+        // دالة مساعدة
         private async Task PopulateDropdowns(object? selectedClient = null)
         {
             ViewBag.Clients = new SelectList(await _clientService.GetAllClientsAsync(), "Id", "Name", selectedClient);

@@ -32,6 +32,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
                 .Include(r => r.Client)
                 .Include(r => r.ReservationItems)
                     .ThenInclude(item => item.Material)
+                    .AsNoTracking()
                 .OrderBy(r => r.Client.Name).ThenByDescending(r => r.ReservationDate)
                 .ToListAsync();
         }

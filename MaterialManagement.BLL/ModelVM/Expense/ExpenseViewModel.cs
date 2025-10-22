@@ -20,6 +20,7 @@ namespace MaterialManagement.BLL.ModelVM.Expense
         public string? PaymentTo { get; set; }
         public bool IsActive { get; set; }
 
+        // <<< أضف هذا السطر هنا >>>
         public DateTime CreatedDate { get; set; }
     }
 }

@@ -15,7 +15,7 @@ namespace MaterialManagement.BLL.Service.Implementations
     {
         private readonly MaterialManagementContext _context;
         private readonly IMapper _mapper;
-        public ReportService(MaterialManagementContext context, IMapper mapper)
+        public ReportService(MaterialManagementContext context,IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
@@ -25,100 +25,105 @@ namespace MaterialManagement.BLL.Service.Implementations
         {
             var client = await _context.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == clientId);
             if (client == null) return new List<AccountStatementViewModel>();
-            // === 1. تحديد نطاق البحث الآمن ===
+
             DateTime finalFromDate = fromDate ?? DateTime.MinValue;
             DateTime finalToDate = toDate.HasValue ? toDate.Value.Date.AddDays(1).AddTicks(-1) : DateTime.Now.Date.AddDays(1).AddTicks(-1);
             DateTime statementDisplayDate = fromDate ?? DateTime.Today;
 
-            // === 2. جلب الحركات داخل الفترة المحددة أولاً ===
-
-            // المبيعات في الفترة
+            // === 2. جلب الحركات (الكيانات الكاملة) ===
             var salesInPeriod = await _context.SalesInvoices
-                    .Include(i => i.SalesInvoiceItems).ThenInclude(item => item.Material) // <<< الخطوة 1: تضمين الأصناف
-                    .Where(i => i.ClientId == clientId && i.InvoiceDate >= finalFromDate && i.InvoiceDate <= finalToDate)
-                    .Select(i => new {
-                        Date = i.InvoiceDate,
-                        Type = "فاتورة بيع",
-                        Ref = i.InvoiceNumber,
-                        DocId = (int?)i.Id,
-                        DocType = "SalesInvoice",
-                        Debit = i.TotalAmount,
-                        Credit = 0m,
-                        Items = i.SalesInvoiceItems
-                    })
-                    .ToListAsync();
-            // التحصيلات في الفترة
+                .Include(i => i.SalesInvoiceItems).ThenInclude(item => item.Material)
+                .Where(i => i.ClientId == clientId && i.InvoiceDate >= finalFromDate && i.InvoiceDate <= finalToDate && i.IsActive)
+                .ToListAsync(); // <-- (تعديل 1: جلب الكيان كاملاً)
+
             var paymentsInPeriod = await _context.ClientPayments
                 .Where(p => p.ClientId == clientId && p.PaymentDate >= finalFromDate && p.PaymentDate <= finalToDate)
-                .Select(p => new { Date = p.PaymentDate, Type = "تحصيل", Ref = "دفعة #" + p.Id, DocId = p.SalesInvoiceId, DocType = "ClientPayment", Debit = 0m, Credit = p.Amount })
-                .ToListAsync();
+                .ToListAsync(); // <-- (تعديل 1: جلب الكيان كاملاً)
 
-            // المرتجعات في الفترة
             var returnsInPeriod = await _context.PurchaseInvoices
-                    .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material) // <<< تضمين أصناف المرتجعات
-                    .Where(i => i.ClientId == clientId && i.InvoiceDate >= finalFromDate && i.InvoiceDate <= finalToDate)
-                    .Select(i => new { Date = i.InvoiceDate, Type = "مرتجع بيع", Ref = i.InvoiceNumber, DocId = (int?)i.Id, DocType = "PurchaseInvoice", Debit = 0m, Credit = i.TotalAmount, Items = i.PurchaseInvoiceItems })
-                    .ToListAsync();
+                .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material)
+                .Where(i => i.ClientId == clientId && i.InvoiceDate >= finalFromDate && i.InvoiceDate <= finalToDate && i.IsActive)
+                .ToListAsync(); // <-- (تعديل 1: جلب الكيان كاملاً)
 
+            // === 3. حساب صافي التغير (باستخدام اللوجيك الجديد) ===
 
-            decimal totalDebitInPeriod = salesInPeriod.Sum(t => t.Debit);
-            decimal totalCreditInPeriod = paymentsInPeriod.Sum(t => t.Credit) + returnsInPeriod.Sum(t => t.Credit);
+            // (تعديل 2: حساب المدين = صافي الفاتورة بعد الخصم)
+            decimal totalDebitInPeriod = salesInPeriod.Sum(i => i.TotalAmount - i.DiscountAmount);
+
+            // (تعديل 3: حساب الدائن = كل المدفوعات + المرتجعات + الدفع عند الاستلام)
+            decimal totalCreditInPeriod =
+                paymentsInPeriod.Sum(p => p.Amount) +
+                returnsInPeriod.Sum(i => i.TotalAmount) +
+                salesInPeriod.Sum(i => i.PaidAmount); // <-- (هذا هو الجزء المفقود)
+
             decimal netChangeInPeriod = totalDebitInPeriod - totalCreditInPeriod;
-
-
-
             decimal openingBalance = client.Balance - netChangeInPeriod;
 
-
+            // === 4. بناء قائمة الحركات المفصلة ===
             var allTransactions = new List<dynamic>();
-            allTransactions.AddRange(salesInPeriod);
-            allTransactions.AddRange(paymentsInPeriod);
-            allTransactions.AddRange(returnsInPeriod);
+
+            // إضافة المبيعات (كحركتين منفصلتين)
+            // إضافة المبيعات (كحركة واحدة مدمجة)
+            foreach (var invoice in salesInPeriod)
+            {
+                allTransactions.Add(new
+                {
+                    Date = invoice.InvoiceDate,
+                    Type = "فاتورة بيع",
+                    Ref = invoice.InvoiceNumber,
+                    DocId = (int?)invoice.Id,
+                    DocType = "SalesInvoice",
+                    Debit = invoice.TotalAmount, 
+                    Credit = invoice.PaidAmount, 
+                    Items = invoice.SalesInvoiceItems
+                });
+            }
+
+            // إضافة التحصيلات العادية
+            allTransactions.AddRange(paymentsInPeriod.Select(p => new {
+                Date = p.PaymentDate,
+                Type = "تحصيل",
+                Ref = "دفعة #" + p.Id,
+                DocId = p.SalesInvoiceId,
+                DocType = "ClientPayment",
+                Debit = 0m,
+                Credit = p.Amount,
+                Items = new List<SalesInvoiceItem>() // الدفعة ليس لها أصناف
+            }));
+
+            // إضافة المرتجعات
+            allTransactions.AddRange(returnsInPeriod.Select(i => new {
+                Date = i.InvoiceDate,
+                Type = "مرتجع بيع",
+                Ref = i.InvoiceNumber,
+                DocId = (int?)i.Id,
+                DocType = "PurchaseInvoice",
+                Debit = 0m,
+                Credit = i.TotalAmount,
+                Items = i.PurchaseInvoiceItems
+            }));
+
             var sortedTransactions = allTransactions.OrderBy(t => t.Date).ThenBy(t => t.Ref).ToList();
 
-
+            // === 5. بناء كشف الحساب النهائي ===
             var statement = new List<AccountStatementViewModel>();
             decimal currentBalance = openingBalance;
 
-
+            // ... (جزء الرصيد الافتتاحي سليم كما هو) ...
             if (openingBalance > 0)
             {
-                statement.Add(new AccountStatementViewModel
-                {
-                    TransactionDate = statementDisplayDate,
-                    TransactionType = "رصيد افتتاحي (مدين)",
-                    Reference = "",
-                    Debit = openingBalance,
-                    Credit = 0m,
-                    Balance = openingBalance
-                });
+                statement.Add(new AccountStatementViewModel { TransactionDate = statementDisplayDate, TransactionType = "رصيد افتتاحي (مدين)", Reference = "", Debit = openingBalance, Credit = 0m, Balance = openingBalance });
             }
             else if (openingBalance < 0)
             {
-                statement.Add(new AccountStatementViewModel
-                {
-                    TransactionDate = statementDisplayDate,
-                    TransactionType = "رصيد افتتاحي (دائن)",
-                    Reference = "",
-                    Debit = 0m,
-                    Credit = Math.Abs(openingBalance), // دائن
-                    Balance = openingBalance
-                });
+                statement.Add(new AccountStatementViewModel { TransactionDate = statementDisplayDate, TransactionType = "رصيد افتتاحي (دائن)", Reference = "", Debit = 0m, Credit = Math.Abs(openingBalance), Balance = openingBalance });
             }
             else
             {
-                statement.Add(new AccountStatementViewModel
-                {
-                    TransactionDate = statementDisplayDate,
-                    TransactionType = "رصيد افتتاحي (صفر)",
-                    Reference = "",
-                    Balance = 0
-                });
+                statement.Add(new AccountStatementViewModel { TransactionDate = statementDisplayDate, TransactionType = "رصيد افتتاحي (صفر)", Reference = "", Balance = 0 });
             }
 
-
             currentBalance = openingBalance;
-
 
             foreach (var trans in sortedTransactions)
             {
@@ -133,9 +138,9 @@ namespace MaterialManagement.BLL.Service.Implementations
                     Debit = trans.Debit,
                     Credit = trans.Credit,
                     Balance = currentBalance,
-                    Items = trans.GetType().GetProperty("Items") != null
-                    ? _mapper.Map<List<TransactionItemViewModel>>(trans.Items)
-                    : new List<TransactionItemViewModel>()
+                    Items = trans.Items != null
+                        ? _mapper.Map<List<TransactionItemViewModel>>(trans.Items)
+                        : new List<TransactionItemViewModel>()
                 });
             }
 
@@ -148,49 +153,60 @@ namespace MaterialManagement.BLL.Service.Implementations
         }
 
 
-
         public async Task<List<AccountStatementViewModel>> GetSupplierAccountStatementAsync(int supplierId, DateTime? fromDate, DateTime? toDate)
         {
-            // === 1. تحديد نطاق البحث الآمن ===
+            // (بافتراض أنك أضفت حقلي DiscountAmount و PaidAmount لـ PurchaseInvoice أيضاً)
+
             DateTime finalFromDate = fromDate ?? DateTime.MinValue;
             DateTime statementDisplayDate = fromDate ?? DateTime.Today;
             DateTime finalToDate = toDate.HasValue ? toDate.Value.Date.AddDays(1).AddTicks(-1) : DateTime.Now.Date.AddDays(1).AddTicks(-1);
 
-            // === 2. جلب الحركات داخل الفترة المحددة أولاً (باستخدام الـ Repositories) ===
             var invoicesInPeriod = await _context.PurchaseInvoices
-                    .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material) // <<< الخطوة 1: تضمين الأصناف
-                    .Where(i => i.SupplierId == supplierId && i.InvoiceDate >= finalFromDate && i.InvoiceDate <= finalToDate)
-                    .ToListAsync();
-            var paymentsInPeriod = await _context.SupplierPayments
-                    .Where(p => p.SupplierId == supplierId && p.PaymentDate >= finalFromDate && p.PaymentDate <= finalToDate)
-                    .ToListAsync();
+                .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material)
+                .Where(i => i.SupplierId == supplierId && i.InvoiceDate >= finalFromDate && i.InvoiceDate <= finalToDate && i.IsActive)
+                .ToListAsync(); // <-- (جلب الكيان كاملاً)
 
-            // --- 3. حساب صافي التغير خلال الفترة ---
-            // بالنسبة للمورد، الفاتورة (Debit) تزيد مستحقاته، والدفعة (Credit) تقللها.
-            decimal totalDebitInPeriod = invoicesInPeriod.Sum(i => i.TotalAmount);
-            decimal totalCreditInPeriod = paymentsInPeriod.Sum(p => p.Amount);
+            var paymentsInPeriod = await _context.SupplierPayments
+                .Where(p => p.SupplierId == supplierId && p.PaymentDate >= finalFromDate && p.PaymentDate <= finalToDate)
+                .ToListAsync(); // <-- (جلب الكيان كاملاً)
+
+            // --- 3. حساب صافي التغير ---
+            // (المدين = صافي فاتورة الشراء بعد الخصم)
+            decimal totalDebitInPeriod = invoicesInPeriod.Sum(i => i.TotalAmount - i.DiscountAmount); // (بافتراض وجود الخصم)
+
+            // (الدائن = المدفوعات + الدفع عند الاستلام)
+            decimal totalCreditInPeriod =
+                paymentsInPeriod.Sum(p => p.Amount) +
+                invoicesInPeriod.Sum(i => i.PaidAmount); // (بافتراض وجود دفع عند الاستلام)
+
             decimal netChangeInPeriod = totalDebitInPeriod - totalCreditInPeriod;
 
-            // --- 4. حساب الرصيد الافتتاحي بالطريقة الصحيحة ---
             var supplier = await _context.Suppliers.AsNoTracking().FirstOrDefaultAsync(s => s.Id == supplierId);
             if (supplier == null) return new List<AccountStatementViewModel>();
 
-            // الرصيد الافتتاحي = الرصيد الإجمالي الحالي - صافي التغير الذي حدث داخل الفترة
             decimal openingBalance = supplier.Balance - netChangeInPeriod;
 
             // --- 5. دمج وفرز الحركات ---
             var allTransactions = new List<dynamic>();
-            allTransactions.AddRange(invoicesInPeriod.Select(t => new {
-                Date = t.InvoiceDate,
-                Type = "فاتورة شراء",
-                Ref = t.InvoiceNumber,
-                DocId = (int?)t.Id,
-                DocType = "PurchaseInvoice",
-                Debit = t.TotalAmount,
-                Credit = 0m,
-                Items = t.PurchaseInvoiceItems
-            }));
 
+            // إضافة فواتير الشراء (كحركتين)
+            // إضافة فواتير الشراء (كحركة واحدة مدمجة)
+            foreach (var invoice in invoicesInPeriod)
+            {
+                allTransactions.Add(new
+                {
+                    Date = invoice.InvoiceDate,
+                    Type = "فاتورة شراء",
+                    Ref = invoice.InvoiceNumber,
+                    DocId = (int?)invoice.Id,
+                    DocType = "PurchaseInvoice",
+                    Debit = invoice.TotalAmount, // (صافي المديونية للمورد)
+                    Credit = invoice.PaidAmount, // (المدفوع للمورد في نفس الحركة)
+                    Items = invoice.PurchaseInvoiceItems
+                });
+            }
+
+            // إضافة المدفوعات العادية
             allTransactions.AddRange(paymentsInPeriod.Select(t => new {
                 Date = t.PaymentDate,
                 Type = "دفعة لمورد",
@@ -201,13 +217,14 @@ namespace MaterialManagement.BLL.Service.Implementations
                 Credit = t.Amount,
                 Items = new List<PurchaseInvoiceItem>()
             }));
+
             var sortedTransactions = allTransactions.OrderBy(t => t.Date).ThenBy(t => t.Ref).ToList();
 
             // --- 6. بناء التقرير النهائي ---
             var statement = new List<AccountStatementViewModel>();
             decimal currentBalance = openingBalance;
 
-            // إضافة الرصيد المرحل كأول سجل مع التمييز بين مدين ودائن
+            // ... (جزء الرصيد الافتتاحي سليم كما هو) ...
             if (openingBalance > 0)
             {
                 statement.Add(new AccountStatementViewModel { TransactionDate = statementDisplayDate, TransactionType = "رصيد افتتاحي (مدين)", Reference = "", Debit = openingBalance, Credit = 0m, Balance = openingBalance });
@@ -221,11 +238,10 @@ namespace MaterialManagement.BLL.Service.Implementations
                 statement.Add(new AccountStatementViewModel { TransactionDate = statementDisplayDate, TransactionType = "رصيد افتتاحي (صفر)", Reference = "", Balance = 0 });
             }
 
-            currentBalance = openingBalance; // إعادة تعيين الرصيد لبدء الحساب التراكمي
+            currentBalance = openingBalance;
 
             foreach (var trans in sortedTransactions)
             {
-                // معادلة المورد: الرصيد = الرصيد السابق + المشتريات (مدين) - المدفوعات (دائن)
                 currentBalance = currentBalance + trans.Debit - trans.Credit;
                 statement.Add(new AccountStatementViewModel
                 {
@@ -241,7 +257,6 @@ namespace MaterialManagement.BLL.Service.Implementations
                 });
             }
 
-            // --- 7. تطبيق قاعدة "آخر 10 عمليات" ---
             if (!fromDate.HasValue && !toDate.HasValue && statement.Count > 11)
             {
                 return statement.TakeLast(11).ToList();
@@ -249,7 +264,6 @@ namespace MaterialManagement.BLL.Service.Implementations
 
             return statement;
         }
-
         public async Task<List<MaterialMovementViewModel>> GetMaterialMovementAsync(int materialId, DateTime? fromDate, DateTime? toDate)
         {
             // === 1. تحديد نطاق البحث النهائي ===

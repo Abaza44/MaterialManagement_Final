@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using System;
-using Microsoft.AspNetCore.Http;
+
 namespace MaterialManagement.BLL.ModelVM.Invoice
 {
     public class PurchaseInvoiceCreateModel
@@ -27,7 +27,8 @@ namespace MaterialManagement.BLL.ModelVM.Invoice
 
         [Display(Name = "المبلغ المسدد/المسترجع")]
         public decimal PaidAmount { get; set; } // هذا المبلغ سيتم خصمه من رصيد المورد أو إضافته لرصيد العميل
-
+        [Display(Name = "مبلغ الخصم")]
+        public decimal DiscountAmount { get; set; } = 0;
         public string? Notes { get; set; }
     }
 
@@ -43,6 +44,5 @@ namespace MaterialManagement.BLL.ModelVM.Invoice
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "سعر الوحدة يجب أن يكون أكبر من صفر")]
         public decimal UnitPrice { get; set; }
-        public IFormFile? AttachmentFile { get; set; }
     }
 }

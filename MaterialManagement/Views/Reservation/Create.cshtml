@@ -1,75 +1,152 @@
-﻿@model MaterialManagement.BLL.ModelVM.Reservation.ReservationCreateModel
+﻿@model MaterialManagement.BLL.ModelVM.Reservation.ReservationGetForUpdateModel
 @using MaterialManagement.BLL.ModelVM.Material
-@using MaterialManagement.DAL.Enums;
+@using System.Text.Json;
+
 @{
-    ViewData["Title"] = "إنشاء حجز جديد";
+    bool isUpdate = (bool)(ViewBag.IsUpdate ?? false);
+    string title = isUpdate ? "تعديل الحجز" : "إنشاء حجز جديد";
+    string formAction = isUpdate ? "Edit" : "Create";
     var materialsJson = Json.Serialize(ViewBag.Materials as IEnumerable<MaterialViewModel>);
+
+    // --- (FIX 1) ---
+    // تعريف الـ Index والـ Items بناءً على الموديل الجديد
+    var items = Model.Items ?? new List<MaterialManagement.BLL.ModelVM.Reservation.ReservationItemModel>();
+    int itemIndex = 0;
 }
 
-<h1>@ViewData["Title"]</h1>
-<hr />
-<form asp-action="Create">
-    <div asp-validation-summary="All" class="text-danger"></div>
+<div class="card shadow-sm border-0">
+    <div class="card-body p-4">
 
-    <div class="row">
-        <div class="form-group col-md-6">
-            <label asp-for="ClientId" class="control-label"></label>
-            <select asp-for="ClientId" class="form-control" asp-items="ViewBag.Clients">
-                <option value="">-- اختر العميل --</option>
-            </select>
-        </div>
-        <div class="form-group col-md-6">
-            <label asp-for="Notes" class="control-label"></label>
-            <textarea asp-for="Notes" class="form-control"></textarea>
-        </div>
+        <h1 class="mb-3"><i class="bi bi-calendar-check-fill text-primary"></i> @title</h1>
+        <hr />
+
+        <form asp-action="@formAction" method="post" id="reservationForm">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+            @if (isUpdate)
+            {
+                // --- (FIX 2) ---
+                // استخدام asp-for لضمان ربط الـ Id
+                <input type="hidden" asp-for="Id" />
+            }
+
+            <div class="row">
+                <div class="form-group col-md-6 mb-3">
+                    <label asp-for="ClientId" class="control-label fw-bold">العميل</label>
+                    <select asp-for="ClientId" class="form-control" asp-items="ViewBag.Clients" required>
+                        <option value="">-- اختر العميل --</option>
+                    </select>
+                    <span asp-validation-for="ClientId" class="text-danger"></span>
+                </div>
+                <div class="form-group col-md-6 mb-3">
+                    <label asp-for="Notes" class="control-label fw-bold">ملاحظات</label>
+                    <textarea asp-for="Notes" class="form-control"></textarea>
+                </div>
+            </div>
+
+            <hr />
+            <h3 class="mb-3">الأصناف المحجوزة</h3>
+            <table class="table table-hover align-middle" id="itemsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>المادة</th>
+                        <th style="width: 15%;">الكمية</th>
+                        <th style="width: 15%;">سعر الوحدة</th>
+                        <th style="width: 20%;">الإجمالي الفرعي</th>
+                        <th style="width: 5%;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in items)
+                    {
+                        <tr>
+                            <td>
+                                <select name="Items[@itemIndex].MaterialId" class="form-control item-material" required>
+                                    <option value="@item.MaterialId" selected>@item.MaterialName</option>
+                                </select>
+                            </td>
+                            <td><input name="Items[@itemIndex].Quantity" class="form-control item-quantity" type="number" step="0.01" value="@item.Quantity" required /></td>
+                            <td><input name="Items[@itemIndex].UnitPrice" class="form-control item-price" type="number" step="0.01" value="@item.UnitPrice" required /></td>
+                            <td><input class="form-control item-total" type="text" value="@(item.Quantity* item.UnitPrice)" readonly /></td>
+                            <td><button type="button" class="btn btn-danger btn-sm remove-item-btn"><i class="bi bi-trash"></i></button></td>
+                        </tr>
+                        @(itemIndex++) @* (FIX 1.b) زيادة الـ Index مع كل عنصر موجود *@
+                    }
+                </tbody>
+            </table>
+
+            <button type="button" id="addItemBtn" class="btn btn-success"><i class="bi bi-plus-circle"></i> إضافة صنف</button>
+
+            <div class="row justify-content-end mt-3">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h4 class="card-title mb-0">
+                                الإجمالي الكلي:
+                                <span class="float-end text-primary fw-bold" id="grandTotal">0.00</span>
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-save"></i> @(isUpdate ? "حفظ التعديلات" : "إنشاء الحجز")
+                </button>
+                <a asp-action="Index" class="btn btn-link">العودة إلى القائمة</a>
+            </div>
+        </form>
+
     </div>
+</div>
 
-    <hr />
-    <h3>الأصناف المحجوزة</h3>
-    <table class="table" id="itemsTable">
-        <thead>
-            <tr>
-                <th>المادة</th>
-                <th style="width: 15%;">الكمية</th>
-                <th style="width: 15%;">سعر الوحدة</th>
-                <th style="width: 5%;"></th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <button type="button" id="addItemBtn" class="btn btn-secondary">إضافة صنف</button>
-    <hr />
-
-    <div class="form-group">
-        <input type="submit" value="إنشاء الحجز" class="btn btn-primary" />
-        <a asp-action="Index" class="btn btn-link">العودة إلى القائمة</a>
-    </div>
-</form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
         $(document).ready(function () {
-            let itemIndex = 0;
+            let itemIndex = @itemIndex; // <<< يبدأ العد من حيث انتهى الـ C#
             const materials = JSON.parse('@Html.Raw(materialsJson)');
+            const isUpdate = @isUpdate.ToString().ToLower();
 
-            function createMaterialDropdown() {
+            // (STYLE) دالة لحساب الإجمالي الكلي
+            function updateGrandTotal() {
+                let total = 0;
+                $('#itemsTable tbody tr').each(function () {
+                    let quantity = parseFloat($(this).find('.item-quantity').val()) || 0;
+                    let price = parseFloat($(this).find('.item-price').val()) || 0;
+                    let subtotal = (quantity * price);
+                    $(this).find('.item-total').val(subtotal.toFixed(2)); // تحديث الإجمالي الفرعي
+                    total += subtotal;
+                });
+                $('#grandTotal').text(total.toFixed(2));
+            }
+
+            // (FIX 3) تعديل الدالة لتقبل الـ Index كمتغير
+            function createMaterialDropdown(selectedId, rowIndex) {
                 let options = '<option value="">-- اختر المادة --</option>';
                 materials.forEach(function (mat) {
-                    options += `<option value="${mat.id}">${mat.name}</option>`;
+                    // (STYLE) إظهار الكمية المتاحة الفعلية (Quantity - ReservedQuantity)
+                    let available = mat.quantity - mat.reservedQuantity;
+                    let selected = selectedId === mat.id ? 'selected' : '';
+                    options += `<option value="${mat.id}" data-price="${mat.unitPrice}" ${selected}>${mat.name} (المتاح: ${available})</option>`;
                 });
-                return `<select name="Items[${itemIndex}].MaterialId" class="form-control" required>${options}</select>`;
+                // استخدام `rowIndex` لضمان أن الأسماء فريدة
+                return `<select name="Items[${rowIndex}].MaterialId" class="form-control item-material" required>${options}</select>`;
             }
 
             function addItemRow() {
-                let materialDropdown = createMaterialDropdown();
+                // (FIX 3.b) تمرير الـ Index الحالي للدالة
+                let materialDropdown = createMaterialDropdown(null, itemIndex);
                 let newRow = `
                     <tr>
                         <td>${materialDropdown}</td>
-                        <td><input name="Items[${itemIndex}].Quantity" class="form-control" type="number" step="0.01" value="1" required /></td>
-                        <td><input name="Items[${itemIndex}].UnitPrice" class="form-control" type="number" step="0.01" value="0" required /></td>
-                        <td><button type="button" class="btn btn-danger btn-sm remove-item-btn">حذف</button></td>
+                        <td><input name="Items[${itemIndex}].Quantity" class="form-control item-quantity" type="number" step="0.01" value="1" required /></td>
+                        <td><input name="Items[${itemIndex}].UnitPrice" class="form-control item-price" type="number" step="0.01" value="0" required /></td>
+                        <td><input class="form-control item-total" type="text" value="0.00" readonly /></td>
+                        <td><button type="button" class="btn btn-danger btn-sm remove-item-btn"><i class="bi bi-trash"></i></button></td>
                     </tr>`;
                 $('#itemsTable tbody').append(newRow);
                 itemIndex++;
@@ -80,19 +157,52 @@
                     $(row).find('select, input').each(function() {
                         let oldName = $(this).attr('name');
                         if (oldName) {
-                           let newName = oldName.replace(/\[\d+\]/, `[${index}]`);
-                           $(this).attr('name', newName);
+                            let newName = oldName.replace(/\[\d+\]/, `[${index}]`);
+                            $(this).attr('name', newName);
                         }
                     });
                 });
                 itemIndex = $('#itemsTable tbody tr').length;
+                updateGrandTotal(); // (STYLE) تحديث الإجمالي بعد الحذف
+            }
+
+            if (!isUpdate && itemIndex === 0) {
+                 addItemRow();
             }
 
             $('#addItemBtn').on('click', function () { addItemRow(); });
+
             $('#itemsTable').on('click', '.remove-item-btn', function () {
                 $(this).closest('tr').remove();
                 reindexRows();
             });
+
+            // (STYLE) جلب السعر الافتراضي للمادة عند اختيارها
+            $('#itemsTable').on('change', '.item-material', function () {
+                let selectedOption = $(this).find('option:selected');
+                let price = selectedOption.data('price') || 0;
+                $(this).closest('tr').find('.item-price').val(price);
+                updateGrandTotal();
+            });
+
+            // (STYLE) حساب الإجمالي عند تغيير الكمية أو السعر
+            $('#itemsTable').on('input', '.item-quantity, .item-price', function () {
+                updateGrandTotal();
+            });
+
+            // (FIX 3.c) إصلاح لوجيك التحديث
+            if (isUpdate) {
+                $('#itemsTable tbody tr').each(function (index, row) {
+                    let selectedId = $(row).find('select').find('option:selected').val();
+                    // تمرير الـ index الصحيح
+                    let newDropdown = createMaterialDropdown(parseInt(selectedId), index);
+                    $(row).find('td:first').html(newDropdown);
+                });
+                // لا نحتاج reindexRows هنا لأن اللوب قام بالترقيم الصحيح
+                updateGrandTotal(); // حساب الإجمالي عند تحميل الصفحة
+            } else {
+                 updateGrandTotal(); // حساب الإجمالي (للصف الافتراضي)
+            }
         });
     </script>
 }

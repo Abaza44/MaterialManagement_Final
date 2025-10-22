@@ -65,8 +65,8 @@
     }
 
     @@media print {
-        .print-hidden,
-        .filter-section {
+        .print-hidden, 
+        .filter-section { 
             display: none !important;
         }
     }
@@ -138,7 +138,7 @@
                             <th>رقم المستند</th>
                         </tr>
                     </thead>
-                    <tfoot class="fw-bold">
+                    <tfoot class="fw-bold"> 
                         <tr>
                             <td colspan="2" class="text-end">الإجماليات / الرصيد النهائي:</td>
                             <td id="totalDebit" class="text-danger">0.00</td>
@@ -169,10 +169,10 @@
 
             var table = $('#statementTable').DataTable({
                 "processing": true,
-                "serverSide": false,
+                "serverSide": true, // (الإصلاح 1: يجب أن تكون 'true' ليعمل الترقيم)
                 "ajax": {
                     "url": "/Report/LoadAccountStatementData",
-                    "type": "POST",
+                    "type": "GET",  // (الإصلاح 2: تغييرها إلى 'GET' ليطابق الكنترولر)
                     "data": function (d) {
                         d.accountId = @accountId;
                         d.isClient = @(isClient.ToString().ToLower());
@@ -185,9 +185,12 @@
                             return [];
                         }
 
+                        // (تعديل بسيط) عرض الرصيد الافتتاحي
                         $('#totalDebit').text(json.totalDebit);
                         $('#totalCredit').text(json.totalCredit);
                         $('#finalBalance').text(json.finalBalance);
+
+                        
 
                         return json.data;
                     }

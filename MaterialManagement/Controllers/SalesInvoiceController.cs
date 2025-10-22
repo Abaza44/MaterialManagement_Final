@@ -16,20 +16,20 @@ namespace MaterialManagement.PL.Controllers
         private readonly ISalesInvoiceService _salesInvoiceService;
         private readonly IClientService _clientService;
         private readonly IMaterialService _materialService;
-        private readonly IClientPaymentRepo _clientPaymentRepo; // <<< تم إضافته هنا
+        private readonly IClientPaymentService _clientPaymentService; // <<< FIXED: Now using the Service
         private readonly IMapper _mapper;
-        // <<< تم تحديث الـ Constructor >>>
+
         public SalesInvoiceController(
             ISalesInvoiceService salesInvoiceService,
             IClientService clientService,
             IMaterialService materialService,
-            IClientPaymentRepo clientPaymentRepo,
+            IClientPaymentService clientPaymentService, // <<< FIXED: Injected the Service
             IMapper mapper)
         {
             _salesInvoiceService = salesInvoiceService;
             _clientService = clientService;
             _materialService = materialService;
-            _clientPaymentRepo = clientPaymentRepo;
+            _clientPaymentService = clientPaymentService; // <<< FIXED: Assigned the Service
             _mapper = mapper;
         }
 
@@ -51,14 +51,10 @@ namespace MaterialManagement.PL.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // <<< جلب سجل الدفعات المرتبط بهذه الفاتورة >>>
-            var payments = await _clientPaymentRepo.GetByInvoiceIdAsync(id);
-            ViewBag.Payments = payments;
-
+            ViewBag.Payments = await _clientPaymentService.GetPaymentsForClientAsync(id);
             return View(invoice);
         }
 
-        // GET: SalesInvoice/Create
         public async Task<IActionResult> Create()
         {
             ViewBag.Clients = await _clientService.GetAllClientsAsync();
@@ -125,14 +121,14 @@ namespace MaterialManagement.PL.Controllers
         {
             try
             {
+                // This service call now handles re-stocking and balance updates
                 await _salesInvoiceService.DeleteInvoiceAsync(id);
-                TempData["SuccessMessage"] = "تم حذف الفاتورة بنجاح";
+                TempData["SuccessMessage"] = "تم حذف الفاتورة وإرجاع الكميات للمخزون بنجاح";
             }
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = ex.Message;
             }
-
             return RedirectToAction(nameof(Index));
         }
 
@@ -140,9 +136,7 @@ namespace MaterialManagement.PL.Controllers
         {
             var client = await _clientService.GetClientByIdAsync(id);
             if (client == null) return NotFound();
-
             return View(_mapper.Map<ClientViewModel>(client));
-
         }
 
         // في SalesInvoiceController.cs
