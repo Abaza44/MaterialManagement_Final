@@ -1,4 +1,4 @@
-﻿@model MaterialManagement.BLL.ModelVM.Invoice.SalesInvoiceCreateModel
+@model MaterialManagement.BLL.ModelVM.Invoice.SalesInvoiceCreateModel
 @using MaterialManagement.BLL.ModelVM.Invoice;
 
 @{
@@ -17,7 +17,21 @@
 <div class="container mt-4">
     <h2 class="mb-3">➕ إنشاء فاتورة بيع</h2>
 
-    <form asp-action="Create" method="post">
+    @{
+        var useMediatR = Context.Request.Query.ContainsKey("useMediatR") && Context.Request.Query["useMediatR"] == "true";
+        var actionName = useMediatR ? "CreateMediatR" : "Create";
+    }
+
+    <form asp-action="@actionName" method="post">
+        
+        @if (useMediatR)
+        {
+            <div class="alert alert-info">
+                🧪 <strong>وضع الاختبار الداخلي نشط (MediatR):</strong> أنت تستخدم المعرّف المؤقت والآمن. لم يتم تعطيل النظام القديم.
+            </div>
+            <!-- Include the query parameter in the form submission so it persists if there's a validation error -->
+            <input type="hidden" name="useMediatR" value="true" />
+        }
 
         <div class="mb-3">
     <label asp-for="InvoiceNumber" class="form-label fw-bold"></label>

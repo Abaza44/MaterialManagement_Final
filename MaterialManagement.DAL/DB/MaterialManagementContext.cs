@@ -1,4 +1,4 @@
-﻿using MaterialManagement.DAL.Entities;
+using MaterialManagement.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -30,6 +30,8 @@ namespace MaterialManagement.DAL.DB
         public DbSet<SupplierPayment> SupplierPayments { get; set; }
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<ReservationItem> ReservationItems { get; set; }
+        public DbSet<SalesReturn> SalesReturns { get; set; }
+        public DbSet<SalesReturnItem> SalesReturnItems { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -55,10 +57,21 @@ namespace MaterialManagement.DAL.DB
             modelBuilder.Entity<PurchaseInvoice>().Property(i => i.RemainingAmount).HasPrecision(18, 2);
 
             // Invoice Items
+            modelBuilder.Entity<SalesInvoiceItem>().Property(i => i.Quantity).HasPrecision(18, 2);
             modelBuilder.Entity<SalesInvoiceItem>().Property(i => i.UnitPrice).HasPrecision(18, 2);
             modelBuilder.Entity<SalesInvoiceItem>().Property(i => i.TotalPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<PurchaseInvoiceItem>().Property(i => i.Quantity).HasPrecision(18, 2);
             modelBuilder.Entity<PurchaseInvoiceItem>().Property(i => i.UnitPrice).HasPrecision(18, 2);
             modelBuilder.Entity<PurchaseInvoiceItem>().Property(i => i.TotalPrice).HasPrecision(18, 2);
+
+            // SalesReturn / SalesReturnItem
+            modelBuilder.Entity<SalesReturn>().Property(r => r.TotalGrossAmount).HasPrecision(18, 2);
+            modelBuilder.Entity<SalesReturn>().Property(r => r.TotalProratedDiscount).HasPrecision(18, 2);
+            modelBuilder.Entity<SalesReturn>().Property(r => r.TotalNetAmount).HasPrecision(18, 2);
+            modelBuilder.Entity<SalesReturnItem>().Property(ri => ri.ReturnedQuantity).HasPrecision(18, 2);
+            modelBuilder.Entity<SalesReturnItem>().Property(ri => ri.OriginalUnitPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<SalesReturnItem>().Property(ri => ri.NetUnitPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<SalesReturnItem>().Property(ri => ri.TotalReturnNetAmount).HasPrecision(18, 2);
 
             // Payments
             modelBuilder.Entity<ClientPayment>().Property(p => p.Amount).HasPrecision(18, 2);
@@ -73,6 +86,7 @@ namespace MaterialManagement.DAL.DB
             modelBuilder.Entity<Reservation>().Property(r => r.TotalAmount).HasPrecision(18, 2);
             // Add precision for ReservationItem
             modelBuilder.Entity<ReservationItem>().Property(ri => ri.Quantity).HasPrecision(18, 2);
+            modelBuilder.Entity<ReservationItem>().Property(ri => ri.FulfilledQuantity).HasPrecision(18, 2);
             modelBuilder.Entity<ReservationItem>().Property(ri => ri.UnitPrice).HasPrecision(18, 2);
             modelBuilder.Entity<ReservationItem>().Property(ri => ri.TotalPrice).HasPrecision(18, 2);
             // --- Relationships ---
@@ -126,6 +140,60 @@ namespace MaterialManagement.DAL.DB
             modelBuilder.Entity<SalesInvoice>().HasIndex(s => s.InvoiceNumber).IsUnique();
             modelBuilder.Entity<PurchaseInvoice>().HasIndex(p => p.InvoiceNumber).IsUnique();
             modelBuilder.Entity<Reservation>().HasIndex(r => r.ReservationNumber).IsUnique();
+            modelBuilder.Entity<SalesReturn>().HasIndex(r => r.ReturnNumber).IsUnique();
+
+            // --- SalesReturn Relationships ---
+
+            // SalesInvoice has many SalesReturns. RESTRICT delete to block invoice deletion if returns exist.
+            modelBuilder.Entity<SalesInvoice>()
+                .HasMany(i => i.SalesReturns)
+                .WithOne(r => r.SalesInvoice)
+                .HasForeignKey(r => r.SalesInvoiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Client has many SalesReturns
+            modelBuilder.Entity<Client>()
+                .HasMany<SalesReturn>()
+                .WithOne(r => r.Client)
+                .HasForeignKey(r => r.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // SalesReturn has many SalesReturnItems
+            modelBuilder.Entity<SalesReturn>()
+                .HasMany(r => r.SalesReturnItems)
+                .WithOne(ri => ri.SalesReturn)
+                .HasForeignKey(ri => ri.SalesReturnId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // SalesInvoiceItem has many SalesReturnItems. RESTRICT to block modifying original items with active returns.
+            modelBuilder.Entity<SalesInvoiceItem>()
+                .HasMany(i => i.SalesReturnItems)
+                .WithOne(ri => ri.SalesInvoiceItem)
+                .HasForeignKey(ri => ri.SalesInvoiceItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Material to SalesReturnItem (no cascade - material lives independently)
+            modelBuilder.Entity<Material>()
+                .HasMany<SalesReturnItem>()
+                .WithOne(ri => ri.Material)
+                .HasForeignKey(ri => ri.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // --- Global Soft Delete Query Filters ---
+            modelBuilder.Entity<Client>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<Supplier>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<Material>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<SalesInvoice>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<PurchaseInvoice>().HasQueryFilter(e => e.IsActive);
+            
+            // Relational filters to suppress Warning 10622
+            modelBuilder.Entity<ClientPayment>().HasQueryFilter(e => e.Client.IsActive);
+            modelBuilder.Entity<SupplierPayment>().HasQueryFilter(e => e.Supplier.IsActive);
+            modelBuilder.Entity<Reservation>().HasQueryFilter(e => e.Client.IsActive);
+            modelBuilder.Entity<ReservationItem>().HasQueryFilter(e => e.Material.IsActive);
+            modelBuilder.Entity<SalesInvoiceItem>().HasQueryFilter(e => e.Material.IsActive);
+            modelBuilder.Entity<PurchaseInvoiceItem>().HasQueryFilter(e => e.Material.IsActive);
+            modelBuilder.Entity<SalesReturn>().HasQueryFilter(e => e.IsActive);
         }
     }
 }

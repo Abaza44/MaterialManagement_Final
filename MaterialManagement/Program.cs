@@ -22,6 +22,10 @@ builder.Services.AddDbContext<MaterialManagementContext>(options =>
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
+// MediatR & FluentValidation (Phase 1 Base)
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies()));
+// builder.Services.AddValidatorsFromAssembly(typeof(MaterialManagement.BLL.Features.Invoicing.Commands.CreateSalesInvoiceValidator).Assembly);
+
 // Repositories
 builder.Services.AddScoped<IClientRepo, ClientRepo>();
 builder.Services.AddScoped<ISupplierRepo, SupplierRepo>();

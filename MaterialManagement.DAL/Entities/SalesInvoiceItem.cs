@@ -18,5 +18,6 @@ namespace MaterialManagement.DAL.Entities
         // Navigation Properties
         public virtual SalesInvoice SalesInvoice { get; set; }
         public virtual Material Material { get; set; }
+        public virtual ICollection<SalesReturnItem> SalesReturnItems { get; set; } = new List<SalesReturnItem>();
     }
 }

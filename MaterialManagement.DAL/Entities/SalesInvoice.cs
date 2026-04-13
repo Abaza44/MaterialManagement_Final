@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -35,6 +35,7 @@ namespace MaterialManagement.DAL.Entities
 
         // Navigation Properties
         public virtual Client Client { get; set; }
-        public virtual ICollection<SalesInvoiceItem> SalesInvoiceItems { get; set; } = new HashSet<SalesInvoiceItem>();
+        public virtual ICollection<SalesInvoiceItem> SalesInvoiceItems { get; set; } = new List<SalesInvoiceItem>();
+        public virtual ICollection<SalesReturn> SalesReturns { get; set; } = new List<SalesReturn>();
     }
 }

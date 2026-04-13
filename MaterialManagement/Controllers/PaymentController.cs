@@ -1,7 +1,10 @@
-﻿using MaterialManagement.BLL.ModelVM.Payment;
+using MaterialManagement.BLL.ModelVM.Payment;
 using MaterialManagement.BLL.Service.Abstractions;
+using MaterialManagement.BLL.Features.Payments.Commands;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,6 +13,7 @@ namespace MaterialManagement.PL.Controllers
 {
     public class PaymentController : Controller
     {
+        private readonly IMediator _mediator;
         private readonly IClientPaymentService _clientPaymentService;
         private readonly ISupplierPaymentService _supplierPaymentService;
         private readonly IClientService _clientService;
@@ -18,6 +22,7 @@ namespace MaterialManagement.PL.Controllers
         private readonly IPurchaseInvoiceService _purchaseInvoiceService;
 
         public PaymentController(
+            IMediator mediator,
             IClientPaymentService clientPaymentService,
             ISupplierPaymentService supplierPaymentService,
             IClientService clientService,
@@ -25,6 +30,7 @@ namespace MaterialManagement.PL.Controllers
             ISalesInvoiceService salesInvoiceService,
             IPurchaseInvoiceService purchaseInvoiceService)
         {
+            _mediator = mediator;
             _clientPaymentService = clientPaymentService;
             _supplierPaymentService = supplierPaymentService;
             _clientService = clientService;
@@ -87,6 +93,45 @@ namespace MaterialManagement.PL.Controllers
                 ViewBag.InvoiceList = new SelectList(invoices, "Id", "InvoiceNumber", model.SalesInvoiceId);
             }
             return View(model);
+        }
+
+        // ===================================
+        // NEW PILOT MEDIATR FLOW (Dual-Path)
+        // ===================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddClientPaymentMediatR(ClientPaymentCreateModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    // 1. Send the command to the new MediatR pipeline
+                    var result = await _mediator.Send(new CreateClientPaymentCommand { Model = model });
+                    TempData["Success"] = "تم تسجيل التحصيل بنجاح (MediatR).";
+                    return RedirectToAction("Details", "Client", new { id = model.ClientId });
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    // 2. Explicit concurrency handling at the UI layer
+                    ModelState.AddModelError(string.Empty, "تم تعديل رصيد هذا العميل بواسطة مستخدم آخر مؤخراً. يرجى مراجعة الرصيد وإعادة المحاولة.");
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError(string.Empty, $"حدث خطأ: {ex.Message}");
+                }
+            }
+
+            // Reload dropdowns on failure to reload the view
+            var clients = await _clientService.GetAllClientsAsync();
+            ViewBag.ClientList = new SelectList(clients, "Id", "Name", model.ClientId);
+            if (model.ClientId > 0)
+            {
+                var invoices = await _salesInvoiceService.GetUnpaidInvoicesForClientAsync(model.ClientId);
+                ViewBag.InvoiceList = new SelectList(invoices, "Id", "InvoiceNumber", model.SalesInvoiceId);
+            }
+            // Return to the identical legacy view
+            return View("AddClientPayment", model);
         }
 
         // === Supplier Payments (التوريدات) ===

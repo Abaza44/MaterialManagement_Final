@@ -35,6 +35,9 @@ namespace MaterialManagement.DAL.Entities
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public bool IsActive { get; set; } = true;
 
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
+
         // Navigation Properties
         public virtual ICollection<SalesInvoiceItem> SalesInvoiceItems { get; set; } = new HashSet<SalesInvoiceItem>();
         public virtual ICollection<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; } = new HashSet<PurchaseInvoiceItem>();

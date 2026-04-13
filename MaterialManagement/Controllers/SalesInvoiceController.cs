@@ -1,11 +1,14 @@
-﻿using AutoMapper;
+using AutoMapper;
 using MaterialManagement.BLL.ModelVM.Client;
 using MaterialManagement.BLL.ModelVM.Invoice;
 using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions; // <-- مهم
+using MaterialManagement.BLL.Features.Invoicing.Commands;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -16,21 +19,27 @@ namespace MaterialManagement.PL.Controllers
         private readonly ISalesInvoiceService _salesInvoiceService;
         private readonly IClientService _clientService;
         private readonly IMaterialService _materialService;
-        private readonly IClientPaymentService _clientPaymentService; // <<< FIXED: Now using the Service
+        private readonly IClientPaymentService _clientPaymentService;
         private readonly IMapper _mapper;
+        private readonly IMediator _mediator;
+        private readonly ILogger<SalesInvoiceController> _logger;
 
         public SalesInvoiceController(
             ISalesInvoiceService salesInvoiceService,
             IClientService clientService,
             IMaterialService materialService,
-            IClientPaymentService clientPaymentService, // <<< FIXED: Injected the Service
-            IMapper mapper)
+            IClientPaymentService clientPaymentService,
+            IMapper mapper,
+            IMediator mediator,
+            ILogger<SalesInvoiceController> logger)
         {
             _salesInvoiceService = salesInvoiceService;
             _clientService = clientService;
             _materialService = materialService;
-            _clientPaymentService = clientPaymentService; // <<< FIXED: Assigned the Service
+            _clientPaymentService = clientPaymentService;
             _mapper = mapper;
+            _mediator = mediator;
+            _logger = logger;
         }
 
         // GET: SalesInvoice
@@ -99,6 +108,51 @@ namespace MaterialManagement.PL.Controllers
                 ViewBag.Clients = await _clientService.GetAllClientsAsync();
                 ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
                 return View(model);
+            }
+        }
+
+        // ===============================================
+        // PARALLEL MEDIATR TEST ENDPOINT (Dual-Path Sandbox)
+        // ===============================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateMediatR(SalesInvoiceCreateModel model)
+        {
+            model.Items.RemoveAll(i => i.Quantity == 0 || i.UnitPrice == 0);
+
+            if (!ModelState.IsValid || !model.Items.Any())
+            {
+                if (!model.Items.Any())
+                {
+                    ModelState.AddModelError("Items", "يجب إضافة بند واحد على الأقل للفاتورة.");
+                }
+                ViewBag.Clients = await _clientService.GetAllClientsAsync();
+                ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
+                return View("Create", model); // Return to default view seamlessly
+            }
+
+            try
+            {
+                // Replaces the generic _salesInvoiceService.CreateInvoiceAsync
+                var result = await _mediator.Send(new CreateSalesInvoiceCommand { Model = model });
+                TempData["SuccessMessage"] = "تم إنشاء فاتورة بيع بنجاح (MediatR Test Route)";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "MediatR UI Boundary Caught Concurrency Collision for Client ID {ClientId}", model.ClientId);
+                // Explicit UI catching for concurrent modifications (RowVersion)
+                TempData["ErrorMessage"] = "تم تعديل الرصيد أو المخزون لهذه المواد بواسطة مستخدم آخر مؤخراً. تم إلغاء الفاتورة بالكامل لضمان دقة الحسابات، يرجى المحاولة مرة أخرى.";
+                ViewBag.Clients = await _clientService.GetAllClientsAsync();
+                ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
+                return View("Create", model);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                ViewBag.Clients = await _clientService.GetAllClientsAsync();
+                ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
+                return View("Create", model);
             }
         }
 

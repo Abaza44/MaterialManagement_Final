@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -28,6 +28,9 @@ namespace MaterialManagement.DAL.Entities
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public bool IsActive { get; set; } = true;
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
 
         
         public virtual ICollection<SalesInvoice> SalesInvoices { get; set; } = new HashSet<SalesInvoice>();
