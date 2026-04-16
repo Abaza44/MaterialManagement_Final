@@ -19,7 +19,7 @@
 <body class="erp-shell">
     <header>
         <nav class="navbar navbar-expand-lg erp-navbar sticky-top mb-3">
-            <div class="container">
+            <div class="container-fluid px-3 px-xl-4">
                 <a class="navbar-brand erp-brand" asp-area="" asp-controller="Home" asp-action="Landing">
                     <span class="erp-brand-mark"><i class="bi bi-stack"></i></span>
                     <span>إدارة المواد</span>
@@ -135,7 +135,7 @@
         </nav>
     </header>
 
-    <div class="container erp-main-container">
+    <div class="container-fluid erp-main-container">
         <main role="main" class="erp-main">
 
             <!-- تنبيهات النجاح والخطأ -->
@@ -160,7 +160,7 @@
     </div>
 
     <footer class="footer text-muted py-3 erp-footer">
-        <div class="container text-center">
+        <div class="container-fluid px-3 px-xl-4 text-center">
             &copy; @DateTime.Now.Year - إدارة المواد - <a asp-controller="Home" asp-action="Privacy">الخصوصية</a>
         </div>
     </footer>

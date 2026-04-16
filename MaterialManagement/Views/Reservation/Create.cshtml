@@ -12,7 +12,7 @@
     int itemIndex = 0;
 }
 
-<div class="erp-page">
+<div class="erp-page erp-worksheet-shell">
     <div class="erp-page-header">
         <div>
             <p class="erp-eyebrow">الحجوزات</p>
@@ -53,34 +53,36 @@
                     <p class="erp-table-note">الحجز يمسك المخزون فقط ولا يغير رصيد العميل حتى التسليم.</p>
                 </div>
             </div>
-            <table class="table table-hover align-middle erp-data-table" id="itemsTable">
-                <thead class="table-light">
-                    <tr>
-                        <th>المادة</th>
-                        <th class="reservation-number-column">الكمية</th>
-                        <th class="reservation-number-column">سعر الوحدة</th>
-                        <th class="reservation-total-column">الإجمالي الفرعي</th>
-                        <th class="reservation-action-column"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in items)
-                    {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle erp-data-table erp-worksheet-table" id="itemsTable">
+                    <thead>
                         <tr>
-                            <td>
-                                <select name="Items[@itemIndex].MaterialId" class="form-control item-material" required>
-                                    <option value="@item.MaterialId" selected>@item.MaterialName</option>
-                                </select>
-                            </td>
-                            <td><input name="Items[@itemIndex].Quantity" class="form-control item-quantity" type="number" step="0.01" value="@item.Quantity" required /></td>
-                            <td><input name="Items[@itemIndex].UnitPrice" class="form-control item-price" type="number" step="0.01" value="@item.UnitPrice" required /></td>
-                            <td><input class="form-control item-total" type="text" value="@(item.Quantity* item.UnitPrice)" readonly /></td>
-                            <td><button type="button" class="btn btn-danger btn-sm remove-item-btn"><i class="bi bi-trash"></i></button></td>
+                            <th>المادة</th>
+                            <th class="reservation-number-column">الكمية</th>
+                            <th class="reservation-number-column">سعر الوحدة</th>
+                            <th class="reservation-total-column">الإجمالي الفرعي</th>
+                            <th class="reservation-action-column"></th>
                         </tr>
-                        itemIndex++;
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            <tr>
+                                <td>
+                                    <select name="Items[@itemIndex].MaterialId" class="form-control item-material" required>
+                                        <option value="@item.MaterialId" selected>@item.MaterialName</option>
+                                    </select>
+                                </td>
+                                <td><input name="Items[@itemIndex].Quantity" class="form-control item-quantity erp-number" type="number" step="0.01" value="@item.Quantity" required /></td>
+                                <td><input name="Items[@itemIndex].UnitPrice" class="form-control item-price erp-number" type="number" step="0.01" value="@item.UnitPrice" required /></td>
+                                <td><input class="form-control item-total erp-number" type="text" value="@(item.Quantity* item.UnitPrice)" readonly /></td>
+                                <td><button type="button" class="btn btn-danger btn-sm remove-item-btn"><i class="bi bi-trash"></i></button></td>
+                            </tr>
+                            itemIndex++;
+                        }
+                    </tbody>
+                </table>
+            </div>
 
             <button type="button" id="addItemBtn" class="btn btn-success"><i class="bi bi-plus-circle"></i> إضافة صنف</button>
 
@@ -138,9 +140,9 @@
                 let newRow = `
                     <tr>
                         <td>${materialDropdown}</td>
-                        <td><input name="Items[${itemIndex}].Quantity" class="form-control item-quantity" type="number" step="0.01" value="1" required /></td>
-                        <td><input name="Items[${itemIndex}].UnitPrice" class="form-control item-price" type="number" step="0.01" value="0" required /></td>
-                        <td><input class="form-control item-total" type="text" value="0.00" readonly /></td>
+                        <td><input name="Items[${itemIndex}].Quantity" class="form-control item-quantity erp-number" type="number" step="0.01" value="1" required /></td>
+                        <td><input name="Items[${itemIndex}].UnitPrice" class="form-control item-price erp-number" type="number" step="0.01" value="0" required /></td>
+                        <td><input class="form-control item-total erp-number" type="text" value="0.00" readonly /></td>
                         <td><button type="button" class="btn btn-danger btn-sm remove-item-btn"><i class="bi bi-trash"></i></button></td>
                     </tr>`;
                 $('#itemsTable tbody').append(newRow);

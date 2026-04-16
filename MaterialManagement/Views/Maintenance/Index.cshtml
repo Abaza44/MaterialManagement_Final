@@ -6,7 +6,7 @@
     var totalCost = records.Sum(r => r.Cost);
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success erp-alert">@TempData["Success"]</div>
@@ -31,12 +31,12 @@
         <div class="erp-summary-item"><span>معدات مشمولة</span><strong>@records.Select(r => r.EquipmentCode).Distinct().Count()</strong></div>
     </div>
 
-    <section class="erp-panel">
+    <section class="erp-panel erp-worksheet-panel">
         <div class="erp-panel-header"><h2>حركة الصيانة</h2></div>
         @if (records.Any())
         {
             <div class="table-responsive">
-                <table class="table table-hover erp-data-table">
+                <table class="table table-hover erp-data-table erp-worksheet-table">
                     <thead>
                         <tr>
                             <th>المعدة</th>

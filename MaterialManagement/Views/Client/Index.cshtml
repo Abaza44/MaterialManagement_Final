@@ -2,7 +2,7 @@
     ViewData["Title"] = "إدارة العملاء";
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     <div class="erp-page-header">
         <div>
             <p class="erp-eyebrow">الأطراف</p>
@@ -25,17 +25,21 @@
         </div>
     </div>
 
-    <table id="clientsTable" class="table table-hover erp-data-table" style="width:100%">
-        <thead>
-            <tr>
-                <th>الاسم</th>
-                <th>الهاتف</th>
-                <th>الرصيد (المديونية)</th>
-                <th>الحالة</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-    </table>
+    <section class="erp-panel erp-worksheet-panel">
+        <div class="table-responsive">
+            <table id="clientsTable" class="table table-hover erp-data-table erp-worksheet-table" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>الهاتف</th>
+                        <th>الرصيد (المديونية)</th>
+                        <th>الحالة</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </section>
 </div>
 
 @section Scripts {

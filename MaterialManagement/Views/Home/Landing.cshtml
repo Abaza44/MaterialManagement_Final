@@ -16,77 +16,57 @@
     </div>
 
     <div class="erp-workflow-grid">
-        <!-- المخزون -->
-        <div>
-            <div class="card h-100">
-                <div class="card-body">
-                    <h3>إدارة المخزون</h3>
-                    <p>تسجيل ومتابعة حركة المواد والمخزون.</p>
-                    <a asp-controller="Material" asp-action="Index" class="btn btn-outline-primary stretched-link">إدارة المواد</a>
-                </div>
+        <a asp-controller="Material" asp-action="Index" class="erp-action-card">
+            <i class="bi bi-box-seam"></i>
+            <strong>إدارة المخزون</strong>
+            <span>تسجيل المواد ومتابعة الكميات المتاحة والمحجوزة.</span>
+        </a>
+
+        <div class="erp-action-card">
+            <i class="bi bi-people"></i>
+            <strong>العملاء والموردين</strong>
+            <span>إدارة الحسابات والأرصدة من شاشات تشغيلية واضحة.</span>
+            <div class="erp-actions mt-auto">
+                <a asp-controller="Client" asp-action="Index" class="btn btn-outline-secondary btn-sm">العملاء</a>
+                <a asp-controller="Supplier" asp-action="Index" class="btn btn-outline-secondary btn-sm">الموردين</a>
             </div>
         </div>
 
-        <!-- الأطراف -->
-        <div>
-            <div class="card h-100">
-                <div class="card-body">
-                    <h3>العملاء والموردين</h3>
-                    <p>إدارة حسابات وأرصدة العملاء والموردين.</p>
-                    <a asp-controller="Client" asp-action="Index" class="btn btn-outline-secondary">العملاء</a>
-                    <a asp-controller="Supplier" asp-action="Index" class="btn btn-outline-secondary ms-2">الموردين</a>
-                </div>
+        <div class="erp-action-card">
+            <i class="bi bi-receipt"></i>
+            <strong>الفواتير</strong>
+            <span>إنشاء وتتبع فواتير البيع والشراء والمرتجعات.</span>
+            <div class="erp-actions mt-auto">
+                <a asp-controller="SalesInvoice" asp-action="Index" class="btn btn-outline-success btn-sm">فواتير البيع</a>
+                <a asp-controller="PurchaseInvoice" asp-action="Index" class="btn btn-outline-success btn-sm">فواتير الشراء</a>
             </div>
         </div>
 
-        <!-- الفواتير -->
-        <div>
-            <div class="card h-100">
-                <div class="card-body">
-                    <h3>الفواتير</h3>
-                    <p>إنشاء وتتبع فواتير البيع والشراء.</p>
-                    <a asp-controller="SalesInvoice" asp-action="Index" class="btn btn-outline-success">فواتير البيع</a>
-                    <a asp-controller="PurchaseInvoice" asp-action="Index" class="btn btn-outline-success ms-2">فواتير الشراء</a>
-                </div>
+        <div class="erp-action-card">
+            <i class="bi bi-wallet2"></i>
+            <strong>المالية</strong>
+            <span>تسجيل التحصيلات والدفعات والمصاريف اليومية.</span>
+            <div class="erp-actions mt-auto">
+                <a asp-controller="Payment" asp-action="AddClientPayment" class="btn btn-outline-info btn-sm">إضافة تحصيل</a>
+                <a asp-controller="Expense" asp-action="Index" class="btn btn-outline-info btn-sm">المصاريف</a>
             </div>
         </div>
 
-        <!-- المالية -->
-        <div>
-            <div class="card h-100">
-                <div class="card-body">
-                    <h3>المالية</h3>
-                    <p>تسجيل التحصيلات والدفعات والمصاريف اليومية.</p>
-                    <a asp-controller="Payment" asp-action="AddClientPayment" class="btn btn-outline-info">إضافة تحصيل</a>
-                    <a asp-controller="Expense" asp-action="Index" class="btn btn-outline-info ms-2">المصاريف</a>
-                </div>
+        <div class="erp-action-card">
+            <i class="bi bi-tools"></i>
+            <strong>العمليات والصيانة</strong>
+            <span>متابعة المعدات وسجلات الصيانة ومواعيد التشغيل.</span>
+            <div class="erp-actions mt-auto">
+                <a asp-controller="Equipment" asp-action="Index" class="btn btn-outline-dark btn-sm">المعدات</a>
+                <a asp-controller="Maintenance" asp-action="Index" class="btn btn-outline-dark btn-sm">الصيانة</a>
             </div>
         </div>
 
-        <!-- العمليات -->
-        <div>
-            <div class="card h-100">
-                <div class="card-body">
-                    <h3>العمليات والصيانة</h3>
-                    <p>إدارة أصول الشركة وتسجيل عمليات الصيانة.</p>
-                    <a asp-controller="Equipment" asp-action="Index" class="btn btn-outline-dark">المعدات</a>
-                    <a asp-controller="Maintenance" asp-action="Index" class="btn btn-outline-dark ms-2">سجلات الصيانة</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- التقارير -->
-        <div>
-            <div class="card h-100">
-                <div class="card-body">
-                    <h3>التقارير</h3>
-                    <p>تقارير مالية ومخزنية لمتابعة الأداء.</p>
-                    <a asp-controller="Report" asp-action="AccountStatement" class="btn btn-outline-danger stretched-link">
-                عرض التقارير
-            </a>
-                </div>
-            </div>
-        </div>
+        <a asp-controller="Report" asp-action="AccountStatement" class="erp-action-card">
+            <i class="bi bi-file-earmark-bar-graph"></i>
+            <strong>التقارير</strong>
+            <span>كشوف حساب وحركة صنف وأرباح بصيغة مناسبة للطباعة.</span>
+        </a>
     </div>
 
 </div>

@@ -4,7 +4,7 @@
     ViewData["Title"] = "سجل صيانة المعدة";
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     <div class="erp-page-header">
         <div>
             <p class="erp-eyebrow">الأصول والتشغيل</p>
@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <section class="erp-panel">
+    <section class="erp-panel erp-worksheet-panel">
         <div class="erp-panel-header"><h2>ملخص المعدة</h2></div>
         <div class="erp-detail-grid">
             <div class="erp-detail-item"><span>الكود</span><strong>@Model.Code</strong></div>
@@ -36,7 +36,7 @@
         @if (Model.MaintenanceHistory != null && Model.MaintenanceHistory.Any())
         {
             <div class="table-responsive">
-                <table class="table table-hover erp-data-table">
+                <table class="table table-hover erp-data-table erp-worksheet-table">
                     <thead>
                         <tr>
                             <th>تاريخ الصيانة</th>

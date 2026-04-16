@@ -2,7 +2,7 @@
     ViewData["Title"] = "إدارة الموظفين";
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success erp-alert">@TempData["Success"]</div>
@@ -21,7 +21,7 @@
         </div>
     </div>
 
-    <section class="erp-panel">
+    <section class="erp-panel erp-worksheet-panel">
         <div class="erp-panel-header">
             <div>
                 <h2>قائمة الموظفين</h2>
@@ -30,7 +30,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle erp-data-table" id="employeesTable" style="width:100%">
+            <table class="table table-hover align-middle erp-data-table erp-worksheet-table" id="employeesTable" style="width:100%">
                 <thead>
                     <tr>
                         <th>الاسم</th>

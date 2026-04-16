@@ -2,7 +2,7 @@
     ViewData["Title"] = "إدارة المعدات";
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success erp-alert">@TempData["Success"]</div>
@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <section class="erp-panel">
+    <section class="erp-panel erp-worksheet-panel">
         <div class="erp-panel-header">
             <div>
                 <h2>قائمة المعدات</h2>
@@ -29,7 +29,7 @@
         </div>
 
         <div class="table-responsive">
-            <table id="equipmentTable" class="table table-hover align-middle erp-data-table" style="width:100%">
+            <table id="equipmentTable" class="table table-hover align-middle erp-data-table erp-worksheet-table" style="width:100%">
                 <thead>
                     <tr>
                         <th>الكود</th>

@@ -1,16 +1,17 @@
 @model MaterialManagement.Models.SalesReturnSandboxCreateViewModel
 
 @{
-    ViewData["Title"] = "مرتجع بيع تجريبي";
+    ViewData["Title"] = "إنشاء مرتجع بيع";
     ViewData["SupervisorAuthorizationLabel"] = "اعتماد المشرف للمرتجع";
     ViewData["SupervisorAuthorizationHint"] = "مرتجع البيع يعكس المخزون ورصيد العميل، لذلك يجب اعتماده بكلمة مرور المشرف.";
 }
 
-<div class="erp-page" dir="rtl">
+<div class="erp-page erp-list-page" dir="rtl">
     <div class="erp-page-header no-print">
         <div>
             <p class="erp-eyebrow">مسار داخلي تجريبي</p>
             <h1>إنشاء مرتجع بيع</h1>
+            <p class="erp-table-note">راجع الفاتورة والبنود المتاحة قبل تسجيل المرتجع.</p>
         </div>
         <div class="erp-actions">
             <a asp-controller="SalesInvoice" asp-action="Index" class="btn btn-outline-secondary">فواتير البيع</a>
@@ -21,11 +22,11 @@
         هذه الشاشة تستخدم مسار SalesReturn MediatR التجريبي فقط. لا توجد روابط قائمة عامة لها حتى اعتماد واجهة المرتجعات النهائية.
     </div>
 
-    <section class="erp-panel no-print">
+    <section class="erp-panel erp-report-filter-panel no-print">
         <div class="erp-panel-header">
             <div>
                 <h2>اختيار فاتورة البيع</h2>
-                <p class="erp-table-note">أدخل رقم معرف الفاتورة لعرض البنود المتاحة للمرتجع.</p>
+                <p class="erp-table-note">أدخل معرف فاتورة البيع لعرض البنود المتاحة للمرتجع.</p>
             </div>
         </div>
 
@@ -89,7 +90,7 @@
             @Html.AntiForgeryToken()
             <input type="hidden" name="SalesInvoiceId" value="@Model.SalesInvoiceId" />
 
-            <section class="erp-panel">
+            <section class="erp-panel erp-worksheet-panel">
                 <div class="erp-panel-header">
                     <div>
                         <h2>بنود المرتجع</h2>
@@ -98,7 +99,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover erp-data-table" id="salesReturnSandboxGrid">
+                    <table class="table table-bordered table-hover erp-data-table erp-worksheet-table" id="salesReturnSandboxGrid">
                         <thead>
                             <tr>
                                 <th>#</th>

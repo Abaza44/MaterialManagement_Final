@@ -84,11 +84,14 @@ body {
 }
 
 .erp-main-container {
-  max-width: 1220px;
+  max-width: min(1760px, calc(100vw - 24px));
+  padding-left: clamp(.65rem, 1.1vw, 1.25rem);
+  padding-right: clamp(.65rem, 1.1vw, 1.25rem);
 }
 
 .erp-main {
   padding-bottom: 2rem;
+  padding-top: .15rem;
 }
 
 .erp-footer {
@@ -98,10 +101,33 @@ body {
 
 .erp-page {
   color: var(--erp-ink);
+  width: 100%;
 }
 
 .erp-narrow-page {
-  max-width: 920px;
+  max-width: 1040px;
+}
+
+.erp-form-page {
+  max-width: 1320px;
+}
+
+.erp-review-page {
+  max-width: 1320px;
+}
+
+.erp-confirm-page {
+  max-width: 1180px;
+}
+
+.erp-report-picker-page {
+  max-width: 1280px;
+}
+
+.erp-list-page,
+.erp-worksheet-shell {
+  max-width: none;
+  width: 100%;
 }
 
 .erp-page-header {
@@ -109,7 +135,7 @@ body {
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: .75rem;
 }
 
 .erp-page-header h1,
@@ -137,8 +163,8 @@ body {
   background: var(--erp-surface);
   border: 1px solid var(--erp-border);
   border-radius: 8px;
-  margin-bottom: 1rem;
-  padding: 1rem;
+  margin-bottom: .85rem;
+  padding: .85rem;
 }
 
 .erp-panel-header {
@@ -147,8 +173,8 @@ body {
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  margin: -1rem -1rem 1rem;
-  padding: .85rem 1rem;
+  margin: -.85rem -.85rem .75rem;
+  padding: .68rem .85rem;
 }
 
 .erp-panel-header h2,
@@ -177,8 +203,8 @@ body {
 
 .erp-form-grid {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .erp-field-wide {
@@ -203,14 +229,16 @@ body {
 
 .erp-detail-grid {
   display: grid;
-  gap: .75rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .6rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .erp-detail-item {
+  background: #ffffff;
   border: 1px solid var(--erp-border);
   border-radius: 8px;
-  padding: .85rem;
+  min-height: 78px;
+  padding: .7rem .8rem;
 }
 
 .erp-detail-item span {
@@ -223,6 +251,54 @@ body {
 .erp-detail-item strong {
   display: block;
   font-variant-numeric: tabular-nums;
+  font-size: 1.02rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.erp-review-page .erp-detail-item strong,
+.erp-confirm-page .erp-detail-item strong {
+  font-weight: 900;
+}
+
+.erp-form-page .erp-panel,
+.erp-review-page .erp-panel,
+.erp-confirm-page .erp-panel,
+.erp-report-picker-page .erp-panel {
+  max-width: 100%;
+}
+
+.erp-confirm-page .erp-danger-zone {
+  border-width: 2px;
+}
+
+.erp-confirm-page .erp-danger-zone .erp-detail-grid {
+  margin-bottom: .85rem;
+}
+
+.erp-confirm-page form .mb-3 {
+  flex: 1 1 360px;
+  margin-bottom: 0 !important;
+  max-width: 560px;
+}
+
+.erp-confirm-page .erp-form-actions {
+  align-items: end;
+}
+
+.erp-form-page .form-label,
+.erp-report-picker-page .form-label {
+  color: #26353d;
+  font-size: .86rem;
+  font-weight: 800;
+  margin-bottom: .28rem;
+}
+
+.erp-form-page .form-control,
+.erp-form-page .form-select,
+.erp-report-picker-page .form-control,
+.erp-report-picker-page .form-select {
+  min-height: 40px;
 }
 
 .erp-danger-zone {
@@ -240,20 +316,87 @@ body {
 .erp-data-table {
   background: var(--erp-surface);
   border: 1px solid var(--erp-border) !important;
+  border-collapse: collapse !important;
   border-radius: 8px;
+  font-size: .88rem;
   overflow: hidden;
 }
 
 .erp-data-table thead th,
 table.dataTable thead th {
-  background: #eef3f5;
+  background: #e8eef2;
+  border-color: rgba(15, 23, 42, .22) !important;
   color: #24343b;
+  font-size: .8rem;
   font-weight: 800;
+  text-align: center;
+  white-space: normal;
+}
+
+.erp-data-table th,
+.erp-data-table td,
+table.dataTable tbody th,
+table.dataTable tbody td {
+  border-color: rgba(15, 23, 42, .16) !important;
+  padding: .42rem .52rem !important;
+  vertical-align: middle;
+}
+
+.erp-data-table tbody tr:hover td {
+  background: #f6f9fa;
+}
+
+.erp-panel > .table-responsive,
+.erp-worksheet-panel > .table-responsive {
+  background: #ffffff;
+  border: 1px solid var(--erp-border);
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.erp-panel > .table-responsive .erp-data-table,
+.erp-worksheet-panel > .table-responsive .erp-data-table {
+  border: 0 !important;
+  border-radius: 0;
+  margin-bottom: 0 !important;
+}
+
+.dataTables_wrapper {
+  direction: rtl;
+}
+
+.dataTables_wrapper .row {
+  align-items: center;
+  gap: .35rem 0;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  color: var(--erp-muted);
+  font-size: .86rem;
+}
+
+.dataTables_wrapper .dataTables_filter label,
+.dataTables_wrapper .dataTables_length label {
+  align-items: center;
+  display: inline-flex;
+  gap: .4rem;
+}
+
+.dataTables_wrapper .form-control,
+.dataTables_wrapper .form-select {
+  border-color: var(--erp-border);
+  border-radius: 8px;
+  min-height: 34px;
 }
 
 .erp-number {
+  direction: ltr;
   font-variant-numeric: tabular-nums;
-  text-align: end;
+  text-align: left !important;
+  white-space: nowrap;
 }
 
 .erp-muted {
@@ -525,9 +668,9 @@ table.dataTable thead th {
 
 @media (min-width: 1200px) {
   .erp-wide-workspace {
-    margin-left: calc(50% - 50vw + 14px);
-    margin-right: calc(50% - 50vw + 14px);
-    width: calc(100vw - 28px);
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
   }
 }
 
@@ -597,8 +740,8 @@ table.dataTable thead th {
 
 .erp-party-grid {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .erp-party-card {
@@ -607,9 +750,9 @@ table.dataTable thead th {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  min-height: 210px;
-  padding: 1rem;
+  gap: .75rem;
+  min-height: 176px;
+  padding: .85rem;
 }
 
 .erp-party-card h2 {
@@ -621,7 +764,7 @@ table.dataTable thead th {
 
 .erp-party-card-metrics {
   display: grid;
-  gap: .75rem;
+  gap: .5rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: auto;
 }
@@ -630,7 +773,7 @@ table.dataTable thead th {
   background: #f8fafb;
   border: 1px solid var(--erp-border);
   border-radius: 8px;
-  padding: .7rem;
+  padding: .55rem;
 }
 
 .erp-party-card-metrics span {

@@ -1,21 +1,39 @@
-﻿@{
-    ViewData["Title"] = "لوحة التحكم";
-    var culture = new System.Globalization.CultureInfo("ar-EG");
-    decimal totalSales = (decimal)(ViewBag.TotalSalesMonth ?? 0m);
-    decimal totalPurchases = (decimal)(ViewBag.TotalPurchasesMonth ?? 0m);
-    decimal totalExpenses = (decimal)(ViewBag.TotalExpensesMonth ?? 0m);
-    decimal totalClientDebt = (decimal)(ViewBag.TotalClientDebt ?? 0m);
-    decimal totalSupplierDebt = (decimal)(ViewBag.TotalSupplierDebt ?? 0m);
-    decimal netFlow = totalSales - (totalPurchases + totalExpenses);
+@model MaterialManagement.Models.ErpDashboardViewModel
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "لوحة التشغيل";
+    var culture = new CultureInfo("ar-EG");
+    var netMonthFlow = Model.MonthSalesTotal - Model.MonthPurchaseTotal - Model.MonthExpenseTotal - Model.MonthSalesReturnTotal;
+
+    string Money(decimal value) => value.ToString("N2", culture);
+    string Count(int value) => value.ToString("N0", culture);
+    string ShortDate(DateTime value) => value.ToString("yyyy-MM-dd", culture);
+    string ToneClass(string tone) => tone switch
+    {
+        "danger" => "erp-dashboard-danger",
+        "warning" => "erp-dashboard-warning",
+        "success" => "erp-dashboard-success",
+        "info" => "erp-dashboard-info",
+        "debit" => "erp-dashboard-debit",
+        "credit" => "erp-dashboard-credit",
+        _ => "erp-dashboard-neutral"
+    };
 }
 
-<div class="erp-page">
-    <div class="erp-page-header">
+<div class="erp-page erp-list-page erp-dashboard-page" dir="rtl">
+    <div class="erp-page-header erp-dashboard-header">
         <div>
-            <p class="erp-eyebrow">لوحة التشغيل</p>
-            <h1>لوحة التحكم</h1>
+            <p class="erp-eyebrow">مركز التشغيل اليومي</p>
+            <h1>لوحة تشغيل ERP</h1>
+            <p class="erp-page-subtitle">ملخص عملي للحركة، المخاطر، الأرصدة، والمراجعات التي تحتاج انتباه.</p>
         </div>
-        <span class="erp-status-pill">@DateTime.Now.ToString("dddd، dd MMMM yyyy", culture)</span>
+        <div class="erp-header-actions">
+            <span class="erp-status-pill">تحديث: @Model.GeneratedAt.ToString("yyyy-MM-dd HH:mm", culture)</span>
+            <button type="button" class="btn btn-outline-secondary no-print" onclick="window.print()">
+                <i class="bi bi-printer"></i> طباعة
+            </button>
+        </div>
     </div>
 
     @if (TempData["ErrorMessage"] != null)
@@ -23,137 +41,722 @@
         <div class="alert alert-danger erp-alert">@TempData["ErrorMessage"]</div>
     }
 
-    <section class="erp-dashboard-grid mb-3" aria-label="ملخص مالي للشهر الحالي">
-        <div class="erp-metric-card erp-metric-card-success">
-            <i class="bi bi-receipt"></i>
+    <section class="erp-dashboard-kpi-grid" aria-label="ملخص التشغيل">
+        <a asp-controller="Client" asp-action="Index" class="erp-dashboard-kpi erp-dashboard-debit">
+            <span>مستحق على العملاء</span>
+            <strong>@Money(Model.ClientReceivables)</strong>
+            <small>أرصدة موجبة مطلوبة من العملاء المسجلين.</small>
+        </a>
+
+        <a asp-controller="Client" asp-action="Index" class="erp-dashboard-kpi erp-dashboard-credit">
+            <span>رصيد لصالح العملاء</span>
+            <strong>@Money(Model.ClientCreditBalances)</strong>
+            <small>أرصدة سالبة مسموحة وتمثل رصيداً للعميل.</small>
+        </a>
+
+        <a asp-controller="Supplier" asp-action="Index" class="erp-dashboard-kpi erp-dashboard-warning">
+            <span>مستحق للموردين</span>
+            <strong>@Money(Model.SupplierPayables)</strong>
+            <small>أرصدة موجبة يجب متابعتها مع الموردين.</small>
+        </a>
+
+        <a asp-controller="Supplier" asp-action="Index" class="erp-dashboard-kpi erp-dashboard-success">
+            <span>رصيد لنا عند الموردين</span>
+            <strong>@Money(Model.SupplierCreditBalances)</strong>
+            <small>أرصدة سالبة لدى الموردين لصالح الشركة.</small>
+        </a>
+
+        <a asp-controller="Material" asp-action="Index" class="erp-dashboard-kpi">
+            <span>قيمة المخزون التقريبية</span>
+            <strong>@Money(Model.EstimatedStockValue)</strong>
+            <small>الكمية الحالية × سعر الشراء المسجل لكل مادة.</small>
+        </a>
+
+        <a asp-controller="Material" asp-action="Index" class="erp-dashboard-kpi @(Model.NegativeStockCount > 0 ? "erp-dashboard-danger" : "erp-dashboard-success")">
+            <span>مواد بمخزون سالب</span>
+            <strong>@Count(Model.NegativeStockCount)</strong>
+            <small>السالب مسموح لكنه يحتاج مراجعة حركة فعلية.</small>
+        </a>
+
+        <a asp-controller="Reservation" asp-action="Index" class="erp-dashboard-kpi erp-dashboard-info">
+            <span>حجوزات مفتوحة</span>
+            <strong>@Count(Model.OpenReservationsCount)</strong>
+            <small>قيمة الحجوزات: @Money(Model.OpenReservationsValue)</small>
+        </a>
+
+        <a asp-controller="SalesInvoice" asp-action="Index" class="erp-dashboard-kpi @(Model.UnpaidSalesInvoiceCount > 0 ? "erp-dashboard-danger" : "erp-dashboard-success")">
+            <span>فواتير بيع غير مسددة</span>
+            <strong>@Count(Model.UnpaidSalesInvoiceCount)</strong>
+            <small>إجمالي المتبقي: @Money(Model.UnpaidSalesInvoiceAmount)</small>
+        </a>
+    </section>
+
+    <section class="erp-dashboard-month-strip" aria-label="حركة الشهر">
+        <div>
             <span>مبيعات الشهر</span>
-            <strong>@totalSales.ToString("C", culture)</strong>
-            <small>إجمالي فواتير البيع المسجلة خلال الشهر الحالي.</small>
+            <strong>@Money(Model.MonthSalesTotal)</strong>
         </div>
-
-        <div class="erp-metric-card">
-            <i class="bi bi-bag-check"></i>
+        <div>
             <span>مشتريات الشهر</span>
-            <strong>@totalPurchases.ToString("C", culture)</strong>
-            <small>إجمالي فواتير الشراء المسجلة خلال الشهر الحالي.</small>
+            <strong>@Money(Model.MonthPurchaseTotal)</strong>
         </div>
-
-        <div class="erp-metric-card">
-            <i class="bi bi-cash-stack"></i>
+        <div>
             <span>مصروفات الشهر</span>
-            <strong>@totalExpenses.ToString("C", culture)</strong>
-            <small>إجمالي المصروفات التشغيلية خلال الشهر الحالي.</small>
+            <strong>@Money(Model.MonthExpenseTotal)</strong>
         </div>
-
-        <div class="erp-metric-card @(netFlow >= 0 ? "erp-metric-card-success" : "erp-metric-card-danger")">
-            <i class="bi bi-activity"></i>
-            <span>صافي التدفق التقريبي</span>
-            <strong>@netFlow.ToString("C", culture)</strong>
-            <small>المبيعات ناقص المشتريات والمصروفات.</small>
+        <div>
+            <span>مرتجعات البيع</span>
+            <strong>@Money(Model.MonthSalesReturnTotal)</strong>
+        </div>
+        <div class="@(netMonthFlow >= 0 ? "erp-positive" : "erp-negative")">
+            <span>صافي اتجاه الشهر</span>
+            <strong>@Money(netMonthFlow)</strong>
+        </div>
+        <div>
+            <span>آخر 7 أيام بيع / شراء</span>
+            <strong>@Money(Model.Last7DaysSalesTotal) / @Money(Model.Last7DaysPurchaseTotal)</strong>
         </div>
     </section>
 
-    <section class="erp-panel">
+    <div class="erp-dashboard-main-grid">
+        <section class="erp-panel erp-worksheet-panel erp-dashboard-attention-panel">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>يحتاج انتباه الآن</h2>
+                    <p class="erp-table-note">تنبيهات تشغيلية مختصرة تركز على المخزون، الحجوزات، التحصيل، والمدفوعات.</p>
+                </div>
+                <span class="erp-status-pill">@Count(Model.AttentionItems.Count) بند</span>
+            </div>
+
+            @if (Model.AttentionItems.Any())
+            {
+                <div class="erp-dashboard-attention-list">
+                    @foreach (var item in Model.AttentionItems)
+                    {
+                        <a href="@item.Url" class="erp-dashboard-attention-item @ToneClass(item.Tone)">
+                            <div>
+                                <strong>@item.Title</strong>
+                                <span>@item.Detail</span>
+                            </div>
+                            <b>@item.Value</b>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="erp-empty-state compact">
+                    <i class="bi bi-check2-circle"></i>
+                    <strong>لا توجد تنبيهات تشغيلية حرجة حالياً.</strong>
+                    <span>الأرصدة والحجوزات والمخزون لا تعرض بنود مراجعة عاجلة.</span>
+                </div>
+            }
+        </section>
+
+        <section class="erp-panel erp-worksheet-panel erp-dashboard-actions-panel no-print">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>إجراءات سريعة</h2>
+                    <p class="erp-table-note">العمليات اليومية الأكثر استخداماً.</p>
+                </div>
+            </div>
+
+            <div class="erp-dashboard-action-grid">
+                <a asp-controller="SalesInvoice" asp-action="Create"><i class="bi bi-receipt"></i><span>فاتورة بيع</span></a>
+                <a asp-controller="PurchaseInvoice" asp-action="Create"><i class="bi bi-bag-plus"></i><span>فاتورة شراء</span></a>
+                <a asp-controller="Payment" asp-action="AddClientPayment"><i class="bi bi-wallet2"></i><span>تحصيل عميل</span></a>
+                <a asp-controller="Payment" asp-action="AddSupplierPayment"><i class="bi bi-credit-card"></i><span>دفعة مورد</span></a>
+                <a asp-controller="Reservation" asp-action="Create"><i class="bi bi-calendar-plus"></i><span>حجز مخزون</span></a>
+                <a asp-controller="SalesReturnSandbox" asp-action="Create"><i class="bi bi-arrow-counterclockwise"></i><span>مرتجع بيع</span></a>
+                <a asp-controller="Expense" asp-action="Create"><i class="bi bi-cash-stack"></i><span>مصروف</span></a>
+                <a asp-controller="Equipment" asp-action="Report"><i class="bi bi-tools"></i><span>صيانة المعدات</span></a>
+            </div>
+        </section>
+    </div>
+
+    <section class="erp-panel erp-worksheet-panel erp-dashboard-recent-panel">
         <div class="erp-panel-header">
             <div>
-                <h2>نظرة عامة على الأداء</h2>
-                <p class="erp-table-note">قراءة سريعة للشهر الحالي قبل الدخول إلى التقارير التفصيلية.</p>
+                <h2>آخر حركة تشغيلية</h2>
+                <p class="erp-table-note">دفتر مختصر يجمع آخر فواتير، دفعات، مرتجعات، حجوزات، مصروفات، وصيانة.</p>
             </div>
         </div>
-        <canvas id="financeChart" height="100"></canvas>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle erp-data-table erp-worksheet-table erp-dashboard-table">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الحركة</th>
+                        <th>المستند</th>
+                        <th>الطرف / البيان</th>
+                        <th class="erp-number">القيمة</th>
+                        <th class="text-center no-print">فتح</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.RecentActivities.Any())
+                    {
+                        foreach (var item in Model.RecentActivities)
+                        {
+                            <tr>
+                                <td class="erp-date-cell">@ShortDate(item.Date)</td>
+                                <td><span class="erp-dashboard-chip @ToneClass(item.Tone)">@item.Type</span></td>
+                                <td><span class="erp-doc-ref">@item.Reference</span></td>
+                                <td>@item.Party</td>
+                                <td class="erp-number">@Money(item.Amount)</td>
+                                <td class="text-center no-print">
+                                    <a href="@item.Url" class="btn btn-sm btn-outline-primary">فتح</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">لا توجد حركة حديثة لعرضها.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </section>
 
-    <section class="erp-summary-strip mb-3" aria-label="ملخص الأرصدة والعمليات">
-        <a asp-controller="Material" asp-action="LowStock" class="erp-summary-item text-decoration-none">
-            <span>تنبيهات نقص المخزون</span>
-            <strong>@(ViewBag.LowStockCount ?? 0)</strong>
-        </a>
+    <section class="erp-dashboard-focus-grid" aria-label="لوحات متابعة مختصرة">
+        <div class="erp-panel erp-worksheet-panel">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>أعلى أرصدة عملاء</h2>
+                    <p class="erp-table-note">العملاء الأكثر تأثيراً على التحصيل.</p>
+                </div>
+                <a asp-controller="Client" asp-action="Index" class="btn btn-sm btn-outline-secondary no-print">كل العملاء</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover erp-data-table erp-worksheet-table erp-dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>العميل</th>
+                            <th>هاتف</th>
+                            <th class="erp-number">الرصيد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.TopClientBalances.Any())
+                        {
+                            foreach (var client in Model.TopClientBalances)
+                            {
+                                <tr>
+                                    <td><a href="@client.Url">@client.Name</a></td>
+                                    <td>@client.Detail</td>
+                                    <td class="erp-number">@Money(client.Balance)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="3" class="text-center text-muted py-3">لا توجد أرصدة عملاء موجبة.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        <a asp-controller="Client" asp-action="Index" class="erp-summary-item text-decoration-none">
-            <span>ديون العملاء</span>
-            <strong>@totalClientDebt.ToString("C", culture)</strong>
-        </a>
+        <div class="erp-panel erp-worksheet-panel">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>أعلى مستحقات موردين</h2>
+                    <p class="erp-table-note">الموردون أصحاب أكبر أرصدة مستحقة.</p>
+                </div>
+                <a asp-controller="Supplier" asp-action="Index" class="btn btn-sm btn-outline-secondary no-print">كل الموردين</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover erp-data-table erp-worksheet-table erp-dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>المورد</th>
+                            <th>هاتف</th>
+                            <th class="erp-number">الرصيد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.TopSupplierBalances.Any())
+                        {
+                            foreach (var supplier in Model.TopSupplierBalances)
+                            {
+                                <tr>
+                                    <td><a href="@supplier.Url">@supplier.Name</a></td>
+                                    <td>@supplier.Detail</td>
+                                    <td class="erp-number">@Money(supplier.Balance)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="3" class="text-center text-muted py-3">لا توجد مستحقات موردين موجبة.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        <a asp-controller="Supplier" asp-action="Index" class="erp-summary-item text-decoration-none">
-            <span>مستحقات الموردين</span>
-            <strong>@totalSupplierDebt.ToString("C", culture)</strong>
-        </a>
+        <div class="erp-panel erp-worksheet-panel">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>مواد تحتاج مراجعة</h2>
+                    <p class="erp-table-note">مواد سالبة أو غير متاحة بعد خصم الحجوزات.</p>
+                </div>
+                <a asp-controller="Material" asp-action="LowStock" class="btn btn-sm btn-outline-secondary no-print">مراجعة المخزون</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover erp-data-table erp-worksheet-table erp-dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>الكود</th>
+                            <th>الصنف</th>
+                            <th class="erp-number">الحالي</th>
+                            <th class="erp-number">محجوز</th>
+                            <th class="erp-number">المتاح</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.MaterialsNeedingReview.Any())
+                        {
+                            foreach (var material in Model.MaterialsNeedingReview)
+                            {
+                                <tr class="@(material.AvailableQuantity <= 0 ? "erp-dashboard-row-warning" : "")">
+                                    <td><a href="@material.Url" class="erp-doc-ref">@material.Code</a></td>
+                                    <td>@material.Name</td>
+                                    <td class="erp-number">@Money(material.Quantity) @material.Unit</td>
+                                    <td class="erp-number">@Money(material.ReservedQuantity)</td>
+                                    <td class="erp-number @(material.AvailableQuantity < 0 ? "text-danger fw-bold" : "")">@Money(material.AvailableQuantity)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-3">لا توجد مواد تحتاج مراجعة حالياً.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        <a asp-controller="Employee" asp-action="Index" class="erp-summary-item text-decoration-none">
-            <span>الموظفون النشطون</span>
-            <strong>@(ViewBag.TotalEmployees ?? 0)</strong>
-        </a>
+        <div class="erp-panel erp-worksheet-panel">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>حجوزات قيد التنفيذ</h2>
+                    <p class="erp-table-note">أقدم الحجوزات المفتوحة التي تحتاج متابعة تسليم أو إلغاء.</p>
+                </div>
+                <a asp-controller="Reservation" asp-action="Index" class="btn btn-sm btn-outline-secondary no-print">كل الحجوزات</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover erp-data-table erp-worksheet-table erp-dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>الحجز</th>
+                            <th>العميل</th>
+                            <th>التاريخ</th>
+                            <th class="erp-number">القيمة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.PendingReservations.Any())
+                        {
+                            foreach (var reservation in Model.PendingReservations)
+                            {
+                                <tr>
+                                    <td><a href="@reservation.Url" class="erp-doc-ref">@reservation.ReservationNumber</a></td>
+                                    <td>@reservation.ClientName</td>
+                                    <td class="erp-date-cell">@ShortDate(reservation.ReservationDate)</td>
+                                    <td class="erp-number">@Money(reservation.TotalAmount)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-3">لا توجد حجوزات مفتوحة.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </section>
 
-    <section class="erp-workflow-grid" aria-label="الوصول السريع">
-        <a asp-controller="SalesInvoice" asp-action="Create" class="erp-action-card">
-            <i class="bi bi-plus-circle"></i>
-            <strong>فاتورة بيع</strong>
-            <span>إدخال بنود البيع وحساب الخصم والمدفوع والمتبقي.</span>
-        </a>
-
-        <a asp-controller="PurchaseInvoice" asp-action="Create" class="erp-action-card">
-            <i class="bi bi-bag-plus"></i>
-            <strong>فاتورة شراء</strong>
-            <span>تسجيل شراء من مورد أو مرتجع عميل حسب نوع العملية.</span>
-        </a>
-
-        <a asp-controller="Payment" asp-action="AddClientPayment" class="erp-action-card">
-            <i class="bi bi-wallet2"></i>
-            <strong>تحصيل عميل</strong>
-            <span>إضافة دفعة مرتبطة بفاتورة أو دفعة غير مخصصة ضمن الرصيد المستحق.</span>
-        </a>
-
-        <a asp-controller="Expense" asp-action="Create" class="erp-action-card">
-            <i class="bi bi-cash"></i>
-            <strong>مصروف جديد</strong>
-            <span>تسجيل مصروف تشغيلي وربطه بتصنيف وطريقة دفع.</span>
-        </a>
-
-        <a asp-controller="Reservation" asp-action="Create" class="erp-action-card">
-            <i class="bi bi-calendar-check"></i>
-            <strong>حجز مخزون</strong>
-            <span>حجز كميات للعميل بدون تغيير رصيد الحساب حتى التسليم.</span>
-        </a>
-
-        <a asp-controller="Report" asp-action="AccountStatement" class="erp-action-card">
-            <i class="bi bi-person-lines-fill"></i>
-            <strong>كشف حساب</strong>
-            <span>مراجعة حركة عميل أو مورد مع الرصيد النهائي.</span>
-        </a>
+    <section class="erp-panel erp-dashboard-reports-panel no-print">
+        <div class="erp-panel-header">
+            <div>
+                <h2>اختصارات التقارير</h2>
+                <p class="erp-table-note">الوصول السريع للتقارير التي تعتمد عليها المراجعة اليومية.</p>
+            </div>
+        </div>
+        <div class="erp-dashboard-report-links">
+            <a asp-controller="Report" asp-action="AccountStatement">
+                <i class="bi bi-person-lines-fill"></i>
+                <strong>كشف حساب</strong>
+                <span>حركة عميل أو مورد مع الرصيد الجاري.</span>
+            </a>
+            <a asp-controller="Report" asp-action="MaterialMovement">
+                <i class="bi bi-box-seam"></i>
+                <strong>حركة صنف</strong>
+                <span>دخول وخروج وكميات مرتبطة بمستندات.</span>
+            </a>
+            <a asp-controller="Report" asp-action="ProfitReport">
+                <i class="bi bi-graph-up-arrow"></i>
+                <strong>تقرير الربح</strong>
+                <span>مبيعات ومشتريات ومصروفات خلال فترة.</span>
+            </a>
+        </div>
     </section>
-
 </div>
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const ctx = document.getElementById('financeChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['المبيعات', 'المشتريات', 'المصاريف', 'صافي التدفق'],
-                datasets: [{
-                    label: 'القيمة بالجنيه المصري',
-                    data: [
-                        @totalSales,
-                        @totalPurchases,
-                        @totalExpenses,
-                        @netFlow
-                    ],
-                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#007bff']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { rtl: true }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
+@section Styles {
+    <style>
+        .erp-dashboard-page {
+            max-width: min(1780px, calc(100vw - 32px));
+        }
+
+        .erp-dashboard-header .erp-page-subtitle {
+            margin: .35rem 0 0;
+            color: var(--erp-muted);
+        }
+
+        .erp-dashboard-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+            gap: .75rem;
+            margin-bottom: .85rem;
+        }
+
+        .erp-dashboard-kpi {
+            display: grid;
+            gap: .25rem;
+            min-height: 116px;
+            padding: .85rem .95rem;
+            border: 1px solid var(--erp-border);
+            border-radius: 8px;
+            background: var(--erp-surface);
+            color: var(--erp-text);
+            text-decoration: none;
+            box-shadow: var(--erp-shadow-sm);
+        }
+
+        .erp-dashboard-kpi:hover,
+        .erp-dashboard-kpi:focus {
+            color: var(--erp-text);
+            border-color: var(--erp-primary);
+            transform: translateY(-1px);
+        }
+
+        .erp-dashboard-kpi span,
+        .erp-dashboard-month-strip span {
+            color: var(--erp-muted);
+            font-size: .82rem;
+            font-weight: 700;
+        }
+
+        .erp-dashboard-kpi strong {
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            font-size: 1.35rem;
+            line-height: 1.2;
+            text-align: start;
+        }
+
+        .erp-dashboard-kpi small {
+            color: var(--erp-muted);
+            line-height: 1.45;
+        }
+
+        .erp-dashboard-month-strip {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(160px, 1fr));
+            gap: 0;
+            margin-bottom: .85rem;
+            overflow: hidden;
+            border: 1px solid var(--erp-border);
+            border-radius: 8px;
+            background: var(--erp-surface);
+        }
+
+        .erp-dashboard-month-strip > div {
+            padding: .75rem .85rem;
+            border-inline-end: 1px solid var(--erp-border);
+            background: #fff;
+        }
+
+        .erp-dashboard-month-strip > div:last-child {
+            border-inline-end: 0;
+        }
+
+        .erp-dashboard-month-strip strong {
+            display: block;
+            margin-top: .18rem;
+            font-size: 1rem;
+            font-weight: 800;
+            text-align: start;
+        }
+
+        .erp-dashboard-main-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(320px, .55fr);
+            gap: .85rem;
+            margin-bottom: .85rem;
+        }
+
+        .erp-dashboard-attention-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: .6rem;
+        }
+
+        .erp-dashboard-attention-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .8rem;
+            padding: .72rem .8rem;
+            border: 1px solid var(--erp-border);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--erp-text);
+            text-decoration: none;
+        }
+
+        .erp-dashboard-attention-item strong {
+            display: block;
+            margin-bottom: .15rem;
+            font-size: .95rem;
+        }
+
+        .erp-dashboard-attention-item span {
+            display: block;
+            color: var(--erp-muted);
+            font-size: .82rem;
+            line-height: 1.45;
+        }
+
+        .erp-dashboard-attention-item b {
+            min-width: 74px;
+            padding: .25rem .45rem;
+            border-radius: 6px;
+            background: var(--erp-bg);
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            font-size: 1.05rem;
+            text-align: center;
+        }
+
+        .erp-dashboard-action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .55rem;
+        }
+
+        .erp-dashboard-action-grid a,
+        .erp-dashboard-report-links a {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            padding: .65rem .7rem;
+            border: 1px solid var(--erp-border);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--erp-text);
+            text-decoration: none;
+        }
+
+        .erp-dashboard-action-grid a:hover,
+        .erp-dashboard-action-grid a:focus,
+        .erp-dashboard-report-links a:hover,
+        .erp-dashboard-report-links a:focus {
+            border-color: var(--erp-primary);
+            color: var(--erp-primary);
+        }
+
+        .erp-dashboard-action-grid i,
+        .erp-dashboard-report-links i {
+            color: var(--erp-primary);
+            font-size: 1.05rem;
+        }
+
+        .erp-dashboard-action-grid span,
+        .erp-dashboard-report-links strong {
+            font-weight: 800;
+        }
+
+        .erp-dashboard-table {
+            min-width: 760px;
+        }
+
+        .erp-dashboard-recent-panel .erp-dashboard-table {
+            min-width: 1040px;
+        }
+
+        .erp-dashboard-chip,
+        .erp-doc-ref {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            padding: .18rem .42rem;
+            border: 1px solid var(--erp-border);
+            border-radius: 6px;
+            background: var(--erp-bg);
+            color: var(--erp-text);
+            font-size: .78rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .erp-doc-ref {
+            direction: ltr;
+            color: var(--erp-muted);
+            font-weight: 700;
+        }
+
+        .erp-date-cell {
+            direction: ltr;
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            white-space: nowrap;
+        }
+
+        .erp-dashboard-focus-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .85rem;
+            margin-bottom: .85rem;
+        }
+
+        .erp-dashboard-report-links {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: .65rem;
+        }
+
+        .erp-dashboard-report-links a {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .erp-dashboard-report-links span {
+            color: var(--erp-muted);
+            font-size: .82rem;
+        }
+
+        .erp-dashboard-danger {
+            border-color: rgba(220, 53, 69, .28) !important;
+            background: #fff7f7 !important;
+        }
+
+        .erp-dashboard-danger strong,
+        .erp-dashboard-danger b,
+        .erp-dashboard-debit strong {
+            color: #b42318;
+        }
+
+        .erp-dashboard-warning {
+            border-color: rgba(180, 83, 9, .28) !important;
+            background: #fff9ed !important;
+        }
+
+        .erp-dashboard-warning strong,
+        .erp-dashboard-warning b {
+            color: #92400e;
+        }
+
+        .erp-dashboard-success {
+            border-color: rgba(25, 135, 84, .25) !important;
+            background: #f4fbf7 !important;
+        }
+
+        .erp-dashboard-success strong,
+        .erp-dashboard-success b,
+        .erp-dashboard-credit strong {
+            color: #087f5b;
+        }
+
+        .erp-dashboard-info {
+            border-color: rgba(13, 110, 253, .22) !important;
+            background: #f5f9ff !important;
+        }
+
+        .erp-dashboard-info strong,
+        .erp-dashboard-info b {
+            color: #0b5ed7;
+        }
+
+        .erp-dashboard-neutral {
+            background: #fff !important;
+        }
+
+        .erp-positive strong {
+            color: #087f5b;
+        }
+
+        .erp-negative strong {
+            color: #b42318;
+        }
+
+        .erp-dashboard-row-warning td {
+            background: #fffaf0;
+        }
+
+        .erp-empty-state.compact {
+            min-height: 150px;
+            padding: 1.2rem;
+        }
+
+        @@media (max-width: 1180px) {
+            .erp-dashboard-main-grid,
+            .erp-dashboard-focus-grid {
+                grid-template-columns: 1fr;
             }
-        });
-    </script>
+
+            .erp-dashboard-month-strip {
+                grid-template-columns: repeat(3, minmax(160px, 1fr));
+            }
+
+            .erp-dashboard-report-links {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 760px) {
+            .erp-dashboard-page {
+                max-width: calc(100vw - 18px);
+            }
+
+            .erp-dashboard-month-strip,
+            .erp-dashboard-action-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media print {
+            .erp-dashboard-page {
+                max-width: none;
+            }
+
+            .erp-dashboard-kpi,
+            .erp-panel,
+            .erp-dashboard-month-strip {
+                box-shadow: none !important;
+                break-inside: avoid;
+            }
+
+            .erp-dashboard-kpi-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .erp-dashboard-month-strip {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .erp-dashboard-main-grid,
+            .erp-dashboard-focus-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .erp-dashboard-table {
+                min-width: 0;
+            }
+        }
+    </style>
 }

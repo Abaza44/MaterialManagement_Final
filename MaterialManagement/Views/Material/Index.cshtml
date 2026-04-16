@@ -2,7 +2,7 @@
     ViewData["Title"] = "إدارة المواد";
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     <div class="erp-page-header">
         <div>
             <p class="erp-eyebrow">المخزون</p>
@@ -34,18 +34,22 @@
         </div>
     </div>
 
-    <table id="materialsTable" class="table table-hover erp-data-table" style="width:100%">
-        <thead>
-            <tr>
-                <th data-name="Code">الكود</th>
-                <th data-name="Name">الاسم</th>
-                <th data-name="Quantity">الكمية بالمخزن</th>
-                <th data-name="ReservedQuantity">المحجوزة</th>
-                <th data-name="AvailableQuantity">المتاحة</th>
-                <th>الإجراءات</th>
-            </tr>
-        </thead>
-    </table>
+    <section class="erp-panel erp-worksheet-panel">
+        <div class="table-responsive">
+            <table id="materialsTable" class="table table-hover erp-data-table erp-worksheet-table" style="width:100%">
+                <thead>
+                    <tr>
+                        <th data-name="Code">الكود</th>
+                        <th data-name="Name">الاسم</th>
+                        <th data-name="Quantity">الكمية بالمخزن</th>
+                        <th data-name="ReservedQuantity">المحجوزة</th>
+                        <th data-name="AvailableQuantity">المتاحة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </section>
 </div>
 
 @section Scripts {

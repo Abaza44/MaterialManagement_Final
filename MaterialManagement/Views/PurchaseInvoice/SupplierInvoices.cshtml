@@ -4,7 +4,7 @@
     ViewData["Title"] = $"فواتير الطرف: {Model.Name}";
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     <div class="erp-page-header">
         <div>
             <p class="erp-eyebrow">فواتير الشراء</p>
@@ -45,8 +45,9 @@
         </div>
     </section>
 
-<section class="erp-panel">
-        <table id="invoicesTable" class="table table-bordered table-hover erp-data-table erp-report-table" style="width:100%">
+<section class="erp-panel erp-worksheet-panel">
+    <div class="table-responsive">
+        <table id="invoicesTable" class="table table-bordered table-hover erp-data-table erp-report-table erp-worksheet-table" style="width:100%">
             <thead>
                 <tr>
                     <th>رقم الفاتورة</th>
@@ -58,6 +59,7 @@
                 </tr>
             </thead>
         </table>
+    </div>
 </section>
 </div>
 

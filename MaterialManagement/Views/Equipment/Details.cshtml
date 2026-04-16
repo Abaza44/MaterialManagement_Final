@@ -4,7 +4,7 @@
     ViewData["Title"] = $"تفاصيل المعدة: {Model.Name}";
 }
 
-<div class="erp-page">
+<div class="erp-page erp-list-page">
     <div class="erp-page-header">
         <div>
             <p class="erp-eyebrow">الأصول والتشغيل</p>
@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <section class="erp-panel">
+    <section class="erp-panel erp-worksheet-panel">
         <div class="erp-panel-header">
             <h2>البيانات الأساسية</h2>
         </div>
@@ -43,7 +43,7 @@
         @if (Model.MaintenanceHistory != null && Model.MaintenanceHistory.Any())
         {
             <div class="table-responsive">
-                <table class="table table-hover erp-data-table">
+                <table class="table table-hover erp-data-table erp-worksheet-table">
                     <thead>
                         <tr>
                             <th>تاريخ الصيانة</th>
