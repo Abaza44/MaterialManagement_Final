@@ -24,6 +24,7 @@ namespace MaterialManagement.BLL.ModelVM.Reservation
     public class ReservationCreateModel
     {
         [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "يجب اختيار العميل")]
         [Display(Name = "العميل")]
         public int ClientId { get; set; }
 
@@ -37,14 +38,15 @@ namespace MaterialManagement.BLL.ModelVM.Reservation
     public class ReservationItemModel
     {
         [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "يجب اختيار مادة صحيحة")]
         public int MaterialId { get; set; }
 
         public string? MaterialName { get; set; } // <<< أضف هذا
 
-        [Required, Range(0.01, double.MaxValue)]
+        [Required, Range(0.01, double.MaxValue, ErrorMessage = "الكمية يجب أن تكون أكبر من الصفر")]
         public decimal Quantity { get; set; }
 
-        [Required, Range(0.01, double.MaxValue)]
+        [Required, Range(0.01, double.MaxValue, ErrorMessage = "سعر الوحدة يجب أن يكون أكبر من الصفر")]
         public decimal UnitPrice { get; set; }
 
         public decimal TotalPrice => Quantity * UnitPrice;
@@ -96,6 +98,7 @@ namespace MaterialManagement.BLL.ModelVM.Reservation
         public int Id { get; set; } // رقم الحجز
 
         [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "يجب اختيار العميل")]
         [Display(Name = "العميل")]
         public int ClientId { get; set; }
 
@@ -119,7 +122,7 @@ namespace MaterialManagement.BLL.ModelVM.Reservation
     public class ReservationFulfillmentModel
     {
         public int ReservationItemId { get; set; } // ID الخاص ببند الحجز
-        [Required, Range(0.01, double.MaxValue)]
+        [Required, Range(0.01, double.MaxValue, ErrorMessage = "كمية التسليم يجب أن تكون أكبر من الصفر")]
         public decimal QuantityToFulfill { get; set; } // الكمية المراد تسليمها الآن
     }
 

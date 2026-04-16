@@ -3,57 +3,80 @@
 @using MaterialManagement.DAL.Enums
 @{
     ViewData["Title"] = "تفاصيل الحجز";
+    ViewData["SupervisorAuthorizationLabel"] = "اعتماد المشرف لإلغاء الحجز";
+    ViewData["SupervisorAuthorizationHint"] = "إلغاء الحجز يحرر كميات محجوزة ويحتاج اعتماد المشرف قبل التنفيذ.";
 }
 
-<div class="card shadow-sm border-0">
-    <div class="card-body p-4">
+<div class="erp-page">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger erp-alert">@TempData["ErrorMessage"]</div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success erp-alert">@TempData["SuccessMessage"]</div>
+    }
 
-        <h2 class="mb-3">تفاصيل الحجز رقم: @Model.ReservationNumber</h2>
-        <hr />
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الحجوزات</p>
+            <h1>تفاصيل الحجز رقم: @Model.ReservationNumber</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">العودة إلى القائمة</a>
+        </div>
+    </div>
 
-        @* (التعديل 1) - إضافة زر التعديل وتنسيق الأزرار *@
-        @if (Model.Status == ReservationStatus.Active)
-        {
-            <div class="alert alert-warning p-3">
-                <h5 class="alert-heading">إجراءات الحجز</h5>
-                <p>يمكنك تسليم هذا الحجز أو تعديله أو إلغاؤه.</p>
-                <hr>
-                <div class="d-flex justify-content-start gap-2">
-                    <a asp-action="Fulfill" asp-route-id="@Model.Id" class="btn btn-success">
-                        <i class="bi bi-truck"></i> تسليم جزئي / كلي
-                    </a>
-
-                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-info">
-                        <i class="bi bi-pencil-square"></i> تعديل الحجز
-                    </a>
-
-                    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا الحجز؟')">
-                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> إلغاء الحجز</button>
-                    </form>
+    @if (Model.Status == ReservationStatus.Active)
+    {
+        <section class="erp-panel no-print">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>إجراءات الحجز</h2>
+                    <p class="erp-table-note">استخدم التسليم لإنشاء فاتورة بيع بالكميات المطلوبة، أو عدل بيانات الحجز قبل أي تسليم.</p>
                 </div>
             </div>
-        }
+            <div class="erp-actions justify-content-start">
+                <a asp-action="Fulfill" asp-route-id="@Model.Id" class="btn btn-success">
+                    <i class="bi bi-truck"></i> تسليم جزئي / كلي
+                </a>
 
-        <dl class="row mt-4">
-            <dt class="col-sm-2">@Html.DisplayNameFor(model => model.ClientName)</dt>
-            <dd class="col-sm-10">@Model.ClientName</dd>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-warning">
+                    <i class="bi bi-pencil-square"></i> تعديل الحجز
+                </a>
+            </div>
+        </section>
+    }
 
-            <dt class="col-sm-2">@Html.DisplayNameFor(model => model.ReservationDate)</dt>
-            <dd class="col-sm-10">@Model.ReservationDate.ToString("g")</dd>
+    <section class="erp-panel">
+        <div class="erp-panel-header">
+            <h2>بيانات الحجز</h2>
+        </div>
 
-            <dt class="col-sm-2">@Html.DisplayNameFor(model => model.Status)</dt>
-            <dd class="col-sm-10">@Model.Status</dd>
-
-            <dt class="col-sm-2">@Html.DisplayNameFor(model => model.TotalAmount)</dt>
-            <dd class="col-sm-10">@Model.TotalAmount.ToString("C")</dd>
-        </dl>
+        <div class="erp-detail-grid mt-4">
+            <div class="erp-detail-item">
+                <span>@Html.DisplayNameFor(model => model.ClientName)</span>
+                <strong>@Model.ClientName</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>@Html.DisplayNameFor(model => model.ReservationDate)</span>
+                <strong>@Model.ReservationDate.ToString("g")</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>@Html.DisplayNameFor(model => model.Status)</span>
+                <strong>@Model.Status</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>@Html.DisplayNameFor(model => model.TotalAmount)</span>
+                <strong>@Model.TotalAmount.ToString("C")</strong>
+            </div>
+        </div>
 
         <hr />
         <h4>الأصناف المحجوزة</h4>
 
-        @* (التعديل 2) - تحسين جدول الأصناف لإظهار الكميات المسلمة *@
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
+        <table class="table table-hover align-middle erp-data-table">
+            <thead>
                 <tr>
                     <th>المادة</th>
                     <th>الكمية المحجوزة</th>
@@ -81,10 +104,24 @@
             </tbody>
         </table>
 
-        <hr />
+    </section>
 
-        <div>
-            <a asp-action="Index" class="btn btn-link">العودة إلى القائمة</a>
-        </div>
-    </div>
+    @if (Model.Status == ReservationStatus.Active)
+    {
+        <section class="erp-panel erp-danger-zone no-print">
+            <div class="erp-panel-header">
+                <div>
+                    <h2>إلغاء الحجز</h2>
+                    <p class="erp-table-note">إلغاء الحجز يحرر الكميات المحجوزة، لذلك يحتاج اعتماد المشرف.</p>
+                </div>
+            </div>
+            <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا الحجز؟')">
+                @Html.AntiForgeryToken()
+                <partial name="_SupervisorPasswordField" />
+                <div class="erp-form-actions">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> إلغاء الحجز</button>
+                </div>
+            </form>
+        </section>
+    }
 </div>

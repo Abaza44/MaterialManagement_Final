@@ -2,28 +2,35 @@
     ViewData["Title"] = "تقرير الأرباح";
 }
 
-<h1><i class="bi bi-graph-up-arrow"></i> تقرير الأرباح</h1>
-<hr />
-
-<div class="card shadow-sm">
-    <div class="card-header">
-        <h5>اختر الفترة الزمنية</h5>
+<div class="erp-page erp-narrow-page mx-auto erp-report-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">التقارير</p>
+            <h1>تقرير الأرباح</h1>
+        </div>
     </div>
-    <div class="card-body">
+
+<div class="erp-panel erp-report-filter-panel">
+    <div class="erp-panel-header">
+        <div>
+            <h2>اختر الفترة الزمنية</h2>
+            <p class="erp-table-note">يعرض التقرير صافي البيع والتكلفة والربح التقريبي حسب منطق التقارير الحالي.</p>
+        </div>
+    </div>
         <form asp-action="ProfitReport" method="post">
-            <div class="row align-items-end">
-                <div class="col-md-4 mb-3">
+            <div class="erp-form-grid">
+                <div>
                     <label class="form-label fw-bold">من تاريخ</label>
                     <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
                 </div>
-                 <div class="col-md-4 mb-3">
+                 <div>
                     <label class="form-label fw-bold">إلى تاريخ</label>
                     <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
                 </div>
-                <div class="col-md-4 mb-3">
-                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> عرض التقرير</button>
-                </div>
+            </div>
+            <div class="erp-form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> عرض تقرير الأرباح</button>
             </div>
         </form>
-    </div>
+</div>
 </div>

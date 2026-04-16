@@ -39,6 +39,19 @@ namespace MaterialManagement.PL.Controllers
             return View(allMaintenanceRecords);
         }
 
+        [HttpGet]
+        [Route("Details/{equipmentCode:int}")]
+        public async Task<IActionResult> Details(int equipmentCode)
+        {
+            var equipment = await _equipmentService.GetByCodeAsync(equipmentCode);
+            if (equipment == null)
+            {
+                return NotFound("المعدة غير موجودة");
+            }
+
+            return View(equipment);
+        }
+
         // GET: /Maintenance/Add
         // هذه الدالة تعرض الفورم العام لاختيار المعدة
         [HttpGet]

@@ -2,6 +2,7 @@
 using MaterialManagement.BLL.ModelVM.Expense;
 using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.Entities;
+using MaterialManagement.PL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -16,15 +17,18 @@ namespace MaterialManagement.PL.Controllers
         private readonly IExpenseService _expenseService;
         private readonly IEmployeeService _employeeService; // <-- تم إضافته
         private readonly IMapper _mapper; // <-- تم إضافته
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
 
         public ExpenseController(
             IExpenseService expenseService,
             IEmployeeService employeeService, // <-- تم إضافته
-            IMapper mapper) // <-- تم إضافته
+            IMapper mapper, // <-- تم إضافته
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _expenseService = expenseService;
             _employeeService = employeeService; // <-- تم إضافته
             _mapper = mapper; // <-- تم إضافته
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
         public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate)
@@ -44,7 +48,13 @@ namespace MaterialManagement.PL.Controllers
             return View(expenses);
         }
 
-        // تم حذف Details لأننا لا نحتاجه عادة للمصاريف
+        public async Task<IActionResult> Details(int id)
+        {
+            var expense = await _expenseService.GetExpenseByIdAsync(id);
+            if (expense == null) return NotFound();
+
+            return View(expense);
+        }
 
         public async Task<IActionResult> Create()
         {
@@ -95,13 +105,28 @@ namespace MaterialManagement.PL.Controllers
             return View(model);
         }
 
-        // <<< تم تعديل منطق الحذف بالكامل >>>
-        // لم نعد بحاجة لصفحة تأكيد (GET)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        
+        [HttpGet]
         public async Task<IActionResult> Delete(int id)
         {
+            var expense = await _expenseService.GetExpenseByIdAsync(id);
+            if (expense == null) return NotFound();
+
+            return View(expense);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id, string? supervisorPassword)
+        {
+            var expense = await _expenseService.GetExpenseByIdAsync(id);
+            if (expense == null) return NotFound();
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(expense);
+            }
+
             await _expenseService.DeleteExpenseAsync(id);
             TempData["Success"] = "تم حذف المصروف (تعطيل).";
             return RedirectToAction(nameof(Index));
@@ -112,9 +137,11 @@ namespace MaterialManagement.PL.Controllers
         {
             var currentMonth = DateTime.Now;
             var firstDayOfMonth = new DateTime(currentMonth.Year, currentMonth.Month, 1);
+            var firstDayOfYear = new DateTime(currentMonth.Year, 1, 1);
 
             var monthlyExpenses = await _expenseService.GetExpensesByDateRangeAsync(firstDayOfMonth, currentMonth);
             var totalMonthly = await _expenseService.GetTotalExpensesAsync(firstDayOfMonth, currentMonth);
+            var totalYearly = await _expenseService.GetTotalExpensesAsync(firstDayOfYear, currentMonth);
 
             if (totalMonthly == 0) // تجنب القسمة على صفر
             {
@@ -132,6 +159,8 @@ namespace MaterialManagement.PL.Controllers
             }
 
             ViewBag.MonthlyTotal = totalMonthly;
+            ViewBag.YearlyTotal = totalYearly;
+            ViewBag.CurrentMonth = currentMonth.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ar-EG"));
             return View(monthlyExpenses);
         }
 

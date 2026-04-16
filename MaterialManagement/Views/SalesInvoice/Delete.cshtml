@@ -1,18 +1,64 @@
 ﻿@model MaterialManagement.BLL.ModelVM.Invoice.SalesInvoiceViewModel
+@{
+    ViewData["Title"] = "حذف فاتورة بيع";
+    ViewData["SupervisorAuthorizationLabel"] = "اعتماد المشرف لحذف الفاتورة";
+    ViewData["SupervisorAuthorizationHint"] = "حذف الفاتورة يعكس الرصيد والمخزون، لذلك يجب اعتماد المشرف قبل التنفيذ.";
+    var partyName = Model.ClientName ?? Model.OneTimeCustomerName ?? "غير محدد";
+}
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    <div class="alert alert-danger erp-alert">@TempData["ErrorMessage"]</div>
 }
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    <div class="alert alert-success erp-alert">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3 text-danger">🗑 حذف فاتورة بيع</h2>
-    <h4>هل انت متأكد من حذف الفاتورة @Model.InvoiceNumber ؟</h4>
+<div class="erp-page erp-narrow-page mx-auto">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">فواتير البيع</p>
+            <h1>حذف فاتورة بيع</h1>
+            <p class="erp-table-note">راجع أثر الحذف ثم أدخل كلمة مرور المشرف لتأكيد العملية.</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">العودة للتفاصيل</a>
+        </div>
+    </div>
+
+    <section class="erp-panel erp-danger-zone">
+        <div class="erp-panel-header">
+            <div>
+                <h2>تأكيد حذف الفاتورة @Model.InvoiceNumber</h2>
+                <p class="erp-table-note">سيتم تعطيل الفاتورة وإرجاع الكميات للمخزون وعكس المتبقي من رصيد العميل المسجل.</p>
+            </div>
+            <span class="erp-status-pill erp-status-pill-danger">@Model.RemainingAmount.ToString("N2") متبقي</span>
+        </div>
+
+        <div class="erp-detail-grid">
+            <div class="erp-detail-item">
+                <span>الطرف</span>
+                <strong>@partyName</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>تاريخ الفاتورة</span>
+                <strong>@Model.InvoiceDate.ToString("yyyy-MM-dd")</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>الإجمالي</span>
+                <strong>@Model.TotalAmount.ToString("N2")</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>المدفوع</span>
+                <strong>@Model.PaidAmount.ToString("N2")</strong>
+            </div>
+        </div>
     <form asp-action="Delete" method="post">
         <input type="hidden" asp-for="Id" />
-        <button type="submit" class="btn btn-danger">🗑 حذف</button>
-        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+        <partial name="_SupervisorPasswordField" />
+        <div class="erp-form-actions">
+            <button type="submit" class="btn btn-danger">حذف الفاتورة</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+        </div>
     </form>
+    </section>
 </div>

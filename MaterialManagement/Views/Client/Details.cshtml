@@ -11,26 +11,26 @@
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3">👁 تفاصيل عميل</h2>
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">العملاء</p>
+            <h1>@Model.Name</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="bi bi-pencil"></i> تعديل</a>
+            <a asp-action="Index" class="btn btn-outline-secondary">رجوع</a>
+        </div>
+    </div>
 
-    <dl class="row">
-        <dt class="col-sm-3">الاسم</dt>
-        <dd class="col-sm-9">@Model.Name</dd>
-
-        <dt class="col-sm-3">الهاتف</dt>
-        <dd class="col-sm-9">@Model.Phone</dd>
-
-        <dt class="col-sm-3">العنوان</dt>
-        <dd class="col-sm-9">@Model.Address</dd>
-
-        <dt class="col-sm-3">الرصيد</dt>
-        <dd class="col-sm-9">@Model.Balance</dd>
-
-        <dt class="col-sm-3">الحالة</dt>
-        <dd class="col-sm-9">@(Model.IsActive ? "نشط" : "غير نشط")</dd>
-    </dl>
-
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">✏️ تعديل</a>
-    <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+    <div class="erp-panel">
+        <div class="erp-panel-header"><h2>بيانات العميل</h2></div>
+        <div class="erp-detail-grid">
+            <div class="erp-detail-item"><span>الاسم</span><strong>@Model.Name</strong></div>
+            <div class="erp-detail-item"><span>الهاتف</span><strong>@(Model.Phone ?? "-")</strong></div>
+            <div class="erp-detail-item erp-field-wide"><span>العنوان</span><strong>@(Model.Address ?? "-")</strong></div>
+            <div class="erp-detail-item"><span>الرصيد</span><strong>@Model.Balance.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>الحالة</span><strong>@(Model.IsActive ? "نشط" : "غير نشط")</strong></div>
+        </div>
+    </div>
 </div>

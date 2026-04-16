@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic; 
 using System.Threading.Tasks;
 using AutoMapper;
+using MaterialManagement.PL.Services;
 namespace MaterialManagement.PL.Controllers
 {
     public class ClientController : Controller
@@ -16,11 +17,17 @@ namespace MaterialManagement.PL.Controllers
         private readonly IClientPaymentService _clientPaymentService;
         private readonly IClientService _clientService;
         private readonly IMapper _mapper;
-        public ClientController(IClientService clientService, IClientPaymentService clientPaymentService, IMapper mapper)
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
+        public ClientController(
+            IClientService clientService,
+            IClientPaymentService clientPaymentService,
+            IMapper mapper,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _clientService = clientService;
             _clientPaymentService = clientPaymentService;
             _mapper = mapper;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
         // GET: Client
@@ -140,8 +147,21 @@ namespace MaterialManagement.PL.Controllers
         // POST: Client/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, string? supervisorPassword)
         {
+            var client = await _clientService.GetClientByIdAsync(id);
+            if (client == null)
+            {
+                TempData["ErrorMessage"] = "العميل غير موجود";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(client);
+            }
+
             try
             {
                 await _clientService.DeleteClientAsync(id);

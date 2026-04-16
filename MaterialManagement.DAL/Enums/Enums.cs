@@ -38,4 +38,17 @@ namespace MaterialManagement.DAL.Enums
         Fulfilled, 
         Cancelled
     }
+
+    public enum SalesInvoicePartyMode
+    {
+        RegisteredClient = 1,
+        WalkInCustomer = 2
+    }
+
+    public enum PurchaseInvoicePartyMode
+    {
+        RegisteredSupplier = 1,
+        OneTimeSupplier = 2,
+        RegisteredClientReturn = 3
+    }
 }

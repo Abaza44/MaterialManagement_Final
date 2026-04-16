@@ -2,6 +2,7 @@
 using MaterialManagement.BLL.ModelVM.Employee;
 using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.Entities;
+using MaterialManagement.PL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,11 +12,16 @@ namespace MaterialManagement.PL.Controllers
     {
         private readonly IEmployeeService _employeeService;
         private readonly IMapper _mapper;
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
 
-        public EmployeeController(IEmployeeService employeeService, IMapper mapper)
+        public EmployeeController(
+            IEmployeeService employeeService,
+            IMapper mapper,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _employeeService = employeeService;
             _mapper = mapper;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
         public async Task<IActionResult> Index()
@@ -59,10 +65,28 @@ namespace MaterialManagement.PL.Controllers
             return View(model);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpGet]
         public async Task<IActionResult> Delete(int id)
         {
+            var employee = await _employeeService.GetEmployeeByIdAsync(id);
+            if (employee == null) return NotFound();
+
+            return View(employee);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id, string? supervisorPassword)
+        {
+            var employee = await _employeeService.GetEmployeeByIdAsync(id);
+            if (employee == null) return NotFound();
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(employee);
+            }
+
             await _employeeService.DeleteEmployeeAsync(id);
             TempData["Success"] = "تم تعطيل الموظف.";
             return RedirectToAction(nameof(Index));

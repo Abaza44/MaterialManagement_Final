@@ -2,84 +2,155 @@
 @using System.Globalization
 
 @{
-    // هذه البيانات تأتي من دالة MaterialMovement في الكنترولر (GET)
     string materialName = ViewBag.MaterialName ?? "غير محدد";
-    DateTime fromDate = (DateTime)ViewBag.FromDate;
-    DateTime toDate = (DateTime)ViewBag.ToDate;
+    string fromDateValue = ViewBag.FromDate as string ?? DateTime.Now.ToString("yyyy-MM-dd");
+    string toDateValue = ViewBag.ToDate as string ?? DateTime.Now.ToString("yyyy-MM-dd");
+    DateTime.TryParse(fromDateValue, out var fromDateDisplay);
+    DateTime.TryParse(toDateValue, out var toDateDisplay);
     int materialId = (ViewBag.MaterialId as int?) ?? 0;
+    ViewData["Title"] = $"حركة الصنف: {materialName}";
 }
 
-<h1>تقرير حركة الصنف: @materialName</h1>
-<p>
-    الفترة من: <strong>@fromDate.ToString("D")</strong>
-    إلى: <strong>@toDate.ToString("D")</strong>
-</p>
-<hr/>
-
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label for="fromDateFilter" class="form-label">من تاريخ</label>
-                <input type="date" id="fromDateFilter" class="form-control" value="@fromDate.ToString("yyyy-MM-dd")" />
-            </div>
-            <div class="col-md-3">
-                <label for="toDateFilter" class="form-label">إلى تاريخ</label>
-                <input type="date" id="toDateFilter" class="form-control" value="@toDate.ToString("yyyy-MM-dd")" />
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button id="applyFilterBtn" class="btn btn-primary w-100"><i class="bi bi-filter"></i> تصفية</button>
-            </div>
+<div class="erp-page erp-report-page erp-wide-workspace">
+    <div class="erp-page-header no-print">
+        <div>
+            <p class="erp-eyebrow">التقارير</p>
+            <h1>حركة الصنف: @materialName</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="MaterialMovement" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i> بحث جديد</a>
+            <button onclick="window.print()" class="btn btn-outline-success"><i class="bi bi-printer"></i> طباعة / حفظ PDF</button>
         </div>
     </div>
-</div>
 
-<div class="table-responsive">
-    <table id="movementTable" class="table table-bordered table-striped" style="width:100%">
-        <thead class="table-dark">
+    <section class="erp-letterhead mb-3">
+        <div class="erp-letterhead-title">
+            <div>
+                <p class="erp-eyebrow">تقرير مخزون</p>
+                <h2 class="h4 mb-1">حركة الصنف: @materialName</h2>
+                <p class="erp-table-note mb-0">
+                    الفترة من <strong>@(fromDateDisplay == default ? fromDateValue : fromDateDisplay.ToString("D"))</strong>
+                    إلى <strong>@(toDateDisplay == default ? toDateValue : toDateDisplay.ToString("D"))</strong>
+                </p>
+            </div>
+            <span class="erp-status-pill">صنف رقم @materialId</span>
+        </div>
+    </section>
+
+    <section class="erp-panel erp-report-filter-panel no-print">
+        <div class="erp-panel-header">
+            <div>
+                <h2>تصفية حركة الصنف</h2>
+                <p class="erp-table-note">حدّث الفترة الزمنية ثم اضغط تصفية لإعادة حساب الحركة.</p>
+            </div>
+        </div>
+        <div class="erp-inline-toolbar">
+            <div>
+                <label for="fromDateFilter" class="form-label">من تاريخ</label>
+                <input type="date" id="fromDateFilter" class="form-control" value="@fromDateValue" />
+            </div>
+            <div>
+                <label for="toDateFilter" class="form-label">إلى تاريخ</label>
+                <input type="date" id="toDateFilter" class="form-control" value="@toDateValue" />
+            </div>
+            <div>
+                <button id="applyFilterBtn" class="btn btn-primary"><i class="bi bi-filter"></i> تصفية</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="erp-summary-strip erp-report-summary-strip mb-3">
+        <div class="erp-summary-item">
+            <span>إجمالي الوارد</span>
+            <strong id="totalInSummary" class="text-success">0.00</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>إجمالي الصادر</span>
+            <strong id="totalOutSummary" class="text-danger">0.00</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>الرصيد النهائي</span>
+            <strong id="finalBalanceSummary">0.00</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>عدد الحركات</span>
+            <strong id="movementCountSummary">0</strong>
+        </div>
+    </section>
+
+    <div class="erp-panel erp-worksheet-panel">
+        <div class="erp-panel-header">
+            <div>
+                <h2>سجل حركة الصنف</h2>
+                <p class="erp-table-note">سجل وارد وصادر مرتب زمنياً مع الرصيد بعد كل حركة.</p>
+            </div>
+        </div>
+    <div class="table-responsive">
+    <table id="movementTable" class="table table-bordered table-hover erp-data-table erp-report-table erp-worksheet-table" style="width:100%">
+        <colgroup>
+            <col style="width:10%">
+            <col style="width:16%">
+            <col style="width:16%">
+            <col style="width:24%">
+            <col style="width:11%">
+            <col style="width:11%">
+            <col style="width:12%">
+        </colgroup>
+        <thead>
             <tr>
                 <th>التاريخ</th>
                 <th>نوع الحركة</th>
                 <th>رقم الفاتورة</th>
                 <th>المصدر/الوجهة</th>
-                <th class="text-success">وارد (+)</th>
-                <th class="text-danger">صادر (-)</th>
-                <th>الرصيد</th>
+                <th class="text-success erp-number">وارد (+)</th>
+                <th class="text-danger erp-number">صادر (-)</th>
+                <th class="erp-number">الرصيد</th>
             </tr>
         </thead>
         <tfoot>
             <tr class="fw-bolder fs-5 table-light">
                 <td colspan="4" class="text-end">الإجماليات / الرصيد النهائي:</td>
-                <td id="totalIn" class="text-success">0.00</td>
-                <td id="totalOut" class="text-danger">0.00</td>
-                <td id="finalBalance">0.00</td>
+                <td id="totalIn" class="text-success erp-number">0.00</td>
+                <td id="totalOut" class="text-danger erp-number">0.00</td>
+                <td id="finalBalance" class="erp-number">0.00</td>
             </tr>
         </tfoot>
     </table>
+    </div>
+    </div>
 </div>
-
-<a asp-action="MaterialMovement" class="btn btn-secondary mt-3"><i class="bi bi-arrow-clockwise"></i> بحث جديد</a>
 
 @section Scripts {
     <script>
         $(document).ready(function () {
+            const quantityFormat = $.fn.dataTable.render.number(',', '.', 2).display;
+
             var movementTable = $('#movementTable').DataTable({
                 "processing": true,
-                "serverSide": true,
+                "serverSide": false,
+                "paging": false,
+                "searching": false,
+                "info": false,
+                "autoWidth": false,
                 "ajax": {
                     "url": "/Report/LoadMaterialMovementData",
-                    "type": "POST",
+                    "type": "GET",
                     "data": function (d) {
                         // إرسال المعرف والتواريخ التي أدخلها المستخدم
                         d.materialId = @materialId; 
                         d.fromDate = $('#fromDateFilter').val() || null;
                         d.toDate = $('#toDateFilter').val() || null;
+                        d.allRows = true;
                     },
                     "dataSrc": function (json) {
                         // تحديث الإجماليات في الـ tfoot
                         $('#totalIn').text(json.totalIn);
                         $('#totalOut').text(json.totalOut);
                         $('#finalBalance').text(json.finalBalance);
+                        $('#totalInSummary').text(json.totalIn);
+                        $('#totalOutSummary').text(json.totalOut);
+                        $('#finalBalanceSummary').text(json.finalBalance);
+                        $('#movementCountSummary').text(json.recordsFiltered);
                         return json.data;
                     }
                 },
@@ -88,17 +159,17 @@
                     { "data": "transactionType" },
                     { "data": "invoiceNumber" },
                     { "data": "source" },
-                    { "data": "quantityIn", "render": function(data) { return data > 0 ? data.toFixed(2) : '-'; }, "className": "text-success" },
-                    { "data": "quantityOut", "render": function(data) { return data > 0 ? data.toFixed(2) : '-'; }, "className": "text-danger" },
-                    { "data": "balance" }
+                    { "data": "quantityIn", "render": function(data) { return data > 0 ? quantityFormat(Number(data)) : '-'; }, "className": "text-success erp-number" },
+                    { "data": "quantityOut", "render": function(data) { return data > 0 ? quantityFormat(Number(data)) : '-'; }, "className": "text-danger erp-number" },
+                    { "data": "balance", "render": function(data) { return quantityFormat(Number(data)); }, "className": "erp-number fw-bold" }
                 ],
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
+                "language": window.erpDataTablesArabic,
                 "order": [[0, "asc"]]
             });
 
             // ربط زر التصفية بإعادة تحميل الجدول
             $('#applyFilterBtn').on('click', function() {
-                movementTable.draw();
+                movementTable.ajax.reload();
             });
         });
     </script>

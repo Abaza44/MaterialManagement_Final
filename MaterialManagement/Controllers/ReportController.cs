@@ -42,7 +42,7 @@ namespace MaterialManagement.PL.Controllers
 
         // (صفحة عرض النتيجة - التي تحتوي على DataTables)
         [HttpGet]
-        public async Task<IActionResult> AccountStatementResult(int? clientId, int? supplierId)
+        public async Task<IActionResult> AccountStatementResult(int? clientId, int? supplierId, DateTime? fromDate, DateTime? toDate)
         {
             if (!clientId.HasValue && !supplierId.HasValue)
             {
@@ -51,7 +51,7 @@ namespace MaterialManagement.PL.Controllers
             }
 
             var isClient = clientId.HasValue;
-            int accountId = isClient ? clientId.Value : supplierId.Value;
+            int accountId = isClient ? clientId.GetValueOrDefault() : supplierId.GetValueOrDefault();
 
             if (isClient)
             {
@@ -64,6 +64,9 @@ namespace MaterialManagement.PL.Controllers
 
             ViewBag.IsClient = isClient;
             ViewBag.AccountId = accountId;
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
+            ViewBag.PeriodLabel = FormatStatementPeriod(fromDate, toDate);
 
             return View(); // (هذه الصفحة ستقوم بطلب AJAX)
         }
@@ -82,16 +85,21 @@ namespace MaterialManagement.PL.Controllers
                     statementData = new List<AccountStatementViewModel>();
 
                 var draw = Request.Query["draw"].FirstOrDefault();
-                var start = Convert.ToInt32(Request.Query["start"].FirstOrDefault() ?? "0");
-                var length = Convert.ToInt32(Request.Query["length"].FirstOrDefault() ?? "10");
+                var allRows = string.Equals(Request.Query["allRows"].FirstOrDefault(), "true", StringComparison.OrdinalIgnoreCase);
+                var start = int.TryParse(Request.Query["start"].FirstOrDefault(), out var parsedStart) ? parsedStart : 0;
+                var length = int.TryParse(Request.Query["length"].FirstOrDefault(), out var parsedLength) ? parsedLength : 10;
 
                 var totalRecords = statementData.Count;
-                var totalDebit = statementData.Sum(i => i.Debit);
-                var totalCredit = statementData.Sum(i => i.Credit);
+                var movementRows = statementData.Where(i => !IsOpeningBalanceRow(i)).ToList();
+                var totalDebit = movementRows.Sum(i => i.Debit);
+                var totalCredit = movementRows.Sum(i => i.Credit);
+                var netMovement = totalDebit - totalCredit;
                 var finalBalance = statementData.LastOrDefault()?.Balance ?? 0;
-                var openingBalance = statementData.FirstOrDefault(t => t.TransactionType.Contains("افتتاحي"))?.Balance ?? 0;
+                var openingBalance = statementData.FirstOrDefault(IsOpeningBalanceRow)?.Balance ?? 0;
 
-                var displayedData = statementData.Skip(start).Take(length).ToList();
+                var displayedData = (allRows || length <= 0)
+                    ? statementData
+                    : statementData.Skip(start).Take(length).ToList();
 
                 return Json(new
                 {
@@ -102,9 +110,13 @@ namespace MaterialManagement.PL.Controllers
                     {
                         transactionDate = x.TransactionDate,
                         transactionType = x.TransactionType,
+                        causeLabel = x.CauseLabel,
+                        description = x.Description,
+                        effectLabel = x.EffectLabel,
                         debit = x.Debit,
                         credit = x.Credit,
                         balance = x.Balance,
+                        balanceMeaning = FormatBalanceMeaning(x.Balance, isClient),
                         reference = x.Reference,
                         documentId = x.DocumentId,
                         documentType = x.DocumentType,
@@ -119,7 +131,12 @@ namespace MaterialManagement.PL.Controllers
                     totalDebit = totalDebit.ToString("N2"),
                     totalCredit = totalCredit.ToString("N2"),
                     finalBalance = finalBalance.ToString("N2"),
-                    openingBalance = openingBalance.ToString("N2")
+                    openingBalance = openingBalance.ToString("N2"),
+                    netMovement = netMovement.ToString("N2"),
+                    transactionCount = movementRows.Count,
+                    openingBalanceMeaning = FormatBalanceMeaning(openingBalance, isClient),
+                    finalBalanceMeaning = FormatBalanceMeaning(finalBalance, isClient),
+                    periodLabel = FormatStatementPeriod(fromDate, toDate)
                 });
             }
             catch (Exception ex)
@@ -151,6 +168,46 @@ namespace MaterialManagement.PL.Controllers
             }).ToList();
 
             return Json(new { results = results });
+        }
+
+        private static bool IsOpeningBalanceRow(AccountStatementViewModel row)
+        {
+            return string.Equals(row.DocumentType, "OpeningBalance", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string FormatBalanceMeaning(decimal balance, bool isClient)
+        {
+            if (balance > 0)
+            {
+                return isClient ? "مستحق على العميل" : "مستحق للمورد";
+            }
+
+            if (balance < 0)
+            {
+                return isClient ? "رصيد لصالح العميل" : "رصيد لصالح المنشأة";
+            }
+
+            return "لا يوجد رصيد";
+        }
+
+        private static string FormatStatementPeriod(DateTime? fromDate, DateTime? toDate)
+        {
+            if (fromDate.HasValue && toDate.HasValue)
+            {
+                return $"من {fromDate.Value:yyyy-MM-dd} إلى {toDate.Value:yyyy-MM-dd}";
+            }
+
+            if (fromDate.HasValue)
+            {
+                return $"من {fromDate.Value:yyyy-MM-dd} حتى اليوم";
+            }
+
+            if (toDate.HasValue)
+            {
+                return $"حتى {toDate.Value:yyyy-MM-dd}";
+            }
+
+            return "من بداية الحساب حتى اليوم";
         }
 
         // ==========================================
@@ -201,6 +258,7 @@ namespace MaterialManagement.PL.Controllers
                 var draw = Request.Query["draw"].FirstOrDefault();
                 var start = Request.Query["start"].FirstOrDefault();
                 var length = Request.Query["length"].FirstOrDefault();
+                var allRows = string.Equals(Request.Query["allRows"].FirstOrDefault(), "true", StringComparison.OrdinalIgnoreCase);
 
                 // (لم نعد بحاجة لعمل Parse للمتغيرات لأنها جاءت في الدالة)
 
@@ -208,10 +266,12 @@ namespace MaterialManagement.PL.Controllers
 
                 var totalRecords = reportData.Count;
 
-                var pageSize = length != null ? Convert.ToInt32(length) : 10;
-                var skip = start != null ? Convert.ToInt32(start) : 0;
+                var pageSize = int.TryParse(length, out var parsedLength) ? parsedLength : 10;
+                var skip = int.TryParse(start, out var parsedStart) ? parsedStart : 0;
 
-                var displayedData = reportData.Skip(skip).Take(pageSize).ToList();
+                var displayedData = (allRows || pageSize <= 0)
+                    ? reportData
+                    : reportData.Skip(skip).Take(pageSize).ToList();
 
                 var totalIn = reportData.Sum(i => i.QuantityIn);
                 var totalOut = reportData.Sum(i => i.QuantityOut);

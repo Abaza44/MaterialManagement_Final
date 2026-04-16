@@ -2,26 +2,41 @@
     ViewData["Title"] = "إدارة الموظفين";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1><i class="bi bi-people-fill"></i> @ViewData["Title"]</h1>
-    <a asp-action="Create" class="btn btn-success">
-        <i class="bi bi-person-plus"></i> إضافة موظف جديد
-    </a>
-</div>
+<div class="erp-page">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success erp-alert">@TempData["Success"]</div>
+    }
 
-<div class="card shadow-sm">
-    <div class="card-header">
-        <h5 class="mb-0">قائمة الموظفين</h5>
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الموارد البشرية</p>
+            <h1>@ViewData["Title"]</h1>
+            <p class="erp-table-note">تابع بيانات الموظفين والرواتب والحالة التشغيلية من شاشة واحدة.</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Create" class="btn btn-success">
+                <i class="bi bi-person-plus"></i> إضافة موظف جديد
+            </a>
+        </div>
     </div>
-    <div class="card-body">
+
+    <section class="erp-panel">
+        <div class="erp-panel-header">
+            <div>
+                <h2>قائمة الموظفين</h2>
+                <p class="erp-table-note">يمكنك البحث بالاسم أو الهاتف أو الوظيفة.</p>
+            </div>
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="employeesTable">
-                <thead class="table-light">
+            <table class="table table-hover align-middle erp-data-table" id="employeesTable" style="width:100%">
+                <thead>
                     <tr>
                         <th>الاسم</th>
                         <th>الوظيفة</th>
                         <th>رقم الهاتف</th>
-                        <th>الراتب</th>
+                        <th class="erp-number">الراتب</th>
                         <th>تاريخ التعيين</th>
                         <th>الحالة</th>
                         <th class="text-center">العمليات</th>
@@ -29,7 +44,7 @@
                 </thead>
             </table>
         </div>
-    </div>
+    </section>
 </div>
 
 @section Scripts {
@@ -39,46 +54,49 @@
                 "processing": true,
                 "serverSide": true,
                 "ajax": {
-                    "url": "/Employee/LoadData", 
+                    "url": "/Employee/LoadData",
                     "type": "POST"
                 },
                 "columns": [
                     { "data": "name" },
                     { "data": "position", "defaultContent": "---" },
-                    { "data": "phone" },
+                    { "data": "phone", "defaultContent": "---" },
                     {
                         "data": "salary",
+                        "className": "erp-number",
                         "render": function(data) {
-                            return new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP' }).format(data);
+                            return new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP' }).format(data || 0);
                         }
                     },
                     {
                         "data": "hireDate",
                         "render": function(data) {
-                            return new Date(data).toLocaleDateString('ar-EG');
+                            return data ? new Date(data).toLocaleDateString('ar-EG') : "---";
                         }
                     },
                     {
                         "data": "isActive",
                         "render": function(data) {
-                            return data ? '<span class="badge bg-success">نشط</span>' : '<span class="badge bg-danger">غير نشط</span>';
+                            return data
+                                ? '<span class="erp-status-pill erp-status-pill-success">نشط</span>'
+                                : '<span class="erp-status-pill erp-status-pill-danger">غير نشط</span>';
                         }
                     },
                     {
                         "data": "id",
                         "render": function (data, type, row) {
-                            let editButton = `<a href='/Employee/Edit/${data}' class='btn btn-outline-warning btn-sm' title='تعديل'><i class='bi bi-pencil'></i></a>`;
-                            let actionButton = row.isActive
-                                ? `<form asp-action="Delete" asp-route-id="${data}" method="post" onsubmit="return confirm('هل أنت متأكد من تعطيل هذا الموظف؟');" style="display:inline;"> @Html.AntiForgeryToken() <button type="submit" class="btn btn-outline-danger btn-sm" title="تعطيل"><i class="bi bi-person-x"></i></button></form>`
-                                : ''; 
+                            const editButton = `<a href="/Employee/Edit/${data}" class="btn btn-outline-warning btn-sm">تعديل</a>`;
+                            const disableButton = row.isActive
+                                ? `<a href="/Employee/Delete/${data}" class="btn btn-outline-danger btn-sm">تعطيل</a>`
+                                : '';
 
-                            return `<div class="btn-group btn-group-sm">${editButton} ${actionButton}</div>`;
+                            return `<div class="erp-table-actions">${editButton}${disableButton}</div>`;
                         },
                         "orderable": false,
                         "searchable": false
                     }
                 ],
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" }
+                "language": window.erpDataTablesArabic
             });
         });
     </script>

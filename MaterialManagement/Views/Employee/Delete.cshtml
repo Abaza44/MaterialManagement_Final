@@ -1,0 +1,44 @@
+@model MaterialManagement.BLL.ModelVM.Employee.EmployeeViewModel
+
+@{
+    ViewData["Title"] = "تعطيل الموظف";
+    ViewData["SupervisorAuthorizationLabel"] = "اعتماد المشرف لتعطيل الموظف";
+    ViewData["SupervisorAuthorizationHint"] = "تعطيل الموظف يؤثر على سجلات الموارد البشرية والمصاريف المرتبطة، لذلك يجب اعتماد المشرف.";
+}
+
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الموارد البشرية</p>
+            <h1>تعطيل الموظف</h1>
+            <p class="erp-table-note">راجع بيانات الموظف ثم أدخل كلمة مرور المشرف لتأكيد التعطيل.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">العودة للموظفين</a>
+    </div>
+
+    <div class="alert alert-danger erp-alert">
+        هل أنت متأكد من تعطيل الموظف <strong>@Model.Name</strong>؟
+    </div>
+
+    <section class="erp-panel erp-danger-zone">
+        <div class="erp-panel-header"><h2>بيانات الموظف</h2></div>
+
+        <div class="erp-detail-grid">
+            <div class="erp-detail-item"><span>الاسم</span><strong>@Model.Name</strong></div>
+            <div class="erp-detail-item"><span>الوظيفة</span><strong>@(Model.Position ?? "---")</strong></div>
+            <div class="erp-detail-item"><span>الهاتف</span><strong>@(Model.Phone ?? "---")</strong></div>
+            <div class="erp-detail-item"><span>الراتب</span><strong class="erp-number">@Model.Salary.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>تاريخ التعيين</span><strong>@Model.HireDate.ToString("yyyy-MM-dd")</strong></div>
+            <div class="erp-detail-item"><span>الحالة الحالية</span><strong>@(Model.IsActive ? "نشط" : "غير نشط")</strong></div>
+        </div>
+
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <partial name="_SupervisorPasswordField" />
+            <div class="erp-form-actions">
+                <button type="submit" class="btn btn-danger">تعطيل الموظف</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+            </div>
+        </form>
+    </section>
+</div>

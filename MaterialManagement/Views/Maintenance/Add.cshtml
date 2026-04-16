@@ -2,92 +2,86 @@
 
 @{
     ViewData["Title"] = "إضافة سجل صيانة";
-    // إذا كان ViewBag.EquipmentName موجودًا، فهذا يعني أننا قادمون من صفحة التفاصيل
     var isSpecificEquipment = ViewBag.EquipmentName != null;
 }
 
-@if (isSpecificEquipment)
-{
-    <h1><i class="bi bi-wrench"></i> إضافة سجل صيانة للمعدة: <strong>@ViewBag.EquipmentName</strong></h1>
-}
-else
-{
-    <h1><i class="bi bi-wrench"></i> إضافة سجل صيانة جديد</h1>
-}
-<hr />
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الأصول والتشغيل</p>
+            <h1>@(isSpecificEquipment ? "إضافة صيانة لمعدة" : "إضافة سجل صيانة")</h1>
+            <p class="erp-table-note">@(isSpecificEquipment ? ViewBag.EquipmentName : "اختر المعدة وسجل تفاصيل الصيانة والتكلفة.")</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">العودة للصيانة</a>
+    </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <form asp-controller="Maintenance" asp-action="Add" method="post">
+    <form asp-controller="Maintenance" asp-action="Add" method="post" class="erp-panel">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <div class="erp-form-grid">
+            @if (isSpecificEquipment)
+            {
+                <input type="hidden" asp-for="EquipmentCode" />
+                <div class="erp-field-wide erp-detail-item">
+                    <span>المعدة</span>
+                    <strong>@ViewBag.EquipmentName</strong>
+                </div>
+            }
+            else
+            {
+                <div class="erp-field-wide">
+                    <label asp-for="EquipmentCode" class="form-label fw-bold">اختر المعدة</label>
+                    <select asp-for="EquipmentCode" class="form-select" asp-items="ViewBag.EquipmentList">
+                        <option value="">اختر المعدة</option>
+                    </select>
+                    <span asp-validation-for="EquipmentCode" class="text-danger"></span>
+                </div>
+            }
 
-                    @if (isSpecificEquipment)
-                    {
-                        <!-- إذا كانت المعدة محددة، أرسل الكود بشكل مخفي -->
-                        <input type="hidden" asp-for="EquipmentCode" />
-                    }
-                    else
-                    {
-                        <!-- إذا لم تكن محددة، اعرض قائمة منسدلة للاختيار -->
-                        <div class="mb-3">
-                            <label asp-for="EquipmentCode" class="form-label fw-bold">اختر المعدة</label>
-                            <select asp-for="EquipmentCode" class="form-select" asp-items="ViewBag.EquipmentList">
-                                <option value="">-- يرجى تحديد المعدة --</option>
-                            </select>
-                            <span asp-validation-for="EquipmentCode" class="text-danger"></span>
-                        </div>
-                    }
+            <div>
+                <label asp-for="MaintenanceDate" class="form-label fw-bold"></label>
+                <input asp-for="MaintenanceDate" class="form-control" type="date" />
+                <span asp-validation-for="MaintenanceDate" class="text-danger"></span>
+            </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="MaintenanceDate" class="form-label fw-bold"></label>
-                            <input asp-for="MaintenanceDate" class="form-control" type="date" />
-                            <span asp-validation-for="MaintenanceDate" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="Cost" class="form-label fw-bold"></label>
-                            <input asp-for="Cost" class="form-control" type="number" step="0.01" placeholder="0.00" />
-                            <span asp-validation-for="Cost" class="text-danger"></span>
-                        </div>
-                    </div>
+            <div>
+                <label asp-for="Cost" class="form-label fw-bold"></label>
+                <input asp-for="Cost" class="form-control erp-number" type="number" step="0.01" min="0" placeholder="0.00" />
+                <span asp-validation-for="Cost" class="text-danger"></span>
+            </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Description" class="form-label fw-bold"></label>
-                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                        <span asp-validation-for="Description" class="text-danger"></span>
-                    </div>
+            <div class="erp-field-wide">
+                <label asp-for="Description" class="form-label fw-bold"></label>
+                <textarea asp-for="Description" class="form-control" rows="3" placeholder="ما الذي تم إصلاحه أو مراجعته؟"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
 
-                    <div class="mb-3">
-                        <label asp-for="PerformedBy" class="form-label fw-bold"></label>
-                        <input asp-for="PerformedBy" class="form-control" />
-                        <span asp-validation-for="PerformedBy" class="text-danger"></span>
-                    </div>
+            <div>
+                <label asp-for="PerformedBy" class="form-label fw-bold"></label>
+                <input asp-for="PerformedBy" class="form-control" placeholder="فني / شركة / جهة الصيانة" />
+                <span asp-validation-for="PerformedBy" class="text-danger"></span>
+            </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Notes" class="form-label fw-bold"></label>
-                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
-                        <span asp-validation-for="Notes" class="text-danger"></span>
-                    </div>
-
-                    <hr />
-                    <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> تسجيل الصيانة</button>
-
-                    @if (isSpecificEquipment)
-                    {
-                        <a asp-controller="Equipment" asp-action="Details" asp-route-code="@Model.EquipmentCode" class="btn btn-secondary">إلغاء</a>
-                    }
-                    else
-                    {
-                        <a asp-controller="Maintenance" asp-action="Index" class="btn btn-secondary">إلغاء</a>
-                    }
-                </form>
+            <div class="erp-field-wide">
+                <label asp-for="Notes" class="form-label fw-bold"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
             </div>
         </div>
-    </div>
+
+        <div class="erp-form-actions">
+            <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> تسجيل الصيانة</button>
+            @if (isSpecificEquipment)
+            {
+                <a asp-controller="Equipment" asp-action="Details" asp-route-code="@Model.EquipmentCode" class="btn btn-outline-secondary">إلغاء</a>
+            }
+            else
+            {
+                <a asp-controller="Maintenance" asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+            }
+        </div>
+    </form>
 </div>
 
 @section Scripts {

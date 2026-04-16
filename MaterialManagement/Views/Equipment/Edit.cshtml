@@ -4,56 +4,58 @@
     ViewData["Title"] = "تعديل بيانات المعدة";
 }
 
-<h1><i class="bi bi-pencil-square"></i> تعديل: @Model.Name</h1>
-<hr />
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الأصول والتشغيل</p>
+            <h1>تعديل بيانات المعدة</h1>
+            <p class="erp-table-note">@Model.Name - كود @Model.Code</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">العودة للمعدات</a>
+    </div>
 
-<div class="row">
-    <div class="col-md-7">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <form asp-action="Edit" method="post">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <form asp-action="Edit" method="post" class="erp-panel">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <input type="hidden" asp-for="Code" />
 
-                    <input type="hidden" asp-for="Code" />
+        <div class="erp-form-grid">
+            <div>
+                <label class="form-label fw-bold">الكود</label>
+                <input asp-for="Code" class="form-control erp-number" readonly />
+            </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">الكود</label>
-                        <input asp-for="Code" class="form-control" readonly />
-                    </div>
+            <div>
+                <label asp-for="Name" class="form-label fw-bold"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Name" class="form-label fw-bold"></label>
-                        <input asp-for="Name" class="form-control" />
-                        <span asp-validation-for="Name" class="text-danger"></span>
-                    </div>
+            <div>
+                <label asp-for="PurchaseDate" class="form-label fw-bold"></label>
+                <input asp-for="PurchaseDate" class="form-control" type="date" />
+                <span asp-validation-for="PurchaseDate" class="text-danger"></span>
+            </div>
 
-                    <div class="mb-3">
-                        <label asp-for="PurchaseDate" class="form-label fw-bold"></label>
-                        <input asp-for="PurchaseDate" class="form-control" type="date" />
-                        <span asp-validation-for="PurchaseDate" class="text-danger"></span>
-                    </div>
+            <div>
+                <label asp-for="LastMaintenanceDate" class="form-label fw-bold"></label>
+                <input asp-for="LastMaintenanceDate" class="form-control" type="date" />
+                <span asp-validation-for="LastMaintenanceDate" class="text-danger"></span>
+            </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="LastMaintenanceDate" class="form-label fw-bold"></label>
-                            <input asp-for="LastMaintenanceDate" class="form-control" type="date" />
-                            <span asp-validation-for="LastMaintenanceDate" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="NextMaintenanceDate" class="form-label fw-bold"></label>
-                            <input asp-for="NextMaintenanceDate" class="form-control" type="date" />
-                            <span asp-validation-for="NextMaintenanceDate" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <hr />
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> حفظ التعديلات</button>
-                    <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-x-circle"></i> إلغاء</a>
-                </form>
+            <div>
+                <label asp-for="NextMaintenanceDate" class="form-label fw-bold"></label>
+                <input asp-for="NextMaintenanceDate" class="form-control" type="date" />
+                <span asp-validation-for="NextMaintenanceDate" class="text-danger"></span>
             </div>
         </div>
-    </div>
+
+        <div class="erp-form-actions">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> حفظ التعديلات</button>
+            <a asp-action="Details" asp-route-code="@Model.Code" class="btn btn-outline-primary">عرض التفاصيل</a>
+            <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+        </div>
+    </form>
 </div>
 
 @section Scripts {

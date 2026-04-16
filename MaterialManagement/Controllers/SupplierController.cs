@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using MaterialManagement.PL.Services;
 namespace MaterialManagement.PL.Controllers
 {
     public class SupplierController : Controller
@@ -15,11 +16,17 @@ namespace MaterialManagement.PL.Controllers
         private readonly ISupplierService _supplierService;
         private readonly ISupplierPaymentService _supplierPaymentService;
         private readonly IMapper _mapper;
-        public SupplierController(ISupplierService supplierService, ISupplierPaymentService supplierPaymentService, IMapper mapper)
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
+        public SupplierController(
+            ISupplierService supplierService,
+            ISupplierPaymentService supplierPaymentService,
+            IMapper mapper,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _supplierService = supplierService;
             _supplierPaymentService = supplierPaymentService;
             _mapper = mapper;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
         // GET: Supplier
@@ -137,8 +144,21 @@ namespace MaterialManagement.PL.Controllers
         // POST: Supplier/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, string? supervisorPassword)
         {
+            var supplier = await _supplierService.GetSupplierByIdAsync(id);
+            if (supplier == null)
+            {
+                TempData["ErrorMessage"] = "المورد غير موجود";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(supplier);
+            }
+
             try
             {
                 await _supplierService.DeleteSupplierAsync(id);

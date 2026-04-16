@@ -2,12 +2,19 @@
     ViewData["Title"] = "إدارة الموردين";
 }
 
-<h2 class="mb-3">🧑‍🤝‍🧑 @ViewData["Title"]</h2>
-<p><a asp-action="Create" class="btn btn-success">➕ إضافة مورد جديد</a></p>
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الأطراف</p>
+            <h1>@ViewData["Title"]</h1>
+        </div>
+        <a asp-action="Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> إضافة مورد جديد
+        </a>
+    </div>
 
-<div class="card shadow-sm mb-3">
-    <div class="card-header"><h5 class="mb-0"><i class="bi bi-funnel"></i> فلاتر</h5></div>
-    <div class="card-body">
+    <div class="erp-panel erp-filter-panel">
+        <div class="erp-panel-header"><h2><i class="bi bi-funnel"></i> فلاتر</h2></div>
         <div class="form-check">
             <input class="form-check-input" type="checkbox" value="" id="hasCreditFilter">
             <label class="form-check-label" for="hasCreditFilter">
@@ -15,19 +22,19 @@
             </label>
         </div>
     </div>
-</div>
 
-<table id="suppliersTable" class="table table-bordered table-hover" style="width:100%">
-    <thead class="table-dark">
-        <tr>
-            <th>الاسم</th>
-            <th>الهاتف</th>
-            <th>الرصيد (المستحقات)</th>
-            <th>الحالة</th>
-            <th>إجراءات</th>
-        </tr>
-    </thead>
-</table>
+    <table id="suppliersTable" class="table table-hover erp-data-table" style="width:100%">
+        <thead>
+            <tr>
+                <th>الاسم</th>
+                <th>الهاتف</th>
+                <th>الرصيد (المستحقات)</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+    </table>
+</div>
 
 @section Scripts {
     <script>
@@ -60,18 +67,18 @@
                     {
                         "data": "id",
                         "render": function (data, type, row) {
-                            let buttons = `<a href='/Supplier/Details/${data}' class='btn btn-info btn-sm'>👁</a> ` +
-                                          `<a href='/Supplier/Edit/${data}' class='btn btn-warning btn-sm'>✏️</a> ` +
-                                          `<a href='/Supplier/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>`;
+                            let buttons = `<a href='/Supplier/Details/${data}' class='btn btn-outline-primary btn-sm'>تفاصيل</a> ` +
+                                          `<a href='/Supplier/Edit/${data}' class='btn btn-outline-warning btn-sm'>تعديل</a> ` +
+                                          `<a href='/Supplier/Delete/${data}' class='btn btn-outline-danger btn-sm'>حذف</a>`;
                             if (!row.isActive) {
-                                buttons += ` <a href='/Supplier/Reactivate/${data}' class='btn btn-success btn-sm'>🔄</a>`;
+                                buttons += ` <a href='/Supplier/Reactivate/${data}' class='btn btn-success btn-sm'>تنشيط</a>`;
                             }
                             return buttons;
                         },
                         "orderable": false
                     }
                 ],
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" }
+                "language": window.erpDataTablesArabic
             });
 
             $('#hasCreditFilter').on('change', function() {

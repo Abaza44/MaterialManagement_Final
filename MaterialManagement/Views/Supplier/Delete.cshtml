@@ -11,21 +11,28 @@
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3 text-danger">🗑 حذف مورد</h2>
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الموردون</p>
+            <h1 class="text-danger">حذف مورد</h1>
+        </div>
+    </div>
 
-    <h4>هل أنت متأكد أنك تريد حذف هذا المورد؟</h4>
+    <div class="erp-panel erp-danger-zone">
+        <div class="erp-panel-header"><h2>تأكيد الحذف</h2></div>
+        <p class="mb-3">هل أنت متأكد أنك تريد حذف المورد <strong>@Model.Name</strong>؟</p>
 
-    <dl class="row">
-        <dt class="col-sm-3">الاسم</dt>
-        <dd class="col-sm-9">@Model.Name</dd>
-        <dt class="col-sm-3">الهاتف</dt>
-        <dd class="col-sm-9">@Model.Phone</dd>
-    </dl>
+        <div class="erp-detail-grid mb-3">
+            <div class="erp-detail-item"><span>الهاتف</span><strong>@(Model.Phone ?? "-")</strong></div>
+            <div class="erp-detail-item"><span>الرصيد</span><strong>@Model.Balance.ToString("N2")</strong></div>
+        </div>
 
-    <form asp-action="Delete" method="post">
-        <input type="hidden" asp-for="Id" />
-        <button type="submit" class="btn btn-danger">🗑 حذف</button>
-        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
-    </form>
+        <form asp-action="Delete" method="post" class="erp-form-actions">
+            <input type="hidden" asp-for="Id" />
+            <partial name="_SupervisorPasswordField" />
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> حذف</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">رجوع</a>
+        </form>
+    </div>
 </div>

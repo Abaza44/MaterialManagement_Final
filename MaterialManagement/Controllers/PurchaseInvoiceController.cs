@@ -4,6 +4,8 @@ using MaterialManagement.BLL.ModelVM.Payment;
 using MaterialManagement.BLL.ModelVM.Supplier;
 using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.Entities;
+using MaterialManagement.DAL.Enums;
+using MaterialManagement.PL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +19,7 @@ namespace MaterialManagement.PL.Controllers
         private readonly IMaterialService _materialService;
         private readonly ISupplierPaymentService _supplierPaymentService;
         private readonly IMapper _mapper;
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
 
         public PurchaseInvoiceController(
             IPurchaseInvoiceService purchaseInvoiceService,
@@ -24,7 +27,8 @@ namespace MaterialManagement.PL.Controllers
             IClientService clientService,
             IMaterialService materialService,
             ISupplierPaymentService supplierPaymentService,
-            IMapper mapper)
+            IMapper mapper,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _purchaseInvoiceService = purchaseInvoiceService;
             _supplierService = supplierService;
@@ -32,6 +36,7 @@ namespace MaterialManagement.PL.Controllers
             _materialService = materialService;
             _supplierPaymentService = supplierPaymentService;
             _mapper = mapper;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
 
@@ -70,6 +75,17 @@ namespace MaterialManagement.PL.Controllers
         [HttpGet]
         public async Task<IActionResult> SupplierInvoices(int id)
         {
+            if (id == 0)
+            {
+                return View(new SupplierViewModel
+                {
+                    Id = 0,
+                    Name = "موردون يدويون / بدون تسجيل",
+                    Balance = 0,
+                    IsActive = true
+                });
+            }
+
             var supplier = await _supplierService.GetSupplierByIdAsync(id);
             if (supplier == null) return NotFound();
             return View(_mapper.Map<SupplierViewModel>(supplier));
@@ -86,7 +102,7 @@ namespace MaterialManagement.PL.Controllers
         // POST: PurchaseInvoice/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(PurchaseInvoiceCreateModel model)
+        public async Task<IActionResult> Create(PurchaseInvoiceCreateModel model, string? supervisorPassword)
         {
             model.Items.RemoveAll(i => i.Quantity == 0 || i.UnitPrice == 0);
 
@@ -103,11 +119,21 @@ namespace MaterialManagement.PL.Controllers
                 return View(model);
             }
 
+            if (model.PartyMode == PurchaseInvoicePartyMode.RegisteredClientReturn &&
+                !_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                ViewBag.Suppliers = await _supplierService.GetAllSuppliersAsync();
+                ViewBag.Clients = await _clientService.GetAllClientsAsync();
+                ViewBag.Materials = await _materialService.GetAllMaterialsAsync();
+                return View(model);
+            }
+
             try
             {
-                await _purchaseInvoiceService.CreateInvoiceAsync(model);
+                var invoice = await _purchaseInvoiceService.CreateInvoiceAsync(model);
                 TempData["SuccessMessage"] = "تم إنشاء العملية بنجاح";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Details), new { id = invoice.Id });
             }
             catch (Exception ex)
             {
@@ -134,8 +160,21 @@ namespace MaterialManagement.PL.Controllers
         // POST: PurchaseInvoice/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, string? supervisorPassword)
         {
+            var invoice = await _purchaseInvoiceService.GetInvoiceByIdAsync(id);
+            if (invoice == null)
+            {
+                TempData["ErrorMessage"] = "الفاتورة غير موجودة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(invoice);
+            }
+
             try
             {
                 await _purchaseInvoiceService.DeleteInvoiceAsync(id);
@@ -170,7 +209,11 @@ namespace MaterialManagement.PL.Controllers
 
 
                 IQueryable<PurchaseInvoice> query = _purchaseInvoiceService.GetInvoicesAsQueryable()
-                    .Where(i => i.SupplierId == supplierId && i.IsActive);
+                    .Where(i => i.IsActive);
+
+                query = supplierId == 0
+                    ? query.Where(i => i.PartyMode == PurchaseInvoicePartyMode.OneTimeSupplier)
+                    : query.Where(i => i.PartyMode == PurchaseInvoicePartyMode.RegisteredSupplier && i.SupplierId == supplierId);
 
                 if (!string.IsNullOrEmpty(searchValue))
                 {
@@ -184,12 +227,16 @@ namespace MaterialManagement.PL.Controllers
                 var viewModelData = _mapper.Map<IEnumerable<PurchaseInvoiceViewModel>>(pagedData);
 
                 // 5. جلب الرصيد الإجمالي للمورد وحساب الرصيد المرحل
-                var supplier = await _supplierService.GetSupplierByIdAsync(supplierId);
+                var supplier = supplierId == 0 ? null : await _supplierService.GetSupplierByIdAsync(supplierId);
                 decimal supplierCurrentBalance = supplier?.Balance ?? 0;
                 // الرصيد المرحل = الرصيد النهائي - إجمالي المتبقي من الفواتير
                 decimal openingBalance = supplierCurrentBalance - grandTotalRemaining;
 
-                var recordsTotal = await _purchaseInvoiceService.GetInvoicesAsQueryable().Where(i => i.SupplierId == supplierId && i.IsActive).CountAsync();
+                var recordsTotalQuery = _purchaseInvoiceService.GetInvoicesAsQueryable().Where(i => i.IsActive);
+                recordsTotalQuery = supplierId == 0
+                    ? recordsTotalQuery.Where(i => i.PartyMode == PurchaseInvoicePartyMode.OneTimeSupplier)
+                    : recordsTotalQuery.Where(i => i.PartyMode == PurchaseInvoicePartyMode.RegisteredSupplier && i.SupplierId == supplierId);
+                var recordsTotal = await recordsTotalQuery.CountAsync();
 
                 // 6. إرسال الرد مع كل الإحصائيات المطلوبة
                 var jsonData = new
@@ -226,6 +273,7 @@ namespace MaterialManagement.PL.Controllers
             {
                 query = query.Where(i => i.InvoiceNumber.Contains(searchValue)
                                        || (i.Supplier != null && i.Supplier.Name.Contains(searchValue))
+                                       || (i.OneTimeSupplierName != null && i.OneTimeSupplierName.Contains(searchValue))
                                        || (i.Client != null && i.Client.Name.Contains(searchValue)));
             }
 

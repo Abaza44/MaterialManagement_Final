@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MaterialManagement.BLL.ModelVM.Supplier;
 using MaterialManagement.DAL.DTOs;
+using MaterialManagement.DAL.Enums;
 
 namespace MaterialManagement.BLL.Service.Implementations
 {
@@ -41,6 +42,9 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task<PurchaseInvoiceViewModel> CreateInvoiceAsync(PurchaseInvoiceCreateModel model)
         {
+            ValidateCreateModel(model);
+            var mode = ResolveCreateMode(model);
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -48,6 +52,7 @@ namespace MaterialManagement.BLL.Service.Implementations
                 var invoice = _mapper.Map<PurchaseInvoice>(model);
                 invoice.InvoiceNumber = $"PUR-{DateTime.Now.Ticks}"; // Simplified
                 invoice.InvoiceDate = DateTime.Now; // Ensure invoice date is set
+                ApplyModeToInvoice(invoice, model, mode);
                 decimal grossTotalAmount = 0;
                 
                 foreach (var itemModel in model.Items)
@@ -64,12 +69,12 @@ namespace MaterialManagement.BLL.Service.Implementations
                     invoice.PurchaseInvoiceItems.Add(invoiceItem);
 
                     // Update Stock and Purchase Price based on transaction type
-                    if (model.SupplierId.HasValue) // Purchase
+                    if (mode == PurchaseInvoiceBusinessMode.SupplierPurchase || mode == PurchaseInvoiceBusinessMode.OneTimeSupplier)
                     {
                         material.Quantity += itemModel.Quantity;
                         material.PurchasePrice = itemModel.UnitPrice;
                     }
-                    else if (model.ClientId.HasValue) // Return from Client
+                    else if (mode == PurchaseInvoiceBusinessMode.ClientReturn)
                     {
                         material.Quantity += itemModel.Quantity;
                         // Don't update purchase price on returns
@@ -79,10 +84,9 @@ namespace MaterialManagement.BLL.Service.Implementations
                 // --- Apply Discount Logic ---
 
                 // 1. Set Gross Total and Discount Amount
+                invoice.DiscountAmount = model.DiscountAmount;
+                ValidateTotals(grossTotalAmount, invoice.DiscountAmount, model.PaidAmount);
                 invoice.TotalAmount = grossTotalAmount - invoice.DiscountAmount;
-                // Ensure DiscountAmount is correctly mapped or set (AutoMapper might handle this)
-                // If DiscountAmount is not mapped automatically, uncomment the next line:
-                // invoice.DiscountAmount = model.DiscountAmount;
 
                 // 2. Calculate Net Amount Due (after discount)
 
@@ -91,35 +95,34 @@ namespace MaterialManagement.BLL.Service.Implementations
                 invoice.RemainingAmount = invoice.TotalAmount - model.PaidAmount;
                 invoice.PaidAmount = model.PaidAmount; // Make sure PaidAmount is also saved
 
+                if (mode == PurchaseInvoiceBusinessMode.OneTimeSupplier && invoice.RemainingAmount != 0)
+                {
+                    throw new InvalidOperationException("عملية المورد اليدوي يجب أن تكون مسددة بالكامل. إذا كان هناك متبقي، سجّل المورد أولاً.");
+                }
+
                 // --- End Discount Logic ---
 
                 await _invoiceRepo.AddAsync(invoice);
 
                 // --- Update Balances ---
-                if (model.SupplierId.HasValue) // Purchase from Supplier
+                if (mode == PurchaseInvoiceBusinessMode.SupplierPurchase)
                 {
-                    var supplier = await _supplierRepo.GetByIdForUpdateAsync(model.SupplierId.Value);
+                    var supplierId = invoice.SupplierId
+                        ?? throw new InvalidOperationException("المورد المحدد غير صالح.");
+                    var supplier = await _supplierRepo.GetByIdForUpdateAsync(supplierId);
                     if (supplier == null) throw new InvalidOperationException("المورد غير موجود");
 
                     // Our debt to the supplier increases by the remaining amount
                     supplier.Balance += invoice.RemainingAmount;
                 }
-                else if (model.ClientId.HasValue) // Return from Client
+                else if (mode == PurchaseInvoiceBusinessMode.ClientReturn)
                 {
-                    var client = await _clientRepo.GetByIdForUpdateAsync(model.ClientId.Value);
+                    var clientId = invoice.ClientId
+                        ?? throw new InvalidOperationException("العميل المحدد غير صالح.");
+                    var client = await _clientRepo.GetByIdForUpdateAsync(clientId);
                     if (client == null) throw new InvalidOperationException("العميل غير موجود");
 
-                    // Client's debt to us decreases by the net value of the returned goods
-                    // (RemainingAmount here represents how much we still owe the client for the return if PaidAmount < netAmountDue)
-                    client.Balance -= invoice.TotalAmount;
-
-                    // Adjust balance further based on payment during return
-                    // If we paid the client during the return (model.PaidAmount > 0), their debt decreases even more.
-                    // If the client paid us during the return (e.g., restocking fee, model.PaidAmount < 0?), debt increases.
-                    // Note: Typically for returns, RemainingAmount = netAmountDue - PaidAmount.
-                    // client.Balance adjustment could also be seen as:
-                    // client.Balance -= (netAmountDue - model.PaidAmount); // Decrease debt by amount we owe them
-                    // client.Balance -= invoice.RemainingAmount; // Equivalent if RemainingAmount calculated correctly
+                    client.Balance -= invoice.RemainingAmount;
                 }
 
                 await _context.SaveChangesAsync();
@@ -144,14 +147,23 @@ namespace MaterialManagement.BLL.Service.Implementations
                 if (invoiceToDelete == null)
                     throw new InvalidOperationException("الفاتورة غير موجودة");
 
+                var mode = ResolvePersistedMode(invoiceToDelete);
+                ValidateDeleteStockReversal(invoiceToDelete);
+
                 // 3. عكس التأثير المالي
-                if (invoiceToDelete.SupplierId.HasValue)
+                if (mode == PurchaseInvoiceBusinessMode.SupplierPurchase)
                 {
+                    if (invoiceToDelete.Supplier == null)
+                        throw new InvalidOperationException("المورد المرتبط بهذه العملية غير موجود.");
+
                     invoiceToDelete.Supplier.Balance -= invoiceToDelete.RemainingAmount;
                 }
-                else if (invoiceToDelete.ClientId.HasValue)
+                else if (mode == PurchaseInvoiceBusinessMode.ClientReturn)
                 {
-                    invoiceToDelete.Client.Balance += invoiceToDelete.TotalAmount;
+                    if (invoiceToDelete.Client == null)
+                        throw new InvalidOperationException("العميل المرتبط بهذه العملية غير موجود.");
+
+                    invoiceToDelete.Client.Balance += invoiceToDelete.RemainingAmount;
                 }
 
                 // 4. عكس التأثير المخزني
@@ -178,6 +190,169 @@ namespace MaterialManagement.BLL.Service.Implementations
         {
             var invoices = await _invoiceRepo.GetAllAsync();
             return _mapper.Map<IEnumerable<PurchaseInvoiceViewModel>>(invoices);
+        }
+
+        private static void ValidateCreateModel(PurchaseInvoiceCreateModel model)
+        {
+            if (model == null)
+                throw new InvalidOperationException("بيانات فاتورة الشراء مطلوبة.");
+
+            if (model.Items == null || !model.Items.Any())
+                throw new InvalidOperationException("يجب إضافة بند واحد على الأقل.");
+
+            if (model.DiscountAmount < 0)
+                throw new InvalidOperationException("مبلغ الخصم لا يمكن أن يكون سالباً.");
+
+            if (model.PaidAmount < 0)
+                throw new InvalidOperationException("المبلغ المسدد لا يمكن أن يكون سالباً.");
+
+            foreach (var item in model.Items)
+            {
+                if (item.MaterialId <= 0)
+                    throw new InvalidOperationException("يجب اختيار مادة صحيحة لكل بند.");
+
+                if (item.Quantity <= 0)
+                    throw new InvalidOperationException("الكمية يجب أن تكون أكبر من الصفر.");
+
+                if (item.UnitPrice <= 0)
+                    throw new InvalidOperationException("سعر الوحدة يجب أن يكون أكبر من الصفر.");
+            }
+        }
+
+        private static void ValidateTotals(decimal grossTotalAmount, decimal discountAmount, decimal paidAmount)
+        {
+            if (discountAmount > grossTotalAmount)
+                throw new InvalidOperationException("مبلغ الخصم لا يمكن أن يكون أكبر من إجمالي الفاتورة.");
+
+            var netAmountDue = grossTotalAmount - discountAmount;
+            if (paidAmount > netAmountDue)
+                throw new InvalidOperationException($"المبلغ المسدد لا يمكن أن يكون أكبر من صافي الفاتورة. الصافي: {netAmountDue:N2}.");
+        }
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private static PurchaseInvoiceBusinessMode ResolveCreateMode(PurchaseInvoiceCreateModel model)
+        {
+            if (model.PartyMode == PurchaseInvoicePartyMode.RegisteredSupplier)
+            {
+                if (!model.SupplierId.HasValue || model.SupplierId.Value <= 0)
+                    throw new InvalidOperationException("يجب اختيار مورد مسجل لعملية الشراء.");
+
+                if (model.ClientId.HasValue)
+                    throw new InvalidOperationException("لا يمكن اختيار عميل في عملية شراء من مورد.");
+
+                return PurchaseInvoiceBusinessMode.SupplierPurchase;
+            }
+
+            if (model.PartyMode == PurchaseInvoicePartyMode.OneTimeSupplier)
+            {
+                if (model.SupplierId.HasValue || model.ClientId.HasValue)
+                    throw new InvalidOperationException("المورد اليدوي لا يستخدم رقم مورد أو عميل مسجل.");
+
+                if (string.IsNullOrWhiteSpace(model.OneTimeSupplierName))
+                    throw new InvalidOperationException("يجب إدخال اسم المورد اليدوي.");
+
+                return PurchaseInvoiceBusinessMode.OneTimeSupplier;
+            }
+
+            if (model.PartyMode == PurchaseInvoicePartyMode.RegisteredClientReturn)
+            {
+                if (!model.ClientId.HasValue || model.ClientId.Value <= 0)
+                    throw new InvalidOperationException("يجب اختيار عميل مسجل لعملية المرتجع.");
+
+                if (model.SupplierId.HasValue)
+                    throw new InvalidOperationException("لا يمكن اختيار مورد في عملية مرتجع من عميل.");
+
+                return PurchaseInvoiceBusinessMode.ClientReturn;
+            }
+
+            throw new InvalidOperationException("نوع العملية غير صالح.");
+        }
+
+        private static PurchaseInvoiceBusinessMode ResolvePersistedMode(PurchaseInvoice invoice)
+        {
+            if (invoice.PartyMode == PurchaseInvoicePartyMode.RegisteredSupplier)
+            {
+                if (!invoice.SupplierId.HasValue || invoice.ClientId.HasValue)
+                    throw new InvalidOperationException("لا يمكن عكس هذه العملية لأن بيانات المورد غير متسقة. يرجى مراجعة السجل يدوياً.");
+
+                return PurchaseInvoiceBusinessMode.SupplierPurchase;
+            }
+
+            if (invoice.PartyMode == PurchaseInvoicePartyMode.OneTimeSupplier)
+            {
+                if (invoice.SupplierId.HasValue || invoice.ClientId.HasValue)
+                    throw new InvalidOperationException("لا يمكن عكس هذه العملية لأن بيانات المورد اليدوي غير متسقة. يرجى مراجعة السجل يدوياً.");
+
+                return PurchaseInvoiceBusinessMode.OneTimeSupplier;
+            }
+
+            if (invoice.PartyMode == PurchaseInvoicePartyMode.RegisteredClientReturn)
+            {
+                if (!invoice.ClientId.HasValue || invoice.SupplierId.HasValue)
+                    throw new InvalidOperationException("لا يمكن عكس هذه العملية لأن بيانات العميل غير متسقة. يرجى مراجعة السجل يدوياً.");
+
+                return PurchaseInvoiceBusinessMode.ClientReturn;
+            }
+
+            throw new InvalidOperationException("لا يمكن عكس هذه العملية لأن نوعها غير صالح.");
+        }
+
+        private static void ApplyModeToInvoice(
+            PurchaseInvoice invoice,
+            PurchaseInvoiceCreateModel model,
+            PurchaseInvoiceBusinessMode mode)
+        {
+            if (mode == PurchaseInvoiceBusinessMode.SupplierPurchase)
+            {
+                invoice.PartyMode = PurchaseInvoicePartyMode.RegisteredSupplier;
+                invoice.SupplierId = model.SupplierId!.Value;
+                invoice.ClientId = null;
+                invoice.OneTimeSupplierName = null;
+                invoice.OneTimeSupplierPhone = null;
+            }
+            else if (mode == PurchaseInvoiceBusinessMode.OneTimeSupplier)
+            {
+                invoice.PartyMode = PurchaseInvoicePartyMode.OneTimeSupplier;
+                invoice.SupplierId = null;
+                invoice.ClientId = null;
+                invoice.OneTimeSupplierName = model.OneTimeSupplierName?.Trim();
+                invoice.OneTimeSupplierPhone = NormalizeOptionalText(model.OneTimeSupplierPhone);
+            }
+            else
+            {
+                invoice.PartyMode = PurchaseInvoicePartyMode.RegisteredClientReturn;
+                invoice.SupplierId = null;
+                invoice.ClientId = model.ClientId!.Value;
+                invoice.OneTimeSupplierName = null;
+                invoice.OneTimeSupplierPhone = null;
+            }
+        }
+
+        private static void ValidateDeleteStockReversal(PurchaseInvoice invoice)
+        {
+            foreach (var item in invoice.PurchaseInvoiceItems)
+            {
+                if (item.Material == null)
+                    throw new InvalidOperationException("لا يمكن عكس هذه العملية لأن المادة المرتبطة بأحد البنود غير موجودة.");
+
+                var quantityAfterReversal = item.Material.Quantity - item.Quantity;
+                if (quantityAfterReversal < 0)
+                    throw new InvalidOperationException($"لا يمكن حذف العملية لأن حذفها سيجعل رصيد المادة سالباً: {item.Material.Name}.");
+
+                if (quantityAfterReversal < item.Material.ReservedQuantity)
+                    throw new InvalidOperationException($"لا يمكن حذف العملية لأن الكمية المتبقية من المادة محجوزة حالياً: {item.Material.Name}.");
+            }
+        }
+
+        private enum PurchaseInvoiceBusinessMode
+        {
+            SupplierPurchase,
+            OneTimeSupplier,
+            ClientReturn
         }
 
         public async Task<PurchaseInvoiceViewModel?> GetInvoiceByIdAsync(int id)

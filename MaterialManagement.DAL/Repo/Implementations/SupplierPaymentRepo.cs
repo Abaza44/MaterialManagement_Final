@@ -23,16 +23,20 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<IEnumerable<SupplierPayment>> GetBySupplierIdAsync(int supplierId)
         {
             return await _context.SupplierPayments
+                .IgnoreQueryFilters()
                 .Where(p => p.SupplierId == supplierId)
                 .OrderByDescending(p => p.PaymentDate)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<SupplierPayment>> GetByInvoiceIdAsync(int invoiceId)
         {
             return await _context.SupplierPayments
+                .IgnoreQueryFilters()
                 .Where(p => p.PurchaseInvoiceId == invoiceId)
                 .OrderByDescending(p => p.PaymentDate)
+                .AsNoTracking()
                 .ToListAsync();
         }
     }

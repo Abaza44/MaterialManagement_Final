@@ -1,28 +1,45 @@
 ﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Invoice.ClientInvoiceSummaryViewModel>
 
 @{
-    ViewData["Title"] = "فواتير البيع حسب العميل";
+    ViewData["Title"] = "فواتير البيع حسب العميل / النقدي";
 }
 
-<h2 class="mb-3">🧾 @ViewData["Title"]</h2>
-<p><a asp-action="Create" class="btn btn-success">➕ إنشاء فاتورة بيع جديدة</a></p>
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">فواتير البيع</p>
+            <h1>@ViewData["Title"]</h1>
+            <p class="erp-table-note">تابع فواتير العملاء المسجلين والعملاء النقديين من شاشة واحدة.</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> إنشاء فاتورة بيع</a>
+        </div>
+    </div>
 
-<div class="row">
+<div class="erp-party-grid">
     @foreach (var client in Model)
     {
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="card-title">@client.ClientName</h5>
-                    <p class="card-text">
-                        لديه <strong>@client.InvoiceCount</strong> فاتورة. <br />
-                        إجمالي المديونية: <strong class="text-danger">@client.TotalDebt.ToString("C")</strong>
-                    </p>
-                    <a asp-action="ClientInvoices" asp-route-id="@client.ClientId" class="btn btn-primary">
-                        عرض الفواتير <i class="bi bi-arrow-left-circle"></i>
-                    </a>
+        <article class="erp-party-card">
+            <div>
+                <span class="erp-status-pill @(client.ClientId == 0 ? "erp-status-pill-success" : "")">
+                    @(client.ClientId == 0 ? "نقدي" : "عميل مسجل")
+                </span>
+                <h2>@client.ClientName</h2>
+            </div>
+            <div class="erp-party-card-metrics">
+                <div>
+                    <span>عدد الفواتير</span>
+                    <strong>@client.InvoiceCount.ToString("N0")</strong>
+                </div>
+                <div>
+                    <span>إجمالي المتبقي</span>
+                    <strong class="@(client.TotalDebt > 0 ? "text-danger" : "text-success")">@client.TotalDebt.ToString("N2")</strong>
                 </div>
             </div>
-        </div>
+            <a asp-action="ClientInvoices" asp-route-id="@client.ClientId" class="btn btn-outline-primary w-100">
+                عرض الفواتير
+            </a>
+        </article>
     }
+</div>
 </div>

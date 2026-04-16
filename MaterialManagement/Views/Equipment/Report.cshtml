@@ -2,56 +2,59 @@
 
 @{
     ViewData["Title"] = "تقرير المعدات";
+    var equipment = Model ?? Enumerable.Empty<MaterialManagement.BLL.ModelVM.Equipment.EquipmentViewModel>();
+    var totalEquipment = equipment.Count();
+    var withMaintenance = equipment.Count(e => e.LastMaintenanceDate.HasValue);
+    var dueMaintenance = equipment.Count(e => e.NextMaintenanceDate.HasValue && e.NextMaintenanceDate.Value.Date <= DateTime.Today);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1><i class="bi bi-file-earmark-text"></i> تقرير المعدات</h1>
-    <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> العودة للقائمة</a>
-</div>
-<hr />
-
-<!-- Report Summary -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card text-white bg-primary text-center shadow">
-            <div class="card-body">
-                <i class="bi bi-tools fs-1"></i>
-                <h5 class="card-title mt-2">إجمالي عدد المعدات</h5>
-                <p class="card-text display-4 fw-bold">@(Model?.Count() ?? 0)</p>
-            </div>
+<div class="erp-page erp-report-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">التقارير</p>
+            <h1>تقرير المعدات</h1>
+            <p class="erp-table-note">ملخص عملي لحالة المعدات ومواعيد الصيانة.</p>
+        </div>
+        <div class="erp-actions no-print">
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">طباعة</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">العودة للمعدات</a>
         </div>
     </div>
-</div>
 
-
-<!-- Full Equipment List -->
-<div class="card shadow-sm">
-    <div class="card-header">
-        <h5>قائمة تفصيلية بجميع المعدات</h5>
+    <div class="erp-summary-strip erp-report-summary-strip">
+        <div class="erp-summary-item"><span>إجمالي المعدات</span><strong>@totalEquipment</strong></div>
+        <div class="erp-summary-item"><span>لها سجل صيانة</span><strong>@withMaintenance</strong></div>
+        <div class="erp-summary-item"><span>صيانة مستحقة</span><strong>@dueMaintenance</strong></div>
+        <div class="erp-summary-item"><span>تاريخ التقرير</span><strong>@DateTime.Today.ToString("yyyy-MM-dd")</strong></div>
     </div>
-    <div class="card-body">
-        @if (Model != null && Model.Any())
+
+    <section class="erp-panel">
+        <div class="erp-panel-header">
+            <h2>قائمة تفصيلية بجميع المعدات</h2>
+        </div>
+
+        @if (equipment.Any())
         {
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-light">
+                <table class="table table-hover erp-data-table erp-report-table">
+                    <thead>
                         <tr>
-                            <th>#</th>
+                            <th>الكود</th>
                             <th>الاسم</th>
                             <th>تاريخ الشراء</th>
-                            <th>تاريخ آخر صيانة</th>
-                            <th>تاريخ الصيانة القادم</th>
+                            <th>آخر صيانة</th>
+                            <th>الصيانة القادمة</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in Model)
+                        @foreach (var item in equipment.OrderBy(e => e.Code))
                         {
                             <tr>
-                                <td>@item.Code</td>
+                                <td class="erp-number">@item.Code</td>
                                 <td>@item.Name</td>
                                 <td>@item.PurchaseDate.ToString("yyyy-MM-dd")</td>
-                                <td>@(item.LastMaintenanceDate.HasValue? item.LastMaintenanceDate.Value.ToString("yyyy-MM-dd") : "---")</td>
-                                <td>@(item.NextMaintenanceDate.HasValue? item.NextMaintenanceDate.Value.ToString("yyyy-MM-dd") : "---")</td>
+                                <td>@(item.LastMaintenanceDate?.ToString("yyyy-MM-dd") ?? "---")</td>
+                                <td>@(item.NextMaintenanceDate?.ToString("yyyy-MM-dd") ?? "---")</td>
                             </tr>
                         }
                     </tbody>
@@ -60,9 +63,7 @@
         }
         else
         {
-            <div class="text-center p-4">
-                <p class="lead">لا توجد بيانات لعرضها في التقرير.</p>
-            </div>
+            <div class="erp-empty-state">لا توجد بيانات معدات لعرضها في التقرير.</div>
         }
-    </div>
+    </section>
 </div>

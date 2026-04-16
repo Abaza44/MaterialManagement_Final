@@ -1,0 +1,206 @@
+@model MaterialManagement.Models.SalesReturnSandboxCreateViewModel
+
+@{
+    ViewData["Title"] = "مرتجع بيع تجريبي";
+    ViewData["SupervisorAuthorizationLabel"] = "اعتماد المشرف للمرتجع";
+    ViewData["SupervisorAuthorizationHint"] = "مرتجع البيع يعكس المخزون ورصيد العميل، لذلك يجب اعتماده بكلمة مرور المشرف.";
+}
+
+<div class="erp-page" dir="rtl">
+    <div class="erp-page-header no-print">
+        <div>
+            <p class="erp-eyebrow">مسار داخلي تجريبي</p>
+            <h1>إنشاء مرتجع بيع</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-controller="SalesInvoice" asp-action="Index" class="btn btn-outline-secondary">فواتير البيع</a>
+        </div>
+    </div>
+
+    <div class="alert alert-warning erp-alert no-print">
+        هذه الشاشة تستخدم مسار SalesReturn MediatR التجريبي فقط. لا توجد روابط قائمة عامة لها حتى اعتماد واجهة المرتجعات النهائية.
+    </div>
+
+    <section class="erp-panel no-print">
+        <div class="erp-panel-header">
+            <div>
+                <h2>اختيار فاتورة البيع</h2>
+                <p class="erp-table-note">أدخل رقم معرف الفاتورة لعرض البنود المتاحة للمرتجع.</p>
+            </div>
+        </div>
+
+        <form method="get" asp-action="Create" class="erp-inline-toolbar">
+            <div>
+                <label for="salesInvoiceId" class="form-label">معرف فاتورة البيع</label>
+                <input id="salesInvoiceId"
+                       name="salesInvoiceId"
+                       class="form-control erp-number"
+                       type="number"
+                       min="1"
+                       value="@Model.SalesInvoiceId" />
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> تحميل الفاتورة</button>
+            </div>
+        </form>
+    </section>
+
+    <div asp-validation-summary="All" class="alert alert-danger erp-alert" role="alert"></div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.InvoiceNumber))
+    {
+        <section class="erp-letterhead mb-3">
+            <div class="erp-letterhead-title">
+                <div>
+                    <p class="erp-eyebrow">فاتورة بيع</p>
+                    <h2 class="h4 mb-1">@Model.InvoiceNumber</h2>
+                    <p class="erp-table-note mb-0">
+                        العميل: <strong>@Model.ClientName</strong>
+                        @if (Model.InvoiceDate.HasValue)
+                        {
+                            <span> | التاريخ: <strong>@Model.InvoiceDate.Value.ToString("yyyy-MM-dd")</strong></span>
+                        }
+                    </p>
+                </div>
+                <span class="erp-status-pill">مرتجع مباشر بحالة Posted</span>
+            </div>
+        </section>
+
+        <section class="erp-summary-strip mb-3">
+            <div class="erp-summary-item">
+                <span>إجمالي الفاتورة</span>
+                <strong>@Model.InvoiceGrossAmount.ToString("N2")</strong>
+            </div>
+            <div class="erp-summary-item">
+                <span>خصم الفاتورة</span>
+                <strong>@Model.InvoiceDiscountAmount.ToString("N2")</strong>
+            </div>
+            <div class="erp-summary-item">
+                <span>صافي الفاتورة</span>
+                <strong>@Model.InvoiceNetAmount.ToString("N2")</strong>
+            </div>
+            <div class="erp-summary-item">
+                <span>بنود قابلة للمراجعة</span>
+                <strong>@Model.Items.Count</strong>
+            </div>
+        </section>
+
+        <form asp-action="Create" method="post" id="salesReturnSandboxForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="SalesInvoiceId" value="@Model.SalesInvoiceId" />
+
+            <section class="erp-panel">
+                <div class="erp-panel-header">
+                    <div>
+                        <h2>بنود المرتجع</h2>
+                        <p class="erp-table-note">أدخل الكمية المرتجعة فقط. البنود ذات الكمية صفر لن ترسل إلى مسار الإنشاء.</p>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover erp-data-table" id="salesReturnSandboxGrid">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>الكود</th>
+                                <th>المادة</th>
+                                <th class="erp-number">المباع</th>
+                                <th class="erp-number">مرتجع سابق</th>
+                                <th class="erp-number">المتاح</th>
+                                <th class="erp-number">صافي سعر الوحدة</th>
+                                <th class="erp-number">الكمية المرتجعة</th>
+                                <th class="erp-number">إجمالي المرتجع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < Model.Items.Count; i++)
+                            {
+                                var item = Model.Items[i];
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td>@(item.MaterialCode ?? "-")</td>
+                                    <td>@item.MaterialName</td>
+                                    <td class="erp-number">@item.QuantitySold.ToString("N2")</td>
+                                    <td class="erp-number">@item.QuantityAlreadyReturned.ToString("N2")</td>
+                                    <td class="erp-number">@item.QuantityRemaining.ToString("N2")</td>
+                                    <td class="erp-number" data-net-unit-price="@item.NetUnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)">@item.NetUnitPrice.ToString("N2")</td>
+                                    <td>
+                                        <input type="hidden" name="Items[@i].SalesInvoiceItemId" value="@item.SalesInvoiceItemId" />
+                                        <input class="form-control erp-number"
+                                               name="Items[@i].ReturnedQuantity"
+                                               type="number"
+                                               min="0"
+                                               max="@item.QuantityRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                               step="0.01"
+                                               value="@item.ReturnedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                               data-return-quantity />
+                                    </td>
+                                    <td class="erp-number fw-bold" data-return-line-total>0.00</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="erp-panel">
+                <div class="erp-form-grid">
+                    <div>
+                        <label for="ReturnDate" class="form-label">تاريخ المرتجع</label>
+                        <input id="ReturnDate" name="ReturnDate" type="date" class="form-control" value="@Model.ReturnDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="erp-field-wide">
+                        <label for="Notes" class="form-label">ملاحظات</label>
+                        <textarea id="Notes" name="Notes" class="form-control" rows="2">@Model.Notes</textarea>
+                    </div>
+                    <div class="erp-field-wide">
+                        <partial name="_SupervisorPasswordField" />
+                    </div>
+                </div>
+                <div class="erp-form-actions">
+                    <button type="submit" class="btn btn-success">إنشاء مرتجع البيع</button>
+                    <strong class="erp-form-action-total">إجمالي صافي المرتجع: <span id="salesReturnSandboxTotal">0.00</span></strong>
+                </div>
+            </section>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const grid = document.getElementById('salesReturnSandboxGrid');
+            const totalNode = document.getElementById('salesReturnSandboxTotal');
+
+            if (!grid || !totalNode) {
+                return;
+            }
+
+            function parseNumber(value) {
+                const numberValue = Number.parseFloat(value);
+                return Number.isFinite(numberValue) ? numberValue : 0;
+            }
+
+            function refreshTotals() {
+                let total = 0;
+                grid.querySelectorAll('tbody tr').forEach(function (row) {
+                    const quantity = parseNumber(row.querySelector('[data-return-quantity]')?.value);
+                    const netPrice = parseNumber(row.querySelector('[data-net-unit-price]')?.dataset.netUnitPrice);
+                    const lineTotal = quantity * netPrice;
+                    total += lineTotal;
+                    row.querySelector('[data-return-line-total]').textContent = lineTotal.toFixed(2);
+                });
+
+                totalNode.textContent = total.toFixed(2);
+            }
+
+            grid.addEventListener('input', function (event) {
+                if (event.target.matches('[data-return-quantity]')) {
+                    refreshTotals();
+                }
+            });
+
+            refreshTotals();
+        })();
+    </script>
+}

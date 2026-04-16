@@ -1,47 +1,64 @@
 ﻿@model MaterialManagement.BLL.ModelVM.Supplier.SupplierViewModel
 
 @{
-    ViewData["Title"] = $"فواتير المورد: {Model.Name}";
+    ViewData["Title"] = $"فواتير الطرف: {Model.Name}";
 }
 
-<div class="mb-3">
-    <h2>🧾 فواتير المورد: <span class="text-primary">@Model.Name</span></h2>
-    <p class="mb-1">📞 <strong>رقم الهاتف:</strong> @(string.IsNullOrWhiteSpace(Model.Phone) ? "غير متوفر" : Model.Phone)</p>
-    <p class="mb-1">📍 <strong>العنوان:</strong> @(string.IsNullOrWhiteSpace(Model.Address) ? "غير متوفر" : Model.Address)</p>
-    <p><a asp-action="Index" class="btn btn-secondary btn-sm">⬅ العودة لقائمة الموردين</a></p>
-</div>
-<div class="card shadow-sm">
-    <div class="card-body">
-        <table id="invoicesTable" class="table table-bordered table-hover" style="width:100%">
-            <thead class="table-dark">
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">فواتير الشراء</p>
+            <h1>فواتير الطرف: @Model.Name</h1>
+            <p class="erp-table-note">يعرض الجدول عمليات الشراء النشطة مع إجماليات الرصيد والمتبقي.</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">العودة للتجميع</a>
+            <a asp-action="Create" class="btn btn-primary">فاتورة شراء جديدة</a>
+        </div>
+    </div>
+    @if (Model.Id != 0)
+    {
+        <section class="erp-summary-strip mb-3">
+            <div class="erp-summary-item">
+                <span>رقم الهاتف</span>
+                <strong>@(string.IsNullOrWhiteSpace(Model.Phone) ? "غير متوفر" : Model.Phone)</strong>
+            </div>
+            <div class="erp-summary-item">
+                <span>العنوان</span>
+                <strong>@(string.IsNullOrWhiteSpace(Model.Address) ? "غير متوفر" : Model.Address)</strong>
+            </div>
+        </section>
+    }
+
+    <section class="erp-summary-strip mb-3">
+        <div class="erp-summary-item">
+            <span>رصيد سابق / مرحل</span>
+            <strong id="openingBalance" class="erp-number">0.00</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>إجمالي المتبقي من الفواتير</span>
+            <strong id="grandTotalRemaining" class="erp-number text-danger">0.00</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>الرصيد الإجمالي النهائي</span>
+            <strong id="finalBalance" class="erp-number text-primary">0.00</strong>
+        </div>
+    </section>
+
+<section class="erp-panel">
+        <table id="invoicesTable" class="table table-bordered table-hover erp-data-table erp-report-table" style="width:100%">
+            <thead>
                 <tr>
                     <th>رقم الفاتورة</th>
                     <th>التاريخ</th>
                     <th>الإجمالي</th>
                     <th>المدفوع</th>
                     <th>المتبقي</th>
-                    <th>إجراءات</th>
+                    <th class="text-center">إجراءات</th>
                 </tr>
             </thead>
-            <tfoot>
-                <tr class="table-light">
-                    <td colspan="4" class="text-end fw-bold">رصيد سابق / مرحل:</td>
-                    <td id="openingBalance" class="text-end fw-bold">0.00</td>
-                    <td></td>
-                </tr>
-                <tr class="table-light">
-                    <td colspan="4" class="text-end">إجمالي المتبقي من الفواتير:</td>
-                    <td id="grandTotalRemaining" class="text-end text-danger">0.00</td>
-                    <td></td>
-                </tr>
-                <tr class="table-dark text-white fw-bolder">
-                    <td colspan="4" class="text-end fs-5">الرصيد الإجمالي النهائي:</td>
-                    <td id="finalBalance" class="text-end fs-5">0.00</td>
-                    <td></td>
-                </tr>
-            </tfoot>
         </table>
-    </div>
+</section>
 </div>
 
 @section Scripts {
@@ -71,25 +88,27 @@
                 "columns": [
                     { "data": "invoiceNumber" },
                     { "data": "invoiceDate", "render": function(data) { return new Date(data).toLocaleDateString('ar-EG'); } },
-                    { "data": "totalAmount", "render": currencyFormat, "className": "text-end" },
-                    { "data": "paidAmount", "render": currencyFormat, "className": "text-end" },
+                    { "data": "totalAmount", "render": currencyFormat, "className": "text-end erp-number" },
+                    { "data": "paidAmount", "render": currencyFormat, "className": "text-end erp-number" },
                     {
                         "data": "remainingAmount",
                         "render": function(data) {
-                            return data > 0 ? `<span class="badge bg-danger">${currencyFormat(data)}</span>` : `<span class="badge bg-success">✔</span>`;
+                            return data > 0 ? `<span class="badge bg-danger">${currencyFormat(data)}</span>` : `<span class="badge bg-success">مسدد</span>`;
                         },
-                        "className": "text-end"
+                        "className": "text-end erp-number"
                     },
                     {
                         "data": "id",
                         "render": function (data) {
-                            return `<a href='/PurchaseInvoice/Details/${data}' class='btn btn-info btn-sm'>👁</a> ` +
-                                   `<a href='/PurchaseInvoice/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>`;
+                            return `<div class='erp-table-actions'>` +
+                                   `<a href='/PurchaseInvoice/Details/${data}' class='btn btn-outline-primary btn-sm'>التفاصيل</a>` +
+                                   `<a href='/PurchaseInvoice/Delete/${data}' class='btn btn-outline-danger btn-sm'>حذف</a>` +
+                                   `</div>`;
                         },
                         "orderable": false, "searchable": false
                     }
                 ],
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
+                "language": window.erpDataTablesArabic,
                 "order": [[ 1, "desc" ]]
             });
         });

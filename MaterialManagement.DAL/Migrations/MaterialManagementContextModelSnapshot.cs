@@ -354,9 +354,20 @@ namespace MaterialManagement.DAL.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("OneTimeSupplierName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OneTimeSupplierPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<decimal>("PaidAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PartyMode")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("RemainingAmount")
                         .HasPrecision(18, 2)
@@ -501,7 +512,7 @@ namespace MaterialManagement.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ClientId")
+                    b.Property<int?>("ClientId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedDate")
@@ -525,9 +536,20 @@ namespace MaterialManagement.DAL.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("OneTimeCustomerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OneTimeCustomerPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<decimal>("PaidAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PartyMode")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("RemainingAmount")
                         .HasPrecision(18, 2)
@@ -580,6 +602,105 @@ namespace MaterialManagement.DAL.Migrations
                     b.HasIndex("SalesInvoiceId");
 
                     b.ToTable("SalesInvoiceItems");
+                });
+
+            modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesReturn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ReturnDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("SalesInvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalGrossAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalNetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalProratedDiscount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("ReturnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SalesInvoiceId");
+
+                    b.ToTable("SalesReturns");
+                });
+
+            modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesReturnItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("NetUnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OriginalUnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReturnedQuantity")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SalesInvoiceItemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SalesReturnId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalReturnNetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("SalesInvoiceItemId");
+
+                    b.HasIndex("SalesReturnId");
+
+                    b.ToTable("SalesReturnItems");
                 });
 
             modelBuilder.Entity("MaterialManagement.DAL.Entities.Supplier", b =>
@@ -712,7 +833,8 @@ namespace MaterialManagement.DAL.Migrations
 
                     b.HasOne("MaterialManagement.DAL.Entities.Supplier", "Supplier")
                         .WithMany("PurchaseInvoices")
-                        .HasForeignKey("SupplierId");
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Client");
 
@@ -773,8 +895,7 @@ namespace MaterialManagement.DAL.Migrations
                     b.HasOne("MaterialManagement.DAL.Entities.Client", "Client")
                         .WithMany("SalesInvoices")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Client");
                 });
@@ -796,6 +917,52 @@ namespace MaterialManagement.DAL.Migrations
                     b.Navigation("Material");
 
                     b.Navigation("SalesInvoice");
+                });
+
+            modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesReturn", b =>
+                {
+                    b.HasOne("MaterialManagement.DAL.Entities.Client", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MaterialManagement.DAL.Entities.SalesInvoice", "SalesInvoice")
+                        .WithMany("SalesReturns")
+                        .HasForeignKey("SalesInvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+
+                    b.Navigation("SalesInvoice");
+                });
+
+            modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesReturnItem", b =>
+                {
+                    b.HasOne("MaterialManagement.DAL.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MaterialManagement.DAL.Entities.SalesInvoiceItem", "SalesInvoiceItem")
+                        .WithMany("SalesReturnItems")
+                        .HasForeignKey("SalesInvoiceItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MaterialManagement.DAL.Entities.SalesReturn", "SalesReturn")
+                        .WithMany("SalesReturnItems")
+                        .HasForeignKey("SalesReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+
+                    b.Navigation("SalesInvoiceItem");
+
+                    b.Navigation("SalesReturn");
                 });
 
             modelBuilder.Entity("MaterialManagement.DAL.Entities.SupplierPayment", b =>
@@ -847,6 +1014,18 @@ namespace MaterialManagement.DAL.Migrations
             modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesInvoice", b =>
                 {
                     b.Navigation("SalesInvoiceItems");
+
+                    b.Navigation("SalesReturns");
+                });
+
+            modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesInvoiceItem", b =>
+                {
+                    b.Navigation("SalesReturnItems");
+                });
+
+            modelBuilder.Entity("MaterialManagement.DAL.Entities.SalesReturn", b =>
+                {
+                    b.Navigation("SalesReturnItems");
                 });
 
             modelBuilder.Entity("MaterialManagement.DAL.Entities.Supplier", b =>

@@ -11,53 +11,61 @@
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3">➕ إضافة مادة جديدة</h2>
-
-    <form asp-action="Create" method="post">
-        <div class="mb-3">
-            <label asp-for="Name" class="form-label"></label>
-            <input asp-for="Name" class="form-control" />
-            <span asp-validation-for="Name" class="text-danger"></span>
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">المخزون</p>
+            <h1>إضافة مادة جديدة</h1>
         </div>
+    </div>
 
-        <div class="mb-3">
-            <label asp-for="Code" class="form-label"></label>
-            <input asp-for="Code" class="form-control" />
-            <span asp-validation-for="Code" class="text-danger"></span>
-        </div>
+    <form asp-action="Create" method="post" class="erp-panel">
+        <div class="erp-form-grid">
+            <div>
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
 
-        <div class="mb-3">
-            <label asp-for="Unit" class="form-label"></label>
-            <input asp-for="Unit" class="form-control" />
-            <span asp-validation-for="Unit" class="text-danger"></span>
-        </div>
+            <div>
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
 
-        <div class="row">
-            <div class="col-md-6 mb-3">
+            <div>
+                <label asp-for="Unit" class="form-label"></label>
+                <input asp-for="Unit" class="form-control" />
+                <span asp-validation-for="Unit" class="text-danger"></span>
+            </div>
+
+            <div>
                 <label asp-for="Quantity" class="form-label"></label>
                 <input asp-for="Quantity" class="form-control" />
                 <span asp-validation-for="Quantity" class="text-danger"></span>
             </div>
 
-            <div class="mb-3">
-    <label asp-for="MinimumQuantity" class="form-label fw-bold"></label>
-    <input asp-for="MinimumQuantity" class="form-control" type="number" step="any" placeholder="الكمية التي سيظهر عندها تنبيه" />
-    <span asp-validation-for="MinimumQuantity" class="text-danger"></span>
-</div>
+            <div>
+                <label asp-for="MinimumQuantity" class="form-label"></label>
+                <input asp-for="MinimumQuantity" class="form-control" type="number" step="any" placeholder="الكمية التي سيظهر عندها تنبيه" />
+                <span asp-validation-for="MinimumQuantity" class="text-danger"></span>
+            </div>
 
-        <div class="mb-3">
-            <label asp-for="Description" class="form-label"></label>
-            <textarea asp-for="Description" class="form-control"></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
+            <div class="form-check align-self-end">
+                <input asp-for="IsActive" class="form-check-input" />
+                <label asp-for="IsActive" class="form-check-label">نشط</label>
+            </div>
+
+            <div class="erp-field-wide">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
         </div>
 
-        <div class="form-check mb-3">
-            <input asp-for="IsActive" class="form-check-input" />
-            <label asp-for="IsActive" class="form-check-label">نشط</label>
+        <div class="erp-form-actions">
+            <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> حفظ</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">رجوع</a>
         </div>
-
-        <button type="submit" class="btn btn-success">💾 حفظ</button>
-        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
     </form>
 </div>

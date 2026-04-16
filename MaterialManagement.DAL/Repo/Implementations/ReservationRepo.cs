@@ -28,6 +28,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<IEnumerable<Reservation>> GetAllActiveWithDetailsAsync()
         {
             return await _context.Reservations
+                .IgnoreQueryFilters()
                 .Where(r => r.Status == ReservationStatus.Active)
                 .Include(r => r.Client)
                 .Include(r => r.ReservationItems)
@@ -40,6 +41,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<IEnumerable<Reservation>> GetAllAsync()
         {
             return await _context.Reservations
+                .IgnoreQueryFilters()
                 .Include(r => r.Client)
                 .AsNoTracking() // <<< تحسين الأداء
                 .OrderByDescending(r => r.ReservationDate)
@@ -49,6 +51,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<Reservation?> GetByIdForUpdateAsync(int id)
         {
             return await _context.Reservations
+                .IgnoreQueryFilters()
                 .Include(r => r.Client)
                 .Include(r => r.ReservationItems)
                     .ThenInclude(item => item.Material)
@@ -59,6 +62,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<Reservation?> GetByIdWithDetailsAsync(int id)
         {
             return await _context.Reservations
+                .IgnoreQueryFilters()
                 .Include(r => r.Client)
                 .Include(r => r.ReservationItems)
                     .ThenInclude(item => item.Material)

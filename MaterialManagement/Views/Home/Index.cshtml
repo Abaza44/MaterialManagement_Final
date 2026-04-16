@@ -1,133 +1,128 @@
 ﻿@{
     ViewData["Title"] = "لوحة التحكم";
     var culture = new System.Globalization.CultureInfo("ar-EG");
+    decimal totalSales = (decimal)(ViewBag.TotalSalesMonth ?? 0m);
+    decimal totalPurchases = (decimal)(ViewBag.TotalPurchasesMonth ?? 0m);
+    decimal totalExpenses = (decimal)(ViewBag.TotalExpensesMonth ?? 0m);
+    decimal totalClientDebt = (decimal)(ViewBag.TotalClientDebt ?? 0m);
+    decimal totalSupplierDebt = (decimal)(ViewBag.TotalSupplierDebt ?? 0m);
+    decimal netFlow = totalSales - (totalPurchases + totalExpenses);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>📊 لوحة التحكم</h1>
-    <span class="text-muted">@DateTime.Now.ToString("dddd, dd MMMM yyyy", culture)</span>
-</div>
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">لوحة التشغيل</p>
+            <h1>لوحة التحكم</h1>
+        </div>
+        <span class="erp-status-pill">@DateTime.Now.ToString("dddd، dd MMMM yyyy", culture)</span>
+    </div>
 
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-
-<!-- ملخص مالي -->
-<h4 class="mb-3">💵 ملخص مالي (الشهر الحالي)</h4>
-<div class="row">
-    @{
-        decimal totalSales = (decimal)(ViewBag.TotalSalesMonth ?? 0m);
-        decimal totalPurchases = (decimal)(ViewBag.TotalPurchasesMonth ?? 0m);
-        decimal totalExpenses = (decimal)(ViewBag.TotalExpensesMonth ?? 0m);
-        decimal netFlow = totalSales - (totalPurchases + totalExpenses);
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger erp-alert">@TempData["ErrorMessage"]</div>
     }
 
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-success shadow h-100 text-center">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">المبيعات</div>
-                <div class="h5 mb-0 font-weight-bold">@totalSales.ToString("C", culture)</div>
+    <section class="erp-dashboard-grid mb-3" aria-label="ملخص مالي للشهر الحالي">
+        <div class="erp-metric-card erp-metric-card-success">
+            <i class="bi bi-receipt"></i>
+            <span>مبيعات الشهر</span>
+            <strong>@totalSales.ToString("C", culture)</strong>
+            <small>إجمالي فواتير البيع المسجلة خلال الشهر الحالي.</small>
+        </div>
+
+        <div class="erp-metric-card">
+            <i class="bi bi-bag-check"></i>
+            <span>مشتريات الشهر</span>
+            <strong>@totalPurchases.ToString("C", culture)</strong>
+            <small>إجمالي فواتير الشراء المسجلة خلال الشهر الحالي.</small>
+        </div>
+
+        <div class="erp-metric-card">
+            <i class="bi bi-cash-stack"></i>
+            <span>مصروفات الشهر</span>
+            <strong>@totalExpenses.ToString("C", culture)</strong>
+            <small>إجمالي المصروفات التشغيلية خلال الشهر الحالي.</small>
+        </div>
+
+        <div class="erp-metric-card @(netFlow >= 0 ? "erp-metric-card-success" : "erp-metric-card-danger")">
+            <i class="bi bi-activity"></i>
+            <span>صافي التدفق التقريبي</span>
+            <strong>@netFlow.ToString("C", culture)</strong>
+            <small>المبيعات ناقص المشتريات والمصروفات.</small>
+        </div>
+    </section>
+
+    <section class="erp-panel">
+        <div class="erp-panel-header">
+            <div>
+                <h2>نظرة عامة على الأداء</h2>
+                <p class="erp-table-note">قراءة سريعة للشهر الحالي قبل الدخول إلى التقارير التفصيلية.</p>
             </div>
         </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-info shadow h-100 text-center">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">المشتريات</div>
-                <div class="h5 mb-0 font-weight-bold">@totalPurchases.ToString("C", culture)</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-warning shadow h-100 text-center">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">المصاريف</div>
-                <div class="h5 mb-0 font-weight-bold">@totalExpenses.ToString("C", culture)</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card border-left-primary shadow h-100 text-center">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">صافي التدفق (تقريبي)</div>
-                <div class="h5 mb-0 font-weight-bold @(netFlow >= 0 ? "text-success" : "text-danger")">
-                    @netFlow.ToString("C", culture)
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- الرسوم البيانية -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-light">
-        <h5 class="m-0">📈 نظرة عامة على الأداء</h5>
-    </div>
-    <div class="card-body">
         <canvas id="financeChart" height="100"></canvas>
-    </div>
-</div>
+    </section>
 
-<!-- ملخص الأرصدة -->
-<h4 class="mb-3 mt-4">🏦 ملخص الأرصدة والعمليات</h4>
-<div class="row text-center">
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-danger text-white shadow">
-            <div class="card-body">
-                <h6>تنبيهات نقص المخزون</h6>
-                <p class="display-6">@(ViewBag.LowStockCount ?? 0)</p>
-                <a asp-controller="Material" asp-action="LowStock" class="text-white stretched-link">عرض المواد</a>
-            </div>
-        </div>
-    </div>
+    <section class="erp-summary-strip mb-3" aria-label="ملخص الأرصدة والعمليات">
+        <a asp-controller="Material" asp-action="LowStock" class="erp-summary-item text-decoration-none">
+            <span>تنبيهات نقص المخزون</span>
+            <strong>@(ViewBag.LowStockCount ?? 0)</strong>
+        </a>
 
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-primary text-white shadow">
-            <div class="card-body">
-                <h6>ديون العملاء</h6>
-                <p class="display-6">@(((decimal)(ViewBag.TotalClientDebt ?? 0m)).ToString("C", culture))</p>
-                <a asp-controller="Client" asp-action="Index" class="text-white stretched-link">عرض العملاء</a>
-            </div>
-        </div>
-    </div>
+        <a asp-controller="Client" asp-action="Index" class="erp-summary-item text-decoration-none">
+            <span>ديون العملاء</span>
+            <strong>@totalClientDebt.ToString("C", culture)</strong>
+        </a>
 
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-secondary text-white shadow">
-            <div class="card-body">
-                <h6>مستحقات الموردين</h6>
-                <p class="display-6">@(((decimal)(ViewBag.TotalSupplierDebt ?? 0m)).ToString("C", culture))</p>
-                <a asp-controller="Supplier" asp-action="Index" class="text-white stretched-link">عرض الموردين</a>
-            </div>
-        </div>
-    </div>
+        <a asp-controller="Supplier" asp-action="Index" class="erp-summary-item text-decoration-none">
+            <span>مستحقات الموردين</span>
+            <strong>@totalSupplierDebt.ToString("C", culture)</strong>
+        </a>
 
-    <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-info text-dark shadow">
-            <div class="card-body">
-                <h6>إجمالي الموظفين</h6>
-                <p class="display-6">@(ViewBag.TotalEmployees ?? 0)</p>
-                <a asp-controller="Employee" asp-action="Index" class="text-dark stretched-link">عرض الموظفين</a>
-            </div>
-        </div>
-    </div>
-</div>
+        <a asp-controller="Employee" asp-action="Index" class="erp-summary-item text-decoration-none">
+            <span>الموظفون النشطون</span>
+            <strong>@(ViewBag.TotalEmployees ?? 0)</strong>
+        </a>
+    </section>
 
-<!-- الوصول السريع -->
-<div class="card shadow-sm mt-4">
-    <div class="card-header">
-        <h5>⚡ الوصول السريع</h5>
-    </div>
-    <div class="card-body text-center">
-        <a asp-controller="SalesInvoice" asp-action="Create" class="btn btn-success m-2"><i class="bi bi-plus-circle"></i> فاتورة بيع</a>
-        <a asp-controller="PurchaseInvoice" asp-action="Create" class="btn btn-primary m-2"><i class="bi bi-plus-circle"></i> فاتورة شراء</a>
-        <a asp-controller="Payment" asp-action="AddClientPayment" class="btn btn-info m-2"><i class="bi bi-wallet2"></i> إضافة تحصيل</a>
-        <a asp-controller="Expense" asp-action="Create" class="btn btn-warning m-2"><i class="bi bi-plus-circle"></i> إضافة مصروف</a>
-        <a asp-controller="Maintenance" asp-action="Add" class="btn btn-dark m-2"><i class="bi bi-wrench"></i> تسجيل صيانة</a>
-    </div>
+    <section class="erp-workflow-grid" aria-label="الوصول السريع">
+        <a asp-controller="SalesInvoice" asp-action="Create" class="erp-action-card">
+            <i class="bi bi-plus-circle"></i>
+            <strong>فاتورة بيع</strong>
+            <span>إدخال بنود البيع وحساب الخصم والمدفوع والمتبقي.</span>
+        </a>
+
+        <a asp-controller="PurchaseInvoice" asp-action="Create" class="erp-action-card">
+            <i class="bi bi-bag-plus"></i>
+            <strong>فاتورة شراء</strong>
+            <span>تسجيل شراء من مورد أو مرتجع عميل حسب نوع العملية.</span>
+        </a>
+
+        <a asp-controller="Payment" asp-action="AddClientPayment" class="erp-action-card">
+            <i class="bi bi-wallet2"></i>
+            <strong>تحصيل عميل</strong>
+            <span>إضافة دفعة مرتبطة بفاتورة أو دفعة غير مخصصة ضمن الرصيد المستحق.</span>
+        </a>
+
+        <a asp-controller="Expense" asp-action="Create" class="erp-action-card">
+            <i class="bi bi-cash"></i>
+            <strong>مصروف جديد</strong>
+            <span>تسجيل مصروف تشغيلي وربطه بتصنيف وطريقة دفع.</span>
+        </a>
+
+        <a asp-controller="Reservation" asp-action="Create" class="erp-action-card">
+            <i class="bi bi-calendar-check"></i>
+            <strong>حجز مخزون</strong>
+            <span>حجز كميات للعميل بدون تغيير رصيد الحساب حتى التسليم.</span>
+        </a>
+
+        <a asp-controller="Report" asp-action="AccountStatement" class="erp-action-card">
+            <i class="bi bi-person-lines-fill"></i>
+            <strong>كشف حساب</strong>
+            <span>مراجعة حركة عميل أو مورد مع الرصيد النهائي.</span>
+        </a>
+    </section>
+
 </div>
 
 @section Scripts {

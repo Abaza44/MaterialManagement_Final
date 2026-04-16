@@ -52,9 +52,13 @@ namespace MaterialManagement.DAL.DB
             modelBuilder.Entity<SalesInvoice>().Property(i => i.TotalAmount).HasPrecision(18, 2);
             modelBuilder.Entity<SalesInvoice>().Property(i => i.PaidAmount).HasPrecision(18, 2);
             modelBuilder.Entity<SalesInvoice>().Property(i => i.RemainingAmount).HasPrecision(18, 2);
+            modelBuilder.Entity<SalesInvoice>().Property(i => i.OneTimeCustomerName).HasMaxLength(100);
+            modelBuilder.Entity<SalesInvoice>().Property(i => i.OneTimeCustomerPhone).HasMaxLength(30);
             modelBuilder.Entity<PurchaseInvoice>().Property(i => i.TotalAmount).HasPrecision(18, 2);
             modelBuilder.Entity<PurchaseInvoice>().Property(i => i.PaidAmount).HasPrecision(18, 2);
             modelBuilder.Entity<PurchaseInvoice>().Property(i => i.RemainingAmount).HasPrecision(18, 2);
+            modelBuilder.Entity<PurchaseInvoice>().Property(i => i.OneTimeSupplierName).HasMaxLength(100);
+            modelBuilder.Entity<PurchaseInvoice>().Property(i => i.OneTimeSupplierPhone).HasMaxLength(30);
 
             // Invoice Items
             modelBuilder.Entity<SalesInvoiceItem>().Property(i => i.Quantity).HasPrecision(18, 2);
@@ -105,11 +109,25 @@ namespace MaterialManagement.DAL.DB
                 .HasForeignKey(p => p.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Client to SalesInvoices is optional because walk-in customers are stored on the invoice.
+            modelBuilder.Entity<Client>()
+                .HasMany(c => c.SalesInvoices)
+                .WithOne(i => i.Client)
+                .HasForeignKey(i => i.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Supplier to Payments
             modelBuilder.Entity<Supplier>()
                 .HasMany(s => s.Payments)
                 .WithOne(p => p.Supplier)
                 .HasForeignKey(p => p.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Supplier to PurchaseInvoices is optional because one-time suppliers are stored on the invoice.
+            modelBuilder.Entity<Supplier>()
+                .HasMany(s => s.PurchaseInvoices)
+                .WithOne(i => i.Supplier)
+                .HasForeignKey(i => i.SupplierId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // SalesInvoice to Items
@@ -186,13 +204,9 @@ namespace MaterialManagement.DAL.DB
             modelBuilder.Entity<SalesInvoice>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<PurchaseInvoice>().HasQueryFilter(e => e.IsActive);
             
-            // Relational filters to suppress Warning 10622
-            modelBuilder.Entity<ClientPayment>().HasQueryFilter(e => e.Client.IsActive);
-            modelBuilder.Entity<SupplierPayment>().HasQueryFilter(e => e.Supplier.IsActive);
-            modelBuilder.Entity<Reservation>().HasQueryFilter(e => e.Client.IsActive);
-            modelBuilder.Entity<ReservationItem>().HasQueryFilter(e => e.Material.IsActive);
-            modelBuilder.Entity<SalesInvoiceItem>().HasQueryFilter(e => e.Material.IsActive);
-            modelBuilder.Entity<PurchaseInvoiceItem>().HasQueryFilter(e => e.Material.IsActive);
+            // Do not filter historical child rows by related active state.
+            // Invoice, payment, reservation, and return history must remain readable
+            // even if a related material/client/supplier is later deactivated.
             modelBuilder.Entity<SalesReturn>().HasQueryFilter(e => e.IsActive);
         }
     }

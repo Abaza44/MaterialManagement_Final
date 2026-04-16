@@ -1,28 +1,45 @@
 ﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Invoice.SupplierInvoiceSummaryViewModel>
 
 @{
-    ViewData["Title"] = "فواتير الشراء حسب المورد";
+    ViewData["Title"] = "فواتير الشراء حسب المورد / اليدوي";
 }
 
-<h2 class="mb-3">🧾 @ViewData["Title"]</h2>
-<p><a asp-action="Create" class="btn btn-success">➕ إنشاء فاتورة شراء جديدة</a></p>
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">فواتير الشراء</p>
+            <h1>@ViewData["Title"]</h1>
+            <p class="erp-table-note">تابع عمليات الموردين المسجلين والموردين اليدويين من شاشة واحدة.</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> إنشاء فاتورة شراء</a>
+        </div>
+    </div>
 
-<div class="row">
+<div class="erp-party-grid">
     @foreach (var supplier in Model)
     {
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">@supplier.SupplierName</h5>
-                    <p class="card-text">
-                        لديه <strong>@supplier.InvoiceCount</strong> فاتورة. <br />
-                        إجمالي المستحقات: <strong class="text-success">@supplier.TotalCredit.ToString("C")</strong>
-                    </p>
-                    <a asp-action="SupplierInvoices" asp-route-id="@supplier.SupplierId" class="btn btn-primary mt-auto">
-                        عرض الفواتير <i class="bi bi-arrow-left-circle"></i>
-                    </a>
+        <article class="erp-party-card">
+            <div>
+                <span class="erp-status-pill @(supplier.SupplierId == 0 ? "erp-status-pill-success" : "")">
+                    @(supplier.SupplierId == 0 ? "مورد يدوي" : "مورد مسجل")
+                </span>
+                <h2>@supplier.SupplierName</h2>
+            </div>
+            <div class="erp-party-card-metrics">
+                <div>
+                    <span>عدد العمليات</span>
+                    <strong>@supplier.InvoiceCount.ToString("N0")</strong>
+                </div>
+                <div>
+                    <span>إجمالي المستحق</span>
+                    <strong class="@(supplier.TotalCredit > 0 ? "text-success" : "")">@supplier.TotalCredit.ToString("N2")</strong>
                 </div>
             </div>
-        </div>
+            <a asp-action="SupplierInvoices" asp-route-id="@supplier.SupplierId" class="btn btn-outline-primary w-100">
+                عرض الفواتير
+            </a>
+        </article>
     }
+</div>
 </div>

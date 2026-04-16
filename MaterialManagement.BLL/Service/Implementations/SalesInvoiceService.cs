@@ -3,6 +3,7 @@ using MaterialManagement.BLL.ModelVM.Invoice;
 using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.DB;
 using MaterialManagement.DAL.Entities;
+using MaterialManagement.DAL.Enums;
 using MaterialManagement.DAL.Repo.Abstractions;
 using MaterialManagement.DAL.Repo.Implementations;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,9 @@ namespace MaterialManagement.BLL.Service.Implementations
 {
     public class SalesInvoiceService : ISalesInvoiceService
     {
+        private const string CannotDeleteInvoiceWithReturnsMessage = "لا يمكن حذف فاتورة البيع لأنها مرتبطة بمرتجعات بيع. يرجى مراجعة أو إلغاء المرتجعات المرتبطة أولاً.";
+        private const string SalesReturnsMigrationNameSuffix = "_AddSalesReturnsModule";
+
         private readonly ISalesInvoiceRepo _invoiceRepo;
         private readonly IMaterialRepo _materialRepo;
         private readonly IClientRepo _clientRepo; // <<< نحتاجه لتعديل رصيد العميل
@@ -37,19 +41,29 @@ namespace MaterialManagement.BLL.Service.Implementations
 
         public async Task<SalesInvoiceViewModel> CreateInvoiceAsync(SalesInvoiceCreateModel model)
         {
+            ValidateCreateModel(model);
+            var partyMode = ResolvePartyMode(model);
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var clientToUpdate = await _clientRepo.GetByIdForUpdateAsync(model.ClientId);
-                if (clientToUpdate == null) throw new InvalidOperationException("العميل غير موجود");
+                Client? clientToUpdate = null;
+                if (partyMode == SalesInvoicePartyMode.RegisteredClient)
+                {
+                    clientToUpdate = await _clientRepo.GetByIdForUpdateAsync(model.ClientId!.Value);
+                    if (clientToUpdate == null) throw new InvalidOperationException("العميل غير موجود");
+                }
 
                 // (تعديل 1: بناء الفاتورة يدوياً لضمان الدقة بدلاً من المابر)
                 var invoice = new SalesInvoice
                 {
-                    ClientId = model.ClientId,
+                    PartyMode = partyMode,
+                    ClientId = partyMode == SalesInvoicePartyMode.RegisteredClient ? model.ClientId : null,
+                    OneTimeCustomerName = partyMode == SalesInvoicePartyMode.WalkInCustomer ? model.OneTimeCustomerName?.Trim() : null,
+                    OneTimeCustomerPhone = partyMode == SalesInvoicePartyMode.WalkInCustomer ? NormalizeOptionalText(model.OneTimeCustomerPhone) : null,
                     InvoiceDate = DateTime.Now,
                     InvoiceNumber = $"SAL-{DateTime.Now.Ticks}",
-                    // Notes = model.Notes // (إذا كان لديك حقل ملاحظات)
+                    Notes = NormalizeOptionalText(model.Notes)
                 };
 
                 decimal totalAmount = 0;
@@ -79,17 +93,26 @@ namespace MaterialManagement.BLL.Service.Implementations
                 invoice.DiscountAmount = model.DiscountAmount; // مثال: 65
 
                 // 3. حساب الصافي المستحق (المبلغ المطلوب من العميل بعد الخصم)
-                decimal netAmountDue = invoice.TotalAmount - invoice.DiscountAmount; // 17965 - 65 = 17900
+                decimal netAmountDue = CalculateNetDue(invoice.TotalAmount, invoice.DiscountAmount); // 17965 - 65 = 17900
+                ValidateTotals(invoice.TotalAmount, invoice.DiscountAmount, invoice.PaidAmount);
 
                 // 4. حساب المتبقي على الفاتورة (المطلوب - المدفوع)
                 invoice.RemainingAmount = netAmountDue - invoice.PaidAmount; // 17900 - 17900 = 0
 
+                if (partyMode == SalesInvoicePartyMode.WalkInCustomer && invoice.RemainingAmount != 0)
+                {
+                    throw new InvalidOperationException("فاتورة العميل النقدي يجب أن تكون مسددة بالكامل. إذا كان هناك متبقي، سجّل العميل أولاً.");
+                }
+
                 // 5. إضافة الفاتورة للـ DB Context
                 await _invoiceRepo.AddAsync(invoice);
 
-                // 6. تحديث رصيد العميل (المديونية)
-                // المديونية تزيد فقط بالمبلغ المتبقي (اللي هو 0 في مثالك)
-                clientToUpdate.Balance += invoice.RemainingAmount;
+                if (clientToUpdate != null)
+                {
+                    // 6. تحديث رصيد العميل (المديونية)
+                    // المديونية تزيد فقط بالمبلغ المتبقي (اللي هو 0 في مثالك)
+                    clientToUpdate.Balance += invoice.RemainingAmount;
+                }
 
                 await _context.SaveChangesAsync(); // حفظ كل التغييرات (الفاتورة، العميل، المواد)
                 await transaction.CommitAsync();
@@ -126,7 +149,23 @@ namespace MaterialManagement.BLL.Service.Implementations
                 if (invoiceToDelete == null)
                     throw new InvalidOperationException("الفاتورة غير موجودة");
 
-                invoiceToDelete.Client.Balance -= invoiceToDelete.RemainingAmount;
+                if (await IsSalesReturnsSchemaAppliedAsync())
+                {
+                    var hasLinkedReturns = await _context.SalesReturns
+                        .IgnoreQueryFilters()
+                        .AnyAsync(r => r.SalesInvoiceId == id && r.IsActive);
+
+                    if (hasLinkedReturns)
+                        throw new InvalidOperationException(CannotDeleteInvoiceWithReturnsMessage);
+                }
+
+                if (invoiceToDelete.PartyMode == SalesInvoicePartyMode.RegisteredClient)
+                {
+                    if (invoiceToDelete.Client == null)
+                        throw new InvalidOperationException("العميل المرتبط بهذه الفاتورة غير موجود.");
+
+                    invoiceToDelete.Client.Balance -= invoiceToDelete.RemainingAmount;
+                }
 
 
                 foreach (var item in invoiceToDelete.SalesInvoiceItems)
@@ -146,6 +185,83 @@ namespace MaterialManagement.BLL.Service.Implementations
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        private async Task<bool> IsSalesReturnsSchemaAppliedAsync()
+        {
+            var appliedMigrations = await _context.Database.GetAppliedMigrationsAsync();
+            return appliedMigrations.Any(migration =>
+                migration.EndsWith(SalesReturnsMigrationNameSuffix, StringComparison.Ordinal));
+        }
+
+        private static void ValidateCreateModel(SalesInvoiceCreateModel model)
+        {
+            if (model == null)
+                throw new InvalidOperationException("بيانات فاتورة البيع مطلوبة.");
+
+            _ = ResolvePartyMode(model);
+
+            if (model.Items == null || !model.Items.Any())
+                throw new InvalidOperationException("يجب إضافة بند واحد على الأقل للفاتورة.");
+
+            if (model.DiscountAmount < 0)
+                throw new InvalidOperationException("مبلغ الخصم لا يمكن أن يكون سالباً.");
+
+            if (model.PaidAmount < 0)
+                throw new InvalidOperationException("المبلغ المدفوع لا يمكن أن يكون سالباً.");
+
+            foreach (var item in model.Items)
+            {
+                if (item.MaterialId <= 0)
+                    throw new InvalidOperationException("يجب اختيار مادة صحيحة لكل بند.");
+
+                if (item.Quantity <= 0)
+                    throw new InvalidOperationException("الكمية يجب أن تكون أكبر من الصفر.");
+
+                if (item.UnitPrice <= 0)
+                    throw new InvalidOperationException("سعر الوحدة يجب أن يكون أكبر من الصفر.");
+            }
+        }
+
+        private static SalesInvoicePartyMode ResolvePartyMode(SalesInvoiceCreateModel model)
+        {
+            if (model.PartyMode == SalesInvoicePartyMode.RegisteredClient)
+            {
+                if (!model.ClientId.HasValue || model.ClientId.Value <= 0)
+                    throw new InvalidOperationException("يجب اختيار العميل.");
+
+                return SalesInvoicePartyMode.RegisteredClient;
+            }
+
+            if (model.PartyMode == SalesInvoicePartyMode.WalkInCustomer)
+            {
+                if (string.IsNullOrWhiteSpace(model.OneTimeCustomerName))
+                    throw new InvalidOperationException("يجب إدخال اسم العميل النقدي.");
+
+                return SalesInvoicePartyMode.WalkInCustomer;
+            }
+
+            throw new InvalidOperationException("نوع العميل غير صالح.");
+        }
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private static void ValidateTotals(decimal totalAmount, decimal discountAmount, decimal paidAmount)
+        {
+            if (discountAmount > totalAmount)
+                throw new InvalidOperationException("مبلغ الخصم لا يمكن أن يكون أكبر من إجمالي الفاتورة.");
+
+            var netAmountDue = CalculateNetDue(totalAmount, discountAmount);
+            if (paidAmount > netAmountDue)
+                throw new InvalidOperationException($"المبلغ المدفوع لا يمكن أن يكون أكبر من صافي الفاتورة. الصافي: {netAmountDue:N2}.");
+        }
+
+        private static decimal CalculateNetDue(decimal totalAmount, decimal discountAmount)
+        {
+            return totalAmount - discountAmount;
         }
 
         public async Task<IEnumerable<SalesInvoiceViewModel>> GetUnpaidInvoicesForClientAsync(int clientId)

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using MaterialManagement.BLL.ModelVM.Equipment;
 using MaterialManagement.BLL.Service.Abstractions;
+using MaterialManagement.PL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,12 +13,29 @@ namespace MaterialManagement.PL.Controllers
     {
         private readonly IEquipmentService _equipmentService;
         private readonly IMapper _mapper;
-        public EquipmentController(IEquipmentService equipmentService,IMapper mapper ) { _equipmentService = equipmentService; _mapper = mapper; }
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
+
+        public EquipmentController(
+            IEquipmentService equipmentService,
+            IMapper mapper,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
+        {
+            _equipmentService = equipmentService;
+            _mapper = mapper;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
+        }
 
         public async Task<IActionResult> Index()
         {
             return View();
         }
+
+        public async Task<IActionResult> Report()
+        {
+            var equipment = await _equipmentService.GetAllEquipmentAsync();
+            return View(equipment);
+        }
+
         [HttpGet("Equipment/Details/{code}")]
         public async Task<IActionResult> Details(int code)
         {
@@ -79,8 +97,17 @@ namespace MaterialManagement.PL.Controllers
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int code)
+        public async Task<IActionResult> DeleteConfirmed(int code, string? supervisorPassword)
         {
+            var equipment = await _equipmentService.GetByCodeAsync(code);
+            if (equipment == null) return NotFound();
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(equipment);
+            }
+
             await _equipmentService.DeleteEquipmentAsync(code);
             TempData["Success"] = "تم حذف المعدة بنجاح.";
             return RedirectToAction(nameof(Index));

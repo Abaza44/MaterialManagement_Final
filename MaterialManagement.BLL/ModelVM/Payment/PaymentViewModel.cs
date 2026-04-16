@@ -19,9 +19,11 @@ namespace MaterialManagement.BLL.ModelVM.Payment
     public class ClientPaymentCreateModel
     {
         [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "يجب اختيار العميل")]
         [Display(Name = "العميل")]
         public int ClientId { get; set; }
 
+        [Range(1, int.MaxValue, ErrorMessage = "الفاتورة المحددة غير صالحة")]
         [Display(Name = "الفاتورة (اختياري)")]
         public int? SalesInvoiceId { get; set; }
 
@@ -59,9 +61,11 @@ namespace MaterialManagement.BLL.ModelVM.Payment
     public class SupplierPaymentCreateModel
     {
         [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "يجب اختيار المورد")]
         [Display(Name = "المورد")]
         public int SupplierId { get; set; }
 
+        [Range(1, int.MaxValue, ErrorMessage = "فاتورة الشراء المحددة غير صالحة")]
         [Display(Name = "فاتورة الشراء (اختياري)")]
         public int? PurchaseInvoiceId { get; set; }
 

@@ -4,13 +4,20 @@
     ViewData["Title"] = $"تسليم جزئي للحجز #{Model.ReservationNumber}";
 }
 
-<div class="card shadow-sm border-0">
-    <div class="card-body p-4">
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الحجوزات</p>
+            <h1>@ViewData["Title"]</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Details" asp-route-id="@Model.ReservationId" class="btn btn-outline-secondary">إلغاء</a>
+        </div>
+    </div>
 
-        <h1 class="mb-3"><i class="bi bi-truck text-primary"></i> @ViewData["Title"]</h1>
-        <hr />
+    <section class="erp-panel">
 
-        <div class="alert alert-info">
+        <div class="alert alert-info erp-alert">
             <strong>العميل:</strong> @Model.ClientName
         </div>
 
@@ -19,15 +26,20 @@
 
             <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-            <h4>الأصناف المتبقية للتسليم:</h4>
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
+            <div class="erp-subsection-heading">
+                <div>
+                    <h2>الأصناف المتبقية للتسليم</h2>
+                    <p class="erp-table-note">التسليم ينشئ فاتورة بيع غير مدفوعة افتراضياً حسب قواعد الحجز الحالية.</p>
+                </div>
+            </div>
+            <table class="table table-bordered align-middle erp-data-table">
+                <thead>
                     <tr>
                         <th>المادة</th>
                         <th>محجوز كليًا</th>
                         <th>تم التسليم سابقاً</th>
                         <th class="text-info">متبقي للتسليم</th>
-                        <th class="text-danger" style="width: 20%;">الكمية للتسليم الآن</th>
+                        <th class="text-danger reservation-fulfill-quantity">الكمية للتسليم الآن</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,7 +47,6 @@
                     {
                         var item = Model.ItemsToFulfill[i];
 
-                        // لا داعي للـ if هنا، لأن الكنترولر (GET) قام بفلترتها مسبقاً
                         <tr>
                             <td>
                                 @item.MaterialName
@@ -61,11 +72,13 @@
                 </tbody>
             </table>
 
-            <button type="submit" class="btn btn-success btn-lg mt-3">
-                <i class="bi bi-check-circle"></i> تأكيد التسليم الجزئي
-            </button>
-            <a asp-action="Details" asp-route-id="@Model.ReservationId" class="btn btn-secondary mt-3">إلغاء</a>
+            <div class="erp-form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle"></i> تأكيد التسليم الجزئي
+                </button>
+                <a asp-action="Details" asp-route-id="@Model.ReservationId" class="btn btn-link">إلغاء</a>
+            </div>
         </form>
 
-    </div>
+    </section>
 </div>

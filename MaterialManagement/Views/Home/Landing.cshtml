@@ -1,27 +1,26 @@
 ﻿@{
     ViewData["Title"] = "الصفحة الرئيسية";
-    // استخدم Layout خفيف بدون شريط تنقل إذا أردت
-    // Layout = "_LayoutLanding";
 }
 
-<div class="container my-5 text-center">
+<div class="erp-page">
 
-    <!-- Hero Section -->
-    <div class="bg-light p-5 rounded-3 shadow-sm mb-5">
-        <h1 class="display-4 mb-3">👋 أهلاً بك في نظام إدارة المخازن</h1>
-        <p class="lead mb-4">
-            نظام متكامل لإدارة المخزون، الفواتير، الحسابات، والعمليات التشغيلية.
-        </p>
-        <a class="btn btn-lg btn-primary" asp-controller="Home" asp-action="Index">🚀 دخول إلى لوحة التحكم</a>
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">نظام إدارة المواد</p>
+            <h1>مساحة التشغيل اليومية</h1>
+            <p class="erp-table-note">إدارة المخزون، الفواتير، الحسابات، والحجوزات من نفس الواجهة.</p>
+        </div>
+        <div class="erp-actions">
+            <a class="btn btn-lg btn-primary" asp-controller="Home" asp-action="Index">دخول إلى لوحة التحكم</a>
+        </div>
     </div>
 
-    <!-- Features / Links Section -->
-    <div class="row">
+    <div class="erp-workflow-grid">
         <!-- المخزون -->
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
+        <div>
+            <div class="card h-100">
                 <div class="card-body">
-                    <h3>📦 إدارة المخزون</h3>
+                    <h3>إدارة المخزون</h3>
                     <p>تسجيل ومتابعة حركة المواد والمخزون.</p>
                     <a asp-controller="Material" asp-action="Index" class="btn btn-outline-primary stretched-link">إدارة المواد</a>
                 </div>
@@ -29,10 +28,10 @@
         </div>
 
         <!-- الأطراف -->
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
+        <div>
+            <div class="card h-100">
                 <div class="card-body">
-                    <h3>👥 العملاء والموردين</h3>
+                    <h3>العملاء والموردين</h3>
                     <p>إدارة حسابات وأرصدة العملاء والموردين.</p>
                     <a asp-controller="Client" asp-action="Index" class="btn btn-outline-secondary">العملاء</a>
                     <a asp-controller="Supplier" asp-action="Index" class="btn btn-outline-secondary ms-2">الموردين</a>
@@ -41,10 +40,10 @@
         </div>
 
         <!-- الفواتير -->
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
+        <div>
+            <div class="card h-100">
                 <div class="card-body">
-                    <h3>🧾 الفواتير</h3>
+                    <h3>الفواتير</h3>
                     <p>إنشاء وتتبع فواتير البيع والشراء.</p>
                     <a asp-controller="SalesInvoice" asp-action="Index" class="btn btn-outline-success">فواتير البيع</a>
                     <a asp-controller="PurchaseInvoice" asp-action="Index" class="btn btn-outline-success ms-2">فواتير الشراء</a>
@@ -53,10 +52,10 @@
         </div>
 
         <!-- المالية -->
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
+        <div>
+            <div class="card h-100">
                 <div class="card-body">
-                    <h3>💰 المالية</h3>
+                    <h3>المالية</h3>
                     <p>تسجيل التحصيلات والدفعات والمصاريف اليومية.</p>
                     <a asp-controller="Payment" asp-action="AddClientPayment" class="btn btn-outline-info">إضافة تحصيل</a>
                     <a asp-controller="Expense" asp-action="Index" class="btn btn-outline-info ms-2">المصاريف</a>
@@ -65,10 +64,10 @@
         </div>
 
         <!-- العمليات -->
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
+        <div>
+            <div class="card h-100">
                 <div class="card-body">
-                    <h3>🔧 العمليات والصيانة</h3>
+                    <h3>العمليات والصيانة</h3>
                     <p>إدارة أصول الشركة وتسجيل عمليات الصيانة.</p>
                     <a asp-controller="Equipment" asp-action="Index" class="btn btn-outline-dark">المعدات</a>
                     <a asp-controller="Maintenance" asp-action="Index" class="btn btn-outline-dark ms-2">سجلات الصيانة</a>
@@ -77,10 +76,10 @@
         </div>
 
         <!-- التقارير -->
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
+        <div>
+            <div class="card h-100">
                 <div class="card-body">
-                    <h3>📊 التقارير</h3>
+                    <h3>التقارير</h3>
                     <p>تقارير مالية ومخزنية لمتابعة الأداء.</p>
                     <a asp-controller="Report" asp-action="AccountStatement" class="btn btn-outline-danger stretched-link">
                 عرض التقارير
@@ -90,8 +89,4 @@
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="text-center mt-4 border-top pt-3 text-muted">
-        <p>© @DateTime.Now.Year - جميع الحقوق محفوظة</p>
-    </footer>
 </div>

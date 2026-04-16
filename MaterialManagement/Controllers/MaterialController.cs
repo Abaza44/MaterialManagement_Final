@@ -5,16 +5,22 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Dynamic.Core;
 using AutoMapper;
+using MaterialManagement.PL.Services;
 namespace MaterialManagement.PL.Controllers
 {
     public class MaterialController : Controller
     {
         private readonly IMaterialService _materialService;
         private readonly IMapper _mapper;
-        public MaterialController(IMaterialService materialService, IMapper mapper)
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
+        public MaterialController(
+            IMaterialService materialService,
+            IMapper mapper,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _materialService = materialService;
             _mapper = mapper;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
         [HttpPost]
@@ -231,8 +237,21 @@ namespace MaterialManagement.PL.Controllers
         // POST: Material/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, string? supervisorPassword)
         {
+            var material = await _materialService.GetMaterialByIdAsync(id);
+            if (material == null)
+            {
+                TempData["ErrorMessage"] = "المادة غير موجودة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(material);
+            }
+
             try
             {
                 await _materialService.DeleteMaterialAsync(id);

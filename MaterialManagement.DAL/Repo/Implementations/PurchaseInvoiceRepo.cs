@@ -1,6 +1,7 @@
 ﻿using MaterialManagement.DAL.DB;
 using MaterialManagement.DAL.DTOs;
 using MaterialManagement.DAL.Entities;
+using MaterialManagement.DAL.Enums;
 using MaterialManagement.DAL.Repo.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,17 +26,21 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<PurchaseInvoice?> GetByIdAsync(int id)
         {
             return await _context.PurchaseInvoices
+                .IgnoreQueryFilters()
                 .Include(i => i.Supplier) // لجلب اسم المورد
+                .Include(i => i.Client)
                 .Include(i => i.PurchaseInvoiceItems) // لجلب بنود الفاتورة
                     .ThenInclude(item => item.Material) // ولكل بند، اجلب تفاصيل المادة
                 .AsNoTracking() // للقراءة فقط، أداء أفضل
-                .FirstOrDefaultAsync(i => i.Id == id);
+                .FirstOrDefaultAsync(i => i.Id == id && i.IsActive);
         }
 
         public async Task<PurchaseInvoice?> GetByInvoiceNumberAsync(string invoiceNumber)
         {
             return await _context.PurchaseInvoices
+                .IgnoreQueryFilters()
                 .Include(pi => pi.Supplier)
+                .Include(pi => pi.Client)
                 .Include(pi => pi.PurchaseInvoiceItems)
                     .ThenInclude(item => item.Material)
                 .FirstOrDefaultAsync(pi => pi.InvoiceNumber == invoiceNumber && pi.IsActive);
@@ -69,9 +74,9 @@ namespace MaterialManagement.DAL.Repo.Implementations
 
         public async Task<IEnumerable<SupplierInvoicesDto>> GetSupplierInvoiceSummariesAsync()
         {
-            return await _context.PurchaseInvoices
-               .Where(pi => pi.IsActive && pi.SupplierId != null)
-               .GroupBy(pi => pi.Supplier)
+            var registeredSummaries = await _context.PurchaseInvoices
+               .Where(pi => pi.IsActive && pi.PartyMode == PurchaseInvoicePartyMode.RegisteredSupplier && pi.Supplier != null)
+               .GroupBy(pi => pi.Supplier!)
                .Select(group => new SupplierInvoicesDto
                {
                    SupplierId = group.Key.Id,
@@ -82,6 +87,26 @@ namespace MaterialManagement.DAL.Repo.Implementations
                .OrderBy(summary => summary.SupplierName)
                .AsNoTracking()
                .ToListAsync();
+
+            var oneTimeSummary = await _context.PurchaseInvoices
+               .Where(pi => pi.IsActive && pi.PartyMode == PurchaseInvoicePartyMode.OneTimeSupplier)
+               .GroupBy(pi => 1)
+               .Select(group => new SupplierInvoicesDto
+               {
+                   SupplierId = 0,
+                   SupplierName = "موردون يدويون / بدون تسجيل",
+                   InvoiceCount = group.Count(),
+                   TotalCredit = group.Sum(pi => pi.RemainingAmount)
+               })
+               .AsNoTracking()
+               .FirstOrDefaultAsync();
+
+            if (oneTimeSummary != null)
+            {
+                registeredSummaries.Add(oneTimeSummary);
+            }
+
+            return registeredSummaries;
         }
 
         public void Delete(PurchaseInvoice invoice)
@@ -93,6 +118,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<PurchaseInvoice?> GetByIdForUpdateAsync(int id)
         {
             return await _context.PurchaseInvoices
+                .IgnoreQueryFilters()
                 .Include(i => i.PurchaseInvoiceItems) // <<< مهم جدًا لخصم المخزون
                     .ThenInclude(item => item.Material)
                 .Include(i => i.Supplier) // <<< مهم جدًا لتعديل رصيد المورد
@@ -114,8 +140,9 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<List<PurchaseInvoice>> GetInvoicesForSupplierByDateRangeAsync(int supplierId, DateTime? fromDate, DateTime? toDate)
         {
             var query = _context.PurchaseInvoices
+                .IgnoreQueryFilters()
                 .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material)
-                .Where(i => i.SupplierId == supplierId);
+                .Where(i => i.SupplierId == supplierId && i.IsActive);
             if (fromDate.HasValue) query = query.Where(i => i.InvoiceDate >= fromDate.Value);
             if (toDate.HasValue) query = query.Where(i => i.InvoiceDate <= toDate.Value);
             return await query.ToListAsync();
@@ -124,8 +151,9 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<List<PurchaseInvoice>> GetReturnsForClientByDateRangeAsync(int clientId, DateTime? fromDate, DateTime? toDate)
         {
             var query = _context.PurchaseInvoices
+                .IgnoreQueryFilters()
                 .Include(i => i.PurchaseInvoiceItems).ThenInclude(item => item.Material)
-                .Where(i => i.ClientId == clientId); 
+                .Where(i => i.ClientId == clientId && i.IsActive); 
             if (fromDate.HasValue) query = query.Where(i => i.InvoiceDate >= fromDate.Value);
             if (toDate.HasValue) query = query.Where(i => i.InvoiceDate <= toDate.Value);
             return await query.ToListAsync();

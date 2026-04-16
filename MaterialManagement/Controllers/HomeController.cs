@@ -109,6 +109,49 @@ namespace MaterialManagement.PL.Controllers
             return View();
         }
 
+        [HttpGet("Home/Expense")]
+        [HttpGet("Home/Expense/Index")]
+        public IActionResult LegacyExpenseIndex()
+        {
+            return RedirectToAction("Index", "Expense");
+        }
+
+        [HttpGet("Home/Expense/Create")]
+        public IActionResult LegacyExpenseCreate()
+        {
+            return RedirectToAction("Create", "Expense");
+        }
+
+        [HttpGet("Home/Expense/Edit/{id:int?}")]
+        public IActionResult LegacyExpenseEdit(int? id)
+        {
+            return id.HasValue
+                ? RedirectToAction("Edit", "Expense", new { id = id.Value })
+                : RedirectToAction("Index", "Expense");
+        }
+
+        [HttpGet("Home/Expense/Details/{id:int?}")]
+        public IActionResult LegacyExpenseDetails(int? id)
+        {
+            return id.HasValue
+                ? RedirectToAction("Details", "Expense", new { id = id.Value })
+                : RedirectToAction("Index", "Expense");
+        }
+
+        [HttpGet("Home/Expense/Delete/{id:int?}")]
+        public IActionResult LegacyExpenseDelete(int? id)
+        {
+            return id.HasValue
+                ? RedirectToAction("Delete", "Expense", new { id = id.Value })
+                : RedirectToAction("Index", "Expense");
+        }
+
+        [HttpGet("Home/Expense/Report")]
+        public IActionResult LegacyExpenseReport()
+        {
+            return RedirectToAction("Report", "Expense");
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

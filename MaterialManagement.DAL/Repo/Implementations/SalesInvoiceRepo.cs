@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MaterialManagement.DAL.DTOs;
+using MaterialManagement.DAL.Enums;
 
 namespace MaterialManagement.DAL.Repo.Implementations
 {
@@ -27,6 +28,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<SalesInvoice?> GetByIdAsync(int id)
         {
             return await _context.SalesInvoices
+                .IgnoreQueryFilters()
                 .Include(i => i.Client)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(i => i.Id == id && i.IsActive);
@@ -36,6 +38,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<SalesInvoice?> GetByIdWithDetailsAsync(int id)
         {
             return await _context.SalesInvoices
+               .IgnoreQueryFilters()
                .Include(i => i.Client)
                .Include(i => i.SalesInvoiceItems)
                    .ThenInclude(item => item.Material)
@@ -47,6 +50,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<SalesInvoice?> GetByIdForUpdateAsync(int id)
         {
             return await _context.SalesInvoices
+                .IgnoreQueryFilters()
                 .Include(i => i.SalesInvoiceItems) // <<< مهم جدًا لإرجاع المخزون
                     .ThenInclude(item => item.Material)
                 .Include(i => i.Client) // <<< مهم جدًا لتعديل رصيد العميل
@@ -78,9 +82,9 @@ namespace MaterialManagement.DAL.Repo.Implementations
 
         public async Task<IEnumerable<ClientInvoiceSummaryDto>> GetClientInvoiceSummariesAsync()
         {
-            return await _context.SalesInvoices
-               .Where(si => si.IsActive)
-               .GroupBy(si => si.Client)
+            var registeredSummaries = await _context.SalesInvoices
+               .Where(si => si.IsActive && si.PartyMode == SalesInvoicePartyMode.RegisteredClient && si.Client != null)
+               .GroupBy(si => si.Client!)
                .Select(group => new ClientInvoiceSummaryDto
                {
                    ClientId = group.Key.Id,
@@ -91,14 +95,35 @@ namespace MaterialManagement.DAL.Repo.Implementations
                .OrderBy(summary => summary.ClientName)
                .AsNoTracking()
                .ToListAsync();
+
+            var walkInSummary = await _context.SalesInvoices
+                .Where(si => si.IsActive && si.PartyMode == SalesInvoicePartyMode.WalkInCustomer)
+                .GroupBy(si => 1)
+                .Select(group => new ClientInvoiceSummaryDto
+                {
+                    ClientId = 0,
+                    ClientName = "عملاء نقديون / بدون تسجيل",
+                    InvoiceCount = group.Count(),
+                    TotalDebt = group.Sum(si => si.RemainingAmount)
+                })
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (walkInSummary != null)
+            {
+                registeredSummaries.Add(walkInSummary);
+            }
+
+            return registeredSummaries;
         }
 
         public async Task<List<SalesInvoice>> GetInvoicesForClientByDateRangeAsync(int clientId, DateTime? fromDate, DateTime? toDate)
         {
             var query = _context.SalesInvoices
+               .IgnoreQueryFilters()
                .Include(i => i.SalesInvoiceItems)
                    .ThenInclude(item => item.Material)
-               .Where(i => i.ClientId == clientId);
+               .Where(i => i.ClientId == clientId && i.IsActive);
 
             if (fromDate.HasValue) query = query.Where(i => i.InvoiceDate >= fromDate.Value);
             if (toDate.HasValue) query = query.Where(i => i.InvoiceDate <= toDate.Value);

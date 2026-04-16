@@ -9,157 +9,520 @@
     string accountAddress = (holder as ClientViewModel)?.Address ?? (holder as SupplierViewModel)?.Address ?? "غير متوفر";
     bool isClient = ViewBag.IsClient;
     int accountId = ViewBag.AccountId;
+    string fromDateValue = ViewBag.FromDate as string ?? string.Empty;
+    string toDateValue = ViewBag.ToDate as string ?? string.Empty;
+    string periodLabel = ViewBag.PeriodLabel as string ?? "من بداية الحساب حتى اليوم";
+    string accountTypeLabel = isClient ? "عميل" : "مورد";
+    string debitLabel = "مدين";
+    string creditLabel = "دائن";
+    string balanceLabel = "الرصيد بعد الحركة";
 
     ViewData["Title"] = $"كشف حساب: {accountName}";
 }
 
-<style>
-    body {
-        background-color: #f9f9f9;
-    }
-
-    .card {
-        border-radius: 12px;
-        border: 1px solid #e0e0e0;
-    }
-
-    .card-header {
-        background-color: #ffffff;
-        border-bottom: 1px solid #e0e0e0;
-    }
-
-    .text-primary {
-        color: #007bff !important;
-    }
-
-    .info-label {
-        color: #6c757d;
-        font-weight: 500;
-    }
-
-    .info-value {
-        color: #212529;
-        font-weight: 600;
-    }
-
-    .filter-section {
-        background-color: #ffffff;
-    }
-
-    #statementTable th {
-        background-color: #f0f2f5;
-        color: #333;
-        font-weight: 600;
-    }
-
-    #statementTable td {
-        background-color: #fff;
-    }
-
-    tfoot {
-        background-color: #f8f9fa;
-    }
-
-    .btn-sm {
-        border-radius: 8px;
-    }
-
-    @@media print {
-        .print-hidden, 
-        .filter-section { 
-            display: none !important;
+@section Styles {
+    <style>
+        .account-statement-page {
+            --statement-debit: #b42318;
+            --statement-credit: #1b7f45;
+            --statement-info: #1f6f8b;
         }
-    }
-</style>
 
-<div class="container mt-4">
+        .statement-letterhead {
+            padding: .62rem .75rem;
+        }
 
-    <!-- بطاقة معلومات الحساب -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body py-3">
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <h4 class="mb-2 mb-md-0 text-primary">
-                    <i class="bi bi-clipboard-data"></i> كشف حساب: <span>@accountName</span>
-                </h4>
-                <div class="d-flex flex-wrap gap-4">
-                    <div>
-                        <span class="info-label">📞 رقم الهاتف:</span>
-                        <span class="info-value">@accountPhone</span>
-                    </div>
-                    <div>
-                        <span class="info-label">📍 العنوان:</span>
-                        <span class="info-value">@accountAddress</span>
-                    </div>
-                    <div>
-                        <span class="info-label">🧾 نوع الحساب:</span>
-                        <span class="info-value">@(isClient ? "عميل" : "مورد")</span>
-                    </div>
-                </div>
+        .statement-header-main {
+            align-items: flex-start;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .statement-header-title h1 {
+            color: var(--erp-ink);
+            font-weight: 900;
+        }
+
+        .statement-period-card {
+            background: #f8fafb;
+            border: 1px solid var(--erp-border);
+            border-radius: 8px;
+            min-width: 220px;
+            padding: .48rem .6rem;
+        }
+
+        .statement-period-card span {
+            color: var(--erp-muted);
+            display: block;
+            font-size: .8rem;
+            margin-bottom: .25rem;
+        }
+
+        .statement-period-card strong {
+            display: block;
+            font-variant-numeric: tabular-nums;
+            font-weight: 900;
+        }
+
+        .account-statement-page .erp-detail-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .statement-summary-strip {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .statement-summary-strip small {
+            color: var(--erp-muted);
+            display: block;
+            font-size: .7rem;
+            margin-top: .12rem;
+        }
+
+        .statement-table th,
+        .statement-table td {
+            vertical-align: top;
+        }
+
+        .statement-table {
+            min-width: 1180px;
+        }
+
+        .statement-table td {
+            line-height: 1.45;
+        }
+
+        .statement-date-col {
+            width: 8%;
+        }
+
+        .statement-cause-cell {
+            width: 9%;
+        }
+
+        .statement-description-cell {
+            white-space: normal !important;
+            width: 32%;
+        }
+
+        .statement-reference-cell {
+            white-space: normal !important;
+            width: 11%;
+        }
+
+        .statement-badge {
+            align-items: center;
+            background: #eef3f5;
+            border: 1px solid var(--erp-border);
+            border-radius: 8px;
+            color: var(--erp-ink);
+            display: inline-flex;
+            font-size: .73rem;
+            font-weight: 900;
+            gap: .25rem;
+            padding: .2rem .38rem;
+        }
+
+        .statement-badge-debit {
+            background: #fff5f4;
+            border-color: rgba(180, 35, 24, .25);
+            color: var(--statement-debit);
+        }
+
+        .statement-badge-credit {
+            background: #ecfdf3;
+            border-color: rgba(27, 127, 69, .25);
+            color: var(--statement-credit);
+        }
+
+        .statement-badge-opening {
+            background: #eef7fb;
+            border-color: rgba(31, 111, 139, .24);
+            color: var(--statement-info);
+        }
+
+        .statement-effect {
+            color: var(--erp-muted);
+            display: block;
+            font-size: .68rem;
+            margin-top: .25rem;
+        }
+
+        .statement-description {
+            color: var(--erp-ink);
+            display: block;
+            font-weight: 700;
+            line-height: 1.38;
+        }
+
+        .statement-description-lines {
+            display: grid;
+            gap: .12rem;
+            line-height: 1.35;
+        }
+
+        .statement-description-title {
+            color: var(--erp-ink);
+            display: block;
+            font-size: .88rem;
+            font-weight: 950;
+        }
+
+        .statement-item-line {
+            color: var(--erp-muted);
+            display: grid;
+            font-size: .76rem;
+            font-weight: 700;
+            gap: .35rem;
+            grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+            line-height: 1.35;
+        }
+
+        .statement-item-name {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .statement-item-quantity,
+        .statement-item-unit-price,
+        .statement-item-total {
+            color: #475569;
+            direction: rtl;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .statement-item-quantity::before,
+        .statement-item-unit-price::before,
+        .statement-item-total::before {
+            color: #94a3b8;
+            content: "—";
+            margin-inline-end: .35rem;
+        }
+
+        .statement-description-secondary {
+            color: var(--erp-muted);
+            display: block;
+            font-size: .72rem;
+            line-height: 1.45;
+            margin-top: .1rem;
+        }
+
+        .statement-reference {
+            color: var(--erp-muted);
+            direction: ltr;
+            display: block;
+            font-size: .68rem;
+            font-weight: 650;
+            line-height: 1.35;
+            text-align: left;
+            unicode-bidi: plaintext;
+        }
+
+        .statement-amount {
+            direction: ltr;
+            font-variant-numeric: tabular-nums;
+            font-weight: 800;
+            text-align: left !important;
+            white-space: nowrap;
+        }
+
+        .statement-zero {
+            color: var(--erp-muted);
+        }
+
+        .statement-balance strong {
+            display: block;
+            direction: ltr;
+            font-variant-numeric: tabular-nums;
+            font-size: .95rem;
+            font-weight: 950;
+            text-align: left;
+        }
+
+        .statement-balance small {
+            color: var(--erp-muted);
+            display: block;
+            font-size: .73rem;
+            margin-top: .15rem;
+            text-align: right;
+        }
+
+        .statement-opening-row td {
+            background: #f8fafb !important;
+            font-weight: 800;
+        }
+
+        .statement-ledger-main td {
+            background: #ffffff !important;
+            border-bottom-color: rgba(15, 23, 42, .1) !important;
+        }
+
+        .statement-ledger-main.statement-group-alt td {
+            background: #fcfdfe !important;
+        }
+
+        .statement-ledger-main.statement-balance-positive .statement-balance strong {
+            color: var(--statement-debit);
+        }
+
+        .statement-ledger-main.statement-balance-negative .statement-balance strong {
+            color: var(--statement-credit);
+        }
+
+        .statement-ledger-main.statement-balance-zero .statement-balance strong {
+            color: var(--erp-muted);
+        }
+
+        .statement-ledger-panel .table-responsive {
+            overflow-x: auto;
+        }
+
+        @@media (min-width: 1200px) {
+            .statement-table {
+                min-width: 0;
+            }
+        }
+
+        @@media (max-width: 992px) {
+            .statement-header-main {
+                display: block;
+            }
+
+            .statement-period-card {
+                margin-top: .75rem;
+            }
+
+            .statement-summary-strip {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .account-statement-page .erp-detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .statement-summary-strip {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media print {
+            @@page {
+                size: A4;
+                margin: 10mm;
+            }
+
+            .account-statement-page {
+                color: #111111;
+                font-size: 10.5px;
+                margin: 0 !important;
+                width: 100% !important;
+            }
+
+            .statement-letterhead,
+            .statement-summary-strip .erp-summary-item {
+                border-color: #111111 !important;
+                box-shadow: none !important;
+            }
+
+            .statement-header-main {
+                align-items: flex-start;
+                display: flex;
+            }
+
+            .statement-summary-strip {
+                gap: .35rem;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .statement-summary-strip .erp-summary-item,
+            .statement-period-card {
+                padding: .45rem;
+            }
+
+            .statement-table {
+                border-collapse: collapse !important;
+                font-size: 9.5px;
+                margin-top: .35rem;
+                min-width: 0;
+            }
+
+            .statement-table thead {
+                display: table-header-group;
+            }
+
+            .statement-table th,
+            .statement-table td {
+                border-color: #111111 !important;
+                padding: .28rem .35rem !important;
+                white-space: normal !important;
+            }
+
+            .statement-table tr,
+            .statement-ledger-main {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .statement-description-cell {
+                min-width: 0;
+                width: 32%;
+            }
+
+            .statement-description-lines {
+                gap: .06rem;
+            }
+
+            .statement-description-title {
+                font-size: 9.5px;
+            }
+
+            .statement-item-line,
+            .statement-description-secondary {
+                font-size: 8.4px;
+                line-height: 1.25;
+            }
+
+            .statement-item-line {
+                gap: .22rem;
+            }
+
+            .statement-item-quantity::before,
+            .statement-item-unit-price::before,
+            .statement-item-total::before {
+                margin-inline-end: .22rem;
+            }
+
+            .statement-badge {
+                border-color: #111111 !important;
+                color: #111111 !important;
+            }
+        }
+    </style>
+}
+
+<div class="erp-page erp-report-page erp-wide-workspace account-statement-page">
+    <div class="erp-letterhead statement-letterhead mb-3">
+        <div class="statement-header-main">
+            <div class="statement-header-title">
+                <p class="erp-eyebrow">كشف حساب تفصيلي</p>
+                <h1 class="h4 mb-1">@accountName</h1>
+                <p class="erp-table-note mb-0">نوع الحساب: <strong>@accountTypeLabel</strong> | كشف حركات ورصيد الحساب.</p>
+            </div>
+            <div class="statement-period-card">
+                <span>الفترة</span>
+                <strong id="periodSummary">@periodLabel</strong>
+                <small class="text-muted">تاريخ الإصدار: @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</small>
+            </div>
+        </div>
+
+        <div class="erp-detail-grid mt-3">
+            <div class="erp-detail-item">
+                <span>رقم الهاتف</span>
+                <strong>@accountPhone</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>العنوان</span>
+                <strong>@accountAddress</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>رقم الحساب</span>
+                <strong>@accountId</strong>
             </div>
         </div>
     </div>
 
-    <!-- تصفية البيانات -->
-    <div class="card shadow-sm border-0 mb-4 filter-section">
-        <div class="card-body p-3">
-            <h6 class="card-title mb-2 text-secondary">
-                <i class="bi bi-funnel"></i> تصفية البيانات
-            </h6>
-            <div class="row g-2 align-items-end">
-                <div class="col-md-3 col-sm-6">
-                    <label for="fromDateFilter" class="form-label small">من تاريخ</label>
-                    <input type="date" id="fromDateFilter" class="form-control form-control-sm" />
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <label for="toDateFilter" class="form-label small">إلى تاريخ</label>
-                    <input type="date" id="toDateFilter" class="form-control form-control-sm" />
-                </div>
-                <div class="col-md-2 col-sm-6">
-                    <button id="applyFilterBtn" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-filter"></i> تطبيق
-                    </button>
-                </div>
+    <div class="erp-panel erp-report-filter-panel mb-3 no-print">
+        <div class="erp-panel-header">
+            <div>
+                <h2>تصفية الكشف</h2>
+                <p class="erp-table-note">اختر فترة محددة أو اتركها فارغة لعرض كشف الحساب من البداية حتى اليوم.</p>
+            </div>
+            <div class="erp-actions">
+                <a asp-action="AccountStatement" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-search"></i> بحث جديد
+                </a>
+                <button type="button" id="printStatementBtn" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-printer"></i> طباعة / حفظ PDF
+                </button>
+            </div>
+        </div>
+        <div class="erp-inline-toolbar">
+            <div>
+                <label for="fromDateFilter" class="form-label small">من تاريخ</label>
+                <input type="date" id="fromDateFilter" class="form-control form-control-sm" value="@fromDateValue" />
+            </div>
+            <div>
+                <label for="toDateFilter" class="form-label small">إلى تاريخ</label>
+                <input type="date" id="toDateFilter" class="form-control form-control-sm" value="@toDateValue" />
+            </div>
+            <div>
+                <button type="button" id="applyFilterBtn" class="btn btn-primary btn-sm">
+                    <i class="bi bi-filter"></i> تطبيق الفترة
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- جدول كشف الحساب -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-3">
-            <div class="table-responsive">
-                <table id="statementTable" class="table table-bordered table-hover align-middle text-center" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>📅 التاريخ</th>
-                            <th>البيان</th>
-                            <th class="text-danger">مدين (له)</th>
-                            <th class="text-success">دائن (عليه)</th>
-                            <th>الرصيد</th>
-                            <th>رقم المستند</th>
-                        </tr>
-                    </thead>
-                    <tfoot class="fw-bold"> 
-                        <tr>
-                            <td colspan="2" class="text-end">الإجماليات / الرصيد النهائي:</td>
-                            <td id="totalDebit" class="text-danger">0.00</td>
-                            <td id="totalCredit" class="text-success">0.00</td>
-                            <td id="finalBalance" colspan="2" class="text-primary">0.00</td>
-                        </tr>
-                    </tfoot>
-                </table>
+    <section class="erp-summary-strip erp-report-summary-strip statement-summary-strip mb-3">
+        <div class="erp-summary-item">
+            <span>الرصيد الافتتاحي</span>
+            <strong id="openingBalanceSummary">0.00</strong>
+            <small id="openingBalanceMeaning">-</small>
+        </div>
+        <div class="erp-summary-item">
+            <span>إجمالي المدين</span>
+            <strong id="totalDebitSummary" class="text-danger">0.00</strong>
+            <small>@debitLabel</small>
+        </div>
+        <div class="erp-summary-item">
+            <span>إجمالي الدائن</span>
+            <strong id="totalCreditSummary" class="text-success">0.00</strong>
+            <small>@creditLabel</small>
+        </div>
+        <div class="erp-summary-item">
+            <span>الرصيد الختامي</span>
+            <strong id="finalBalanceSummary" class="text-primary">0.00</strong>
+            <small id="finalBalanceMeaning">-</small>
+        </div>
+    </section>
+
+    <div class="erp-panel erp-worksheet-panel statement-ledger-panel">
+        <div class="erp-panel-header">
+            <div>
+                <h2>حركات الحساب</h2>
+                <p class="erp-table-note">سجل مختصر للحركات والرصيد بعد كل حركة.</p>
             </div>
+        </div>
+        <div class="table-responsive">
+            <table id="statementTable" class="table table-bordered table-hover align-middle erp-data-table erp-report-table erp-worksheet-table statement-table" style="width:100%">
+                <colgroup>
+                    <col style="width:8%">
+                    <col style="width:9%">
+                    <col style="width:11%">
+                    <col style="width:32%">
+                    <col style="width:10%">
+                    <col style="width:10%">
+                    <col style="width:20%">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th class="statement-date-col">التاريخ</th>
+                        <th class="statement-cause-cell">نوع الحركة</th>
+                        <th class="statement-reference-cell">المستند</th>
+                        <th class="statement-description-cell">البيان</th>
+                        <th class="text-danger">@debitLabel</th>
+                        <th class="text-success">@creditLabel</th>
+                        <th class="erp-number">@balanceLabel</th>
+                    </tr>
+                </thead>
+            </table>
         </div>
     </div>
 
-    <!-- الأزرار -->
-    <div class="mt-3 d-flex justify-content-between print-hidden">
-        <a asp-action="AccountStatement" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-clockwise"></i> بحث جديد
-        </a>
-        <button onclick="window.print()" class="btn btn-outline-success btn-sm">
-            <i class="bi bi-printer"></i> طباعة
-        </button>
-    </div>
 </div>
 
 @section Scripts {
@@ -167,69 +530,200 @@
         $(document).ready(function () {
             const currencyFormat = $.fn.dataTable.render.number(',', '.', 2).display;
 
-            var table = $('#statementTable').DataTable({
-                "processing": true,
-                "serverSide": true, // (الإصلاح 1: يجب أن تكون 'true' ليعمل الترقيم)
-                "ajax": {
-                    "url": "/Report/LoadAccountStatementData",
-                    "type": "GET",  // (الإصلاح 2: تغييرها إلى 'GET' ليطابق الكنترولر)
-                    "data": function (d) {
+            function escapeHtml(value) {
+                return $('<div>').text(value ?? '').html();
+            }
+
+            function formatAmount(value, showZero) {
+                const numericValue = Number(value || 0);
+                if (!showZero && numericValue === 0) {
+                    return '<span class="statement-zero">-</span>';
+                }
+
+                return currencyFormat(numericValue);
+            }
+
+            function formatDate(value) {
+                if (!value) {
+                    return '-';
+                }
+
+                return new Date(value).toLocaleDateString('ar-EG');
+            }
+
+            function badgeClass(row) {
+                if (row.documentType === 'OpeningBalance') {
+                    return 'statement-badge-opening';
+                }
+
+                if (Number(row.debit || 0) > 0 && Number(row.credit || 0) === 0) {
+                    return 'statement-badge-debit';
+                }
+
+                if (Number(row.credit || 0) > 0 && Number(row.debit || 0) === 0) {
+                    return 'statement-badge-credit';
+                }
+
+                return '';
+            }
+
+            function updateSummary(json) {
+                const opening = json.openingBalance || '0.00';
+                const totalDebit = json.totalDebit || '0.00';
+                const totalCredit = json.totalCredit || '0.00';
+                const finalBalance = json.finalBalance || '0.00';
+                const finalMeaning = json.finalBalanceMeaning || '-';
+
+                $('#openingBalanceSummary').text(opening);
+                $('#openingBalanceMeaning').text(json.openingBalanceMeaning || '-');
+                $('#totalDebitSummary').text(totalDebit);
+                $('#totalCreditSummary').text(totalCredit);
+                $('#finalBalanceSummary').text(finalBalance);
+                $('#finalBalanceMeaning').text(finalMeaning);
+                $('#periodSummary').text(json.periodLabel || '@periodLabel');
+            }
+
+            function formatItemLine(item) {
+                const name = escapeHtml(item.materialName || 'صنف');
+                const quantity = Number(item.quantity || 0);
+                const unit = item.unit ? ` ${escapeHtml(item.unit)}` : '';
+                const price = Number(item.price || 0);
+                const lineTotal = quantity * price;
+                const quantityText = `${currencyFormat(quantity)}${unit}`;
+                const unitPriceText = `${currencyFormat(price)} للوحدة`;
+
+                return `<span class="statement-item-name">${name}</span><span class="statement-item-quantity">${quantityText}</span><span class="statement-item-unit-price">${unitPriceText}</span><span class="statement-item-total">${currencyFormat(lineTotal)}</span>`;
+            }
+
+            function buildItemDescription(items, row) {
+                if (!items || items.length === 0) {
+                    return '';
+                }
+
+                const title = escapeHtml(row.causeLabel || row.transactionType || 'حركة');
+                const itemLines = items
+                    .map(item => `<span class="statement-item-line">${formatItemLine(item)}</span>`)
+                    .join('');
+
+                return `<span class="statement-description-lines"><span class="statement-description-title">${title}</span>${itemLines}</span>`;
+            }
+
+            const table = $('#statementTable').DataTable({
+                processing: true,
+                serverSide: false,
+                paging: false,
+                searching: false,
+                ordering: false,
+                info: false,
+                autoWidth: false,
+                ajax: {
+                    url: "/Report/LoadAccountStatementData",
+                    type: "GET",
+                    data: function (d) {
                         d.accountId = @accountId;
                         d.isClient = @(isClient.ToString().ToLower());
                         d.fromDate = $('#fromDateFilter').val() || null;
                         d.toDate = $('#toDateFilter').val() || null;
+                        d.allRows = true;
                     },
-                    "dataSrc": function (json) {
+                    dataSrc: function (json) {
                         if (json.error) {
                             alert(json.error);
                             return [];
                         }
 
-                        // (تعديل بسيط) عرض الرصيد الافتتاحي
-                        $('#totalDebit').text(json.totalDebit);
-                        $('#totalCredit').text(json.totalCredit);
-                        $('#finalBalance').text(json.finalBalance);
-
-                        
-
-                        return json.data;
+                        updateSummary(json);
+                        return json.data || [];
                     }
                 },
-                "columns": [
-                    { "data": "transactionDate", "render": function (data) { return new Date(data).toLocaleDateString('ar-EG'); } },
-                    { "data": "transactionType" },
-                    { "data": "debit", "render": currencyFormat, "className": "text-end text-danger" },
-                    { "data": "credit", "render": currencyFormat, "className": "text-end text-success" },
-                    { "data": "balance", "render": currencyFormat, "className": "text-end fw-bold text-primary" },
-                    { "data": "reference" }
-                ],
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
-
-                "drawCallback": function (settings) {
-                    var api = this.api();
-                    api.rows().every(function () {
-                        var data = this.data();
-                        if (data.items && data.items.length > 0) {
-                            let childHtml = '<table class="table table-sm child-table">';
-                            childHtml += '<thead><tr><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>السعر</th></tr></thead><tbody>';
-                            data.items.forEach(item => {
-                                childHtml += `<tr>
-                                    <td>${item.materialName}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>${item.unit}</td>
-                                    <td>${currencyFormat(item.price)}</td>
-                                </tr>`;
-                            });
-                            childHtml += '</tbody></table>';
-                            this.child(childHtml).show();
-                            $(this.node()).addClass('shown');
+                columns: [
+                    {
+                        data: "transactionDate",
+                        className: "text-nowrap",
+                        render: function (data) {
+                            return formatDate(data);
                         }
-                    });
+                    },
+                    {
+                        data: null,
+                        className: "statement-cause-cell",
+                        render: function (data, type, row) {
+                            const label = row.causeLabel || row.transactionType || '-';
+                            const effect = row.effectLabel ? `<span class="statement-effect">${escapeHtml(row.effectLabel)}</span>` : '';
+                            return `<span class="statement-badge ${badgeClass(row)}">${escapeHtml(label)}</span>${effect}`;
+                        }
+                    },
+                    {
+                        data: "reference",
+                        className: "statement-reference-cell",
+                        render: function (data, type, row) {
+                            return `<span class="statement-reference">${escapeHtml(data || '-')}</span>`;
+                        }
+                    },
+                    {
+                        data: "description",
+                        className: "statement-description-cell",
+                        render: function (data, type, row) {
+                            const itemDescription = buildItemDescription(row.items, row);
+                            if (itemDescription) {
+                                return itemDescription;
+                            }
+
+                            const description = data || row.transactionType || '-';
+                            return `<span class="statement-description">${escapeHtml(description)}</span>`;
+                        }
+                    },
+                    {
+                        data: "debit",
+                        className: "statement-amount text-danger",
+                        render: function (data) {
+                            return formatAmount(data, false);
+                        }
+                    },
+                    {
+                        data: "credit",
+                        className: "statement-amount text-success",
+                        render: function (data) {
+                            return formatAmount(data, false);
+                        }
+                    },
+                    {
+                        data: "balance",
+                        className: "statement-balance erp-number",
+                        render: function (data, type, row) {
+                            return `<strong>${formatAmount(data, true)}</strong><small>${escapeHtml(row.balanceMeaning || '')}</small>`;
+                        }
+                    }
+                ],
+                language: window.erpDataTablesArabic,
+                createdRow: function (row, data, dataIndex) {
+                    $(row).addClass('statement-ledger-main');
+                    if (dataIndex % 2 === 1) {
+                        $(row).addClass('statement-group-alt');
+                    }
+                    if (Number(data.balance || 0) > 0) {
+                        $(row).addClass('statement-balance-positive');
+                    } else if (Number(data.balance || 0) < 0) {
+                        $(row).addClass('statement-balance-negative');
+                    } else {
+                        $(row).addClass('statement-balance-zero');
+                    }
+                    if (data.documentType === 'OpeningBalance') {
+                        $(row).addClass('statement-opening-row');
+                    }
                 }
             });
 
             $('#applyFilterBtn').on('click', function () {
                 table.ajax.reload();
+            });
+
+            $('#printStatementBtn').on('click', function () {
+                table.ajax.reload(function () {
+                    window.setTimeout(function () {
+                        window.print();
+                    }, 100);
+                }, false);
             });
         });
     </script>

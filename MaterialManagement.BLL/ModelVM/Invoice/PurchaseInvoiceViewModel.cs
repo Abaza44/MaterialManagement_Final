@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using MaterialManagement.DAL.Enums;
+
 namespace MaterialManagement.BLL.ModelVM.Invoice
 {
     public class PurchaseInvoiceViewModel
@@ -8,8 +10,11 @@ namespace MaterialManagement.BLL.ModelVM.Invoice
         public int Id { get; set; }
         public string InvoiceNumber { get; set; }
         public DateTime InvoiceDate { get; set; }
+        public PurchaseInvoicePartyMode PartyMode { get; set; }
         public int? SupplierId { get; set; }
         public string? SupplierName { get; set; }
+        public string? OneTimeSupplierName { get; set; }
+        public string? OneTimeSupplierPhone { get; set; }
         public int? ClientId { get; set; }
         public string? ClientName { get; set; } 
         public decimal TotalAmount { get; set; }

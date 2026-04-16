@@ -2,21 +2,56 @@
 
 @{
     ViewData["Title"] = "حذف المعدة";
+    ViewData["SupervisorAuthorizationLabel"] = "اعتماد المشرف لحذف المعدة";
+    ViewData["SupervisorAuthorizationHint"] = "حذف المعدة يؤثر على سجل الأصول والصيانة، لذلك يجب اعتماد المشرف قبل التنفيذ.";
 }
 
-<h1><i class="bi bi-trash text-danger"></i> حذف المعدة</h1>
-
-<div class="alert alert-danger">
-    <h4 class="alert-heading">تأكيد الحذف!</h4>
-    <p>هل أنت متأكد من حذف المعدة "<strong>@Model.Name</strong>" (كود: @Model.Code)؟</p>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <form asp-action="Delete" method="post">
-            <input type="hidden" asp-for="Code" />
-            <button type="submit" class="btn btn-danger"><i class="bi bi-trash-fill"></i> نعم، قم بالحذف</button>
-            <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-x-circle"></i> إلغاء</a>
-        </form>
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الأصول والتشغيل</p>
+            <h1>حذف المعدة</h1>
+            <p class="erp-table-note">راجع بيانات المعدة قبل تنفيذ الحذف.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">العودة للمعدات</a>
     </div>
+
+    <div class="alert alert-danger erp-alert">
+        هل أنت متأكد من حذف المعدة <strong>@Model.Name</strong>؟
+    </div>
+
+    <section class="erp-panel erp-danger-zone">
+        <div class="erp-panel-header">
+            <h2>بيانات المعدة</h2>
+        </div>
+
+        <div class="erp-detail-grid">
+            <div class="erp-detail-item">
+                <span>الكود</span>
+                <strong>@Model.Code</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>الاسم</span>
+                <strong>@Model.Name</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>تاريخ الشراء</span>
+                <strong>@Model.PurchaseDate.ToString("yyyy-MM-dd")</strong>
+            </div>
+            <div class="erp-detail-item">
+                <span>آخر صيانة</span>
+                <strong>@(Model.LastMaintenanceDate?.ToString("yyyy-MM-dd") ?? "لا يوجد")</strong>
+            </div>
+        </div>
+
+        <form asp-action="Delete" asp-route-code="@Model.Code" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Code" />
+            <partial name="_SupervisorPasswordField" />
+            <div class="erp-form-actions">
+                <button type="submit" class="btn btn-danger"><i class="bi bi-trash-fill"></i> حذف المعدة</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+            </div>
+        </form>
+    </section>
 </div>

@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<MaterialManagement.BLL.ModelVM.Material.MaterialViewModel>
 
 @{
-    ViewData["Title"] = "⚠️ المواد منخفضة المخزون";
+    ViewData["Title"] = "المواد منخفضة المخزون";
 }
 @if (TempData["ErrorMessage"] != null)
 {
@@ -11,37 +11,45 @@
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3 text-warning">⚠️ المواد منخفضة المخزون</h2>
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">المخزون</p>
+            <h1 class="text-warning">المواد منخفضة المخزون</h1>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">رجوع للمواد</a>
+    </div>
 
-    <table class="table table-bordered table-hover">
-        <thead class="table-warning">
-            <tr>
-                <th>الكود</th>
-                <th>الاسم</th>
-                <th>الكمية</th>
-                <th>حالة المخزون</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (Model.Any())
-            {
-                foreach (var item in Model)
+    <div class="erp-panel">
+        <table class="table table-hover erp-data-table">
+            <thead>
+                <tr>
+                    <th>الكود</th>
+                    <th>الاسم</th>
+                    <th>الكمية</th>
+                    <th>حالة المخزون</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Code</td>
+                            <td>@item.Name</td>
+                            <td class="erp-number">@item.Quantity.ToString("N2")</td>
+                            <td><span class="badge bg-warning text-dark">@item.StockStatus</span></td>
+                        </tr>
+                    }
+                }
+                else
                 {
                     <tr>
-                        <td>@item.Code</td>
-                        <td>@item.Name</td>
-                        <td>@item.Quantity</td>
-                        <td>@item.StockStatus</td>
+                        <td colspan="4" class="text-center erp-muted">لا توجد مواد منخفضة المخزون الآن</td>
                     </tr>
                 }
-            }
-            else
-            {
-                <tr>
-                    <td colspan="4" class="text-center">🎉 لا توجد مواد منخفضة المخزون الآن</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>

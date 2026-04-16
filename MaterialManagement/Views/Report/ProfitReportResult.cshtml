@@ -2,48 +2,105 @@
 
 @{
     ViewData["Title"] = "نتيجة تقرير الأرباح";
+    var fromDate = (DateTime)ViewBag.FromDate;
+    var toDate = (DateTime)ViewBag.ToDate;
 }
 
-<h3>تقرير الأرباح</h3>
-<p>
-    الفترة من: <strong>@(((DateTime)ViewBag.FromDate).ToString("D"))</strong> 
-    إلى: <strong>@(((DateTime)ViewBag.ToDate).ToString("D"))</strong>
-</p>
+<div class="erp-page erp-report-page erp-wide-workspace">
+    <div class="erp-page-header no-print">
+        <div>
+            <p class="erp-eyebrow">التقارير</p>
+            <h1>تقرير الأرباح</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="ProfitReport" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i> بحث جديد</a>
+            <button onclick="window.print()" class="btn btn-outline-success"><i class="bi bi-printer"></i> طباعة / حفظ PDF</button>
+        </div>
+    </div>
 
+    <section class="erp-letterhead mb-3">
+        <div class="erp-letterhead-title">
+            <div>
+                <p class="erp-eyebrow">تقرير مالي</p>
+                <h2 class="h4 mb-1">تقرير الأرباح</h2>
+                <p class="erp-table-note mb-0">
+                    الفترة من <strong>@fromDate.ToString("D")</strong>
+                    إلى <strong>@toDate.ToString("D")</strong>
+                </p>
+            </div>
+            <span class="erp-status-pill">@Model.Count بند</span>
+        </div>
+    </section>
+
+    <section class="erp-summary-strip erp-report-summary-strip mb-3">
+        <div class="erp-summary-item">
+            <span>إجمالي البيع</span>
+            <strong class="text-success">@Model.Sum(i => i.TotalAmount).ToString("N2")</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>إجمالي التكلفة</span>
+            <strong>@Model.Sum(i => i.TotalCost).ToString("N2")</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>صافي الربح</span>
+            <strong class="text-primary">@Model.Sum(i => i.Profit).ToString("N2")</strong>
+        </div>
+        <div class="erp-summary-item">
+            <span>عدد الفواتير</span>
+            <strong>@Model.Count.ToString("N0")</strong>
+        </div>
+    </section>
+
+<div class="erp-panel erp-worksheet-panel">
+    <div class="erp-panel-header">
+        <div>
+            <h2>سجل ربحية الفواتير</h2>
+            <p class="erp-table-note">يعرض البيع والتكلفة وصافي الربح لكل فاتورة أو مرتجع ضمن الفترة.</p>
+        </div>
+    </div>
 <div class="table-responsive">
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
+    <table class="table table-bordered table-hover erp-data-table erp-report-table erp-worksheet-table">
+        <colgroup>
+            <col style="width:12%">
+            <col style="width:16%">
+            <col style="width:28%">
+            <col style="width:14%">
+            <col style="width:14%">
+            <col style="width:16%">
+        </colgroup>
+        <thead>
             <tr>
                 <th>تاريخ الفاتورة</th>
                 <th>رقم الفاتورة</th>
                 <th>العميل</th>
-                <th class="text-primary">الربح</th>
-                <th class="text-success">إجمالي البيع</th>
-                <th class="text-warning">إجمالي التكلفة</th>
+                <th class="text-success erp-number">إجمالي البيع</th>
+                <th class="erp-number">إجمالي التكلفة</th>
+                <th class="text-primary erp-number">الربح</th>
             </tr>
         </thead>
         <tbody>
             @foreach(var item in Model)
             {
-                <tr>
+                var isReturn = item.TotalAmount < 0 || item.Profit < 0;
+                <tr class="@(isReturn ? "table-warning" : "")">
                     <td>@item.InvoiceDate.ToString("yyyy-MM-dd")</td>
-                    <td>@item.InvoiceNumber</td>
+                    <td><span class="erp-muted">@item.InvoiceNumber</span></td>
                     <td>@item.ClientName</td>
-                    <td class="text-success">@item.TotalAmount.ToString("N2")</td>
-                    <td class="text-warning">@item.TotalCost.ToString("N2")</td>
-                    <td class="fw-bold text-primary">@item.Profit.ToString("N2")</td>
+                    <td class="text-success erp-number">@item.TotalAmount.ToString("N2")</td>
+                    <td class="erp-number">@item.TotalCost.ToString("N2")</td>
+                    <td class="fw-bold text-primary erp-number">@item.Profit.ToString("N2")</td>
                 </tr>
             }
         </tbody>
          <tfoot class="table-group-divider">
              <tr class="fw-bolder fs-5">
                 <td colspan="3" class="text-end">الإجماليات:</td>
-                <td class="text-success">@Model.Sum(i => i.TotalAmount).ToString("N2")</td>
-                <td class="text-warning">@Model.Sum(i => i.TotalCost).ToString("N2")</td>
-                <td class="text-primary">@Model.Sum(i => i.Profit).ToString("N2")</td>
+                <td class="text-success erp-number">@Model.Sum(i => i.TotalAmount).ToString("N2")</td>
+                <td class="erp-number">@Model.Sum(i => i.TotalCost).ToString("N2")</td>
+                <td class="text-primary erp-number">@Model.Sum(i => i.Profit).ToString("N2")</td>
             </tr>
         </tfoot>
     </table>
+    </div>
+    </div>
 </div>
-
-<a asp-action="ProfitReport" class="btn btn-secondary mt-3"><i class="bi bi-arrow-clockwise"></i> بحث جديد</a>

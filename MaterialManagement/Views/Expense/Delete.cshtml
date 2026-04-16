@@ -1,16 +1,28 @@
 ﻿@model MaterialManagement.BLL.ModelVM.Expense.ExpenseViewModel
 
 @{
-    ViewData["Title"] = "حذف المصروف";
+    ViewData["Title"] = "حذف مصروف";
+    ViewData["SupervisorAuthorizationLabel"] = "اعتماد المشرف لحذف المصروف";
+    ViewData["SupervisorAuthorizationHint"] = "حذف المصروف يؤثر على التقارير المالية، لذلك يجب اعتماد المشرف قبل التنفيذ.";
 }
 
-<h1>حذف المصروف</h1>
+<div class="erp-page erp-narrow-page mx-auto">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">المصاريف</p>
+            <h1>حذف مصروف</h1>
+            <p class="erp-table-note">راجع تفاصيل المصروف ثم أدخل كلمة مرور المشرف لتأكيد التعطيل.</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">العودة للمصاريف</a>
+        </div>
+    </div>
 
-<div class="alert alert-danger">
-    <h3>هل أنت متأكد من حذف هذا المصروف؟</h3>
-</div>
+    <div class="alert alert-danger erp-alert">
+        <h3 class="h5 mb-0">هل أنت متأكد من حذف هذا المصروف؟</h3>
+    </div>
 
-<div>
+<section class="erp-panel erp-danger-zone">
     <h4>تفاصيل المصروف</h4>
     <hr />
     <dl class="row">
@@ -36,9 +48,14 @@
         <dd class="col-sm-10">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
     </dl>
 
-    <form asp-action="Delete">
+    <form asp-action="Delete" method="post">
+        @Html.AntiForgeryToken()
         <input type="hidden" asp-for="Id" />
-        <input type="submit" value="حذف" class="btn btn-danger" /> |
-        <a asp-action="Index" class="btn btn-secondary">رجوع</a>
+        <partial name="_SupervisorPasswordField" />
+        <div class="erp-form-actions">
+            <button type="submit" class="btn btn-danger">حذف المصروف</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+        </div>
     </form>
+</section>
 </div>

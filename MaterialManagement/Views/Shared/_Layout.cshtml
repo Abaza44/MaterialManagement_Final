@@ -1,9 +1,9 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - MaterialManagement</title>
+    <title>@ViewData["Title"] - إدارة المواد</title>
 
     <!-- CSS Libraries -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -16,12 +16,13 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
-<body>
+<body class="erp-shell">
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top border-bottom mb-3">
+        <nav class="navbar navbar-expand-lg erp-navbar sticky-top mb-3">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Landing">
-                    <i class="bi bi-stack"></i> Material Management
+                <a class="navbar-brand erp-brand" asp-area="" asp-controller="Home" asp-action="Landing">
+                    <span class="erp-brand-mark"><i class="bi bi-stack"></i></span>
+                    <span>إدارة المواد</span>
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -33,26 +34,26 @@
                 <div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">
                                 <i class="bi bi-house-door"></i> الرئيسية
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Material" asp-action="Index">
+                            <a class="nav-link" asp-controller="Material" asp-action="Index">
                                 <i class="bi bi-box-seam"></i> المواد
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Equipment" asp-action="Index">
+                            <a class="nav-link" asp-controller="Equipment" asp-action="Index">
                                 <i class="bi bi-tools"></i> المعدات
                             </a>
                         </li>
 
                         <!-- الأطراف -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-people"></i> الأطراف
                             </a>
                             <ul class="dropdown-menu">
@@ -65,7 +66,7 @@
 
                         <!-- الفواتير -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-receipt"></i> الفواتير
                             </a>
                             <ul class="dropdown-menu">
@@ -76,7 +77,7 @@
 
                         <!-- المالية -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-wallet2"></i> المالية
                             </a>
                             <ul class="dropdown-menu">
@@ -101,7 +102,7 @@
 
                         <!-- التقارير -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-file-earmark-bar-graph"></i> التقارير
                             </a>
                             <ul class="dropdown-menu">
@@ -124,7 +125,7 @@
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Reservation" asp-action="Index">
+                            <a class="nav-link" asp-controller="Reservation" asp-action="Index">
                                 <i class="bi bi-calendar-check"></i> الحجوزات
                             </a>
                         </li>
@@ -134,13 +135,13 @@
         </nav>
     </header>
 
-    <div class="container">
-        <main role="main" class="pb-3">
+    <div class="container erp-main-container">
+        <main role="main" class="erp-main">
 
             <!-- تنبيهات النجاح والخطأ -->
             @if (TempData["SuccessMessage"] != null)
             {
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="alert alert-success alert-dismissible fade show erp-alert" role="alert">
                     <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -148,7 +149,7 @@
 
             @if (TempData["ErrorMessage"] != null)
             {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="alert alert-danger alert-dismissible fade show erp-alert" role="alert">
                     <i class="bi bi-exclamation-triangle-fill"></i> @TempData["ErrorMessage"]
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -158,9 +159,9 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted py-3">
+    <footer class="footer text-muted py-3 erp-footer">
         <div class="container text-center">
-            &copy; 2025 - MaterialManagement - <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; @DateTime.Now.Year - إدارة المواد - <a asp-controller="Home" asp-action="Privacy">الخصوصية</a>
         </div>
     </footer>
 

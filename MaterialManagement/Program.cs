@@ -7,11 +7,15 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using MaterialManagement.BLL.Service.Abstractions;
+using MaterialManagement.PL.Models;
+using MaterialManagement.PL.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.Configure<SupervisorAuthorizationOptions>(builder.Configuration.GetSection("SupervisorAuthorization"));
+builder.Services.AddSingleton<ISupervisorAuthorizationService, SupervisorAuthorizationService>();
 
 // Database Context
 

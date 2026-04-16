@@ -5,8 +5,11 @@ namespace MaterialManagement.BLL.ModelVM.Reports
     public class AccountStatementViewModel
     {
         public DateTime TransactionDate { get; set; }
-        public string TransactionType { get; set; } // "فاتورة بيع", "تحصيل"
-        public string Reference { get; set; } // رقم الفاتورة أو معرف الدفعة
+        public string TransactionType { get; set; } = string.Empty; // "فاتورة بيع", "تحصيل"
+        public string CauseLabel { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string EffectLabel { get; set; } = string.Empty;
+        public string Reference { get; set; } = string.Empty; // رقم الفاتورة أو معرف الدفعة
         public decimal Debit { get; set; } // مدين (المبلغ المطلوب منه - يزيد الدين)
         public decimal Credit { get; set; } 
         public decimal Balance { get; set; } 
@@ -16,9 +19,9 @@ namespace MaterialManagement.BLL.ModelVM.Reports
     }
     public class TransactionItemViewModel
     {
-        public string MaterialName { get; set; }
+        public string MaterialName { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
-        public string Unit { get; set; }
+        public string Unit { get; set; } = string.Empty;
 
         // --- أضف هذه الخاصية الجديدة ---
         public decimal UnitPrice { get; set; }

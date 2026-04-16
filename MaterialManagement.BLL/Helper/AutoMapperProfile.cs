@@ -67,7 +67,7 @@ namespace MaterialManagement.BLL.Helper
 
             // === Sales Invoice Mappings ===
             CreateMap<SalesInvoice, SalesInvoiceViewModel>()
-                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client.Name))
+                .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client != null ? src.Client.Name : src.OneTimeCustomerName))
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.SalesInvoiceItems));
 
             CreateMap<SalesInvoiceItem, SalesInvoiceItemViewModel>()
@@ -79,7 +79,7 @@ namespace MaterialManagement.BLL.Helper
             CreateMap<SalesInvoice, InvoiceSummaryViewModel>();
             // === Purchase Invoice Mappings (مع دعم المرتجعات) ===
             CreateMap<PurchaseInvoice, PurchaseInvoiceViewModel>()
-                .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : null))
+                .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : src.OneTimeSupplierName))
                 .ForMember(dest => dest.ClientName, opt => opt.MapFrom(src => src.Client != null ? src.Client.Name : null)) 
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.PurchaseInvoiceItems)); // <<< هذا هو الحل
             CreateMap<PurchaseInvoiceItem, PurchaseInvoiceItemViewModel>()

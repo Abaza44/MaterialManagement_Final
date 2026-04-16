@@ -5,10 +5,12 @@ using MaterialManagement.BLL.Service.Abstractions;
 using MaterialManagement.DAL.Entities;
 using MaterialManagement.DAL.Repo.Abstractions; // <-- مهم
 using MaterialManagement.BLL.Features.Invoicing.Commands;
+using MaterialManagement.DAL.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MaterialManagement.PL.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -23,6 +25,7 @@ namespace MaterialManagement.PL.Controllers
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
         private readonly ILogger<SalesInvoiceController> _logger;
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
 
         public SalesInvoiceController(
             ISalesInvoiceService salesInvoiceService,
@@ -31,7 +34,8 @@ namespace MaterialManagement.PL.Controllers
             IClientPaymentService clientPaymentService,
             IMapper mapper,
             IMediator mediator,
-            ILogger<SalesInvoiceController> logger)
+            ILogger<SalesInvoiceController> logger,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _salesInvoiceService = salesInvoiceService;
             _clientService = clientService;
@@ -40,6 +44,7 @@ namespace MaterialManagement.PL.Controllers
             _mapper = mapper;
             _mediator = mediator;
             _logger = logger;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
         // GET: SalesInvoice
@@ -98,9 +103,9 @@ namespace MaterialManagement.PL.Controllers
 
             try
             {
-                await _salesInvoiceService.CreateInvoiceAsync(model);
+                var invoice = await _salesInvoiceService.CreateInvoiceAsync(model);
                 TempData["SuccessMessage"] = "تم إنشاء فاتورة بيع بنجاح";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Details), new { id = invoice.Id });
             }
             catch (Exception ex)
             {
@@ -136,7 +141,7 @@ namespace MaterialManagement.PL.Controllers
                 // Replaces the generic _salesInvoiceService.CreateInvoiceAsync
                 var result = await _mediator.Send(new CreateSalesInvoiceCommand { Model = model });
                 TempData["SuccessMessage"] = "تم إنشاء فاتورة بيع بنجاح (MediatR Test Route)";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Details), new { id = result.Id });
             }
             catch (DbUpdateConcurrencyException ex)
             {
@@ -171,8 +176,21 @@ namespace MaterialManagement.PL.Controllers
         // POST: SalesInvoice/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, string? supervisorPassword)
         {
+            var invoice = await _salesInvoiceService.GetInvoiceByIdAsync(id);
+            if (invoice == null)
+            {
+                TempData["ErrorMessage"] = "الفاتورة غير موجودة";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                ModelState.AddModelError("SupervisorPassword", supervisorError);
+                return View(invoice);
+            }
+
             try
             {
                 // This service call now handles re-stocking and balance updates
@@ -188,6 +206,17 @@ namespace MaterialManagement.PL.Controllers
 
         public async Task<IActionResult> ClientInvoices(int id)
         {
+            if (id == 0)
+            {
+                return View(new ClientViewModel
+                {
+                    Id = 0,
+                    Name = "عملاء نقديون / بدون تسجيل",
+                    Balance = 0,
+                    IsActive = true
+                });
+            }
+
             var client = await _clientService.GetClientByIdAsync(id);
             if (client == null) return NotFound();
             return View(_mapper.Map<ClientViewModel>(client));
@@ -216,7 +245,11 @@ namespace MaterialManagement.PL.Controllers
 
                 // 2. بناء الاستعلام الأساسي وتطبيق الفلترة
                 IQueryable<SalesInvoice> query = _salesInvoiceService.GetInvoicesAsQueryable()
-                    .Where(i => i.ClientId == clientId && i.IsActive);
+                    .Where(i => i.IsActive);
+
+                query = clientId == 0
+                    ? query.Where(i => i.PartyMode == SalesInvoicePartyMode.WalkInCustomer)
+                    : query.Where(i => i.PartyMode == SalesInvoicePartyMode.RegisteredClient && i.ClientId == clientId);
 
                 if (!string.IsNullOrEmpty(searchValue))
                 {
@@ -232,11 +265,15 @@ namespace MaterialManagement.PL.Controllers
                 var viewModelData = _mapper.Map<IEnumerable<InvoiceSummaryViewModel>>(pagedData);
 
                 // 5. جلب الرصيد الإجمالي للعميل وحساب الرصيد المرحل
-                var client = await _clientService.GetClientByIdAsync(clientId);
+                var client = clientId == 0 ? null : await _clientService.GetClientByIdAsync(clientId);
                 decimal clientCurrentBalance = client?.Balance ?? 0;
                 decimal openingBalance = clientCurrentBalance - grandTotalRemaining; // الرصيد قبل هذه الفواتير
 
-                var recordsTotal = await _salesInvoiceService.GetInvoicesAsQueryable().Where(i => i.ClientId == clientId && i.IsActive).CountAsync();
+                var recordsTotalQuery = _salesInvoiceService.GetInvoicesAsQueryable().Where(i => i.IsActive);
+                recordsTotalQuery = clientId == 0
+                    ? recordsTotalQuery.Where(i => i.PartyMode == SalesInvoicePartyMode.WalkInCustomer)
+                    : recordsTotalQuery.Where(i => i.PartyMode == SalesInvoicePartyMode.RegisteredClient && i.ClientId == clientId);
+                var recordsTotal = await recordsTotalQuery.CountAsync();
 
                 // 6. إرسال الرد مع كل الإحصائيات المطلوبة
                 var jsonData = new

@@ -1,5 +1,6 @@
 ﻿using MaterialManagement.BLL.ModelVM.Reservation;
 using MaterialManagement.BLL.Service.Abstractions;
+using MaterialManagement.PL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System;
@@ -14,15 +15,18 @@ namespace MaterialManagement.PL.Controllers
         private readonly IReservationService _reservationService;
         private readonly IClientService _clientService;
         private readonly IMaterialService _materialService;
+        private readonly ISupervisorAuthorizationService _supervisorAuthorizationService;
 
         public ReservationController(
             IReservationService reservationService,
             IClientService clientService,
-            IMaterialService materialService)
+            IMaterialService materialService,
+            ISupervisorAuthorizationService supervisorAuthorizationService)
         {
             _reservationService = reservationService;
             _clientService = clientService;
             _materialService = materialService;
+            _supervisorAuthorizationService = supervisorAuthorizationService;
         }
 
         // ===========================================
@@ -232,8 +236,14 @@ namespace MaterialManagement.PL.Controllers
         // POST: /Reservation/Cancel/5 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancel(int id)
+        public async Task<IActionResult> Cancel(int id, string? supervisorPassword)
         {
+            if (!_supervisorAuthorizationService.TryAuthorize(supervisorPassword, out var supervisorError))
+            {
+                TempData["ErrorMessage"] = supervisorError;
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             try
             {
                 await _reservationService.CancelReservationAsync(id);

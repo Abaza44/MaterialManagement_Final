@@ -11,40 +11,49 @@
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3">✏️ تعديل عميل</h2>
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">العملاء</p>
+            <h1>تعديل عميل</h1>
+        </div>
+    </div>
 
-    <form asp-action="Edit" method="post">
-        <div class="mb-3">
+    <form asp-action="Edit" method="post" class="erp-panel">
+        <div class="erp-form-grid">
+        <div>
             <label asp-for="Name" class="form-label"></label>
             <input asp-for="Name" class="form-control" />
             <span asp-validation-for="Name" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
+        <div>
             <label asp-for="Phone" class="form-label"></label>
             <input asp-for="Phone" class="form-control" />
             <span asp-validation-for="Phone" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
+        <div class="erp-field-wide">
             <label asp-for="Address" class="form-label"></label>
             <input asp-for="Address" class="form-control" />
             <span asp-validation-for="Address" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
+        <div>
             <label asp-for="Balance" class="form-label"></label>
             <input asp-for="Balance" class="form-control" />
             <span asp-validation-for="Balance" class="text-danger"></span>
         </div>
 
-        <div class="form-check mb-3">
+        <div class="form-check align-self-end">
             <input asp-for="IsActive" class="form-check-input" />
             <label asp-for="IsActive" class="form-check-label">نشط</label>
         </div>
+        </div>
 
-        <button type="submit" class="btn btn-warning">💾 تحديث</button>
-        <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+        <div class="erp-form-actions">
+            <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> تحديث</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">رجوع</a>
+        </div>
     </form>
 </div>

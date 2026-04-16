@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MaterialManagement.DAL.Enums;
 
 namespace MaterialManagement.DAL.Entities
 {
@@ -18,7 +19,15 @@ namespace MaterialManagement.DAL.Entities
 
         public DateTime InvoiceDate { get; set; }
 
+        public PurchaseInvoicePartyMode PartyMode { get; set; } = PurchaseInvoicePartyMode.RegisteredSupplier;
+
         public int? SupplierId { get; set; }
+
+        [StringLength(100)]
+        public string? OneTimeSupplierName { get; set; }
+
+        [StringLength(30)]
+        public string? OneTimeSupplierPhone { get; set; }
 
 
         public int? ClientId { get; set; }
@@ -36,7 +45,7 @@ namespace MaterialManagement.DAL.Entities
         public bool IsActive { get; set; } = true;
 
         // Navigation Properties
-        public virtual Supplier Supplier { get; set; }
+        public virtual Supplier? Supplier { get; set; }
         public virtual Client? Client { get; set; }
         public virtual ICollection<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; } = new HashSet<PurchaseInvoiceItem>();
     }

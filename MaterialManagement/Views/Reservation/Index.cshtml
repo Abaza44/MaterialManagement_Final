@@ -4,13 +4,21 @@
     ViewData["Title"] = "الحجوزات النشطة";
 }
 
-<h1>@ViewData["Title"]</h1>
-<p><a asp-action="Create" class="btn btn-primary">إنشاء حجز جديد</a></p>
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الحجوزات</p>
+            <h1>@ViewData["Title"]</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> إنشاء حجز جديد</a>
+        </div>
+    </div>
 
 <div class="accordion" id="reservationsAccordion">
     @foreach (var clientGroup in Model)
     {
-        <div class="accordion-item">
+        <div class="accordion-item erp-panel p-0">
             <h2 class="accordion-header" id="heading-@clientGroup.ClientId">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@clientGroup.ClientId" aria-expanded="false" aria-controls="collapse-@clientGroup.ClientId">
                     <strong>@clientGroup.ClientName</strong>
@@ -19,7 +27,7 @@
             </h2>
             <div id="collapse-@clientGroup.ClientId" class="accordion-collapse collapse" aria-labelledby="heading-@clientGroup.ClientId" data-bs-parent="#reservationsAccordion">
                 <div class="accordion-body">
-                    <table class="table table-sm table-hover">
+                    <table class="table table-sm table-hover erp-data-table">
                         <thead>
                             <tr>
                                 <th>رقم الحجز</th>
@@ -50,4 +58,5 @@
             </div>
         </div>
     }
+</div>
 </div>

@@ -11,35 +11,31 @@
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
-<div class="container mt-4">
-    <h2 class="mb-3">👁 تفاصيل مادة</h2>
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">المخزون</p>
+            <h1>@Model.Name</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="bi bi-pencil"></i> تعديل</a>
+            <a asp-action="Index" class="btn btn-outline-secondary">رجوع</a>
+        </div>
+    </div>
 
-    <dl class="row">
-        <dt class="col-sm-3">الكود</dt>
-        <dd class="col-sm-9">@Model.Code</dd>
-
-        <dt class="col-sm-3">الاسم</dt>
-        <dd class="col-sm-9">@Model.Name</dd>
-
-        <dt class="col-sm-3">الوحدة</dt>
-        <dd class="col-sm-9">@Model.Unit</dd>
-
-        <dt class="col-sm-3">الكمية</dt>
-        <dd class="col-sm-9">@Model.Quantity</dd>
-
-        <dt class="col-sm-3">سعر الشراء</dt>
-        <dd class="col-sm-9">@Model.PurchasePrice</dd>
-
-        <dt class="col-sm-3">سعر البيع</dt>
-        <dd class="col-sm-9">@Model.SellingPrice</dd>
-
-        <dt class="col-sm-3">الوصف</dt>
-        <dd class="col-sm-9">@Model.Description</dd>
-
-        <dt class="col-sm-3">الحالة</dt>
-        <dd class="col-sm-9">@(Model.IsActive ? "نشط" : "غير نشط")</dd>
-    </dl>
-
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">✏️ تعديل</a>
-    <a asp-action="Index" class="btn btn-secondary">⬅️ رجوع</a>
+    <div class="erp-panel">
+        <div class="erp-panel-header"><h2>بيانات المادة</h2></div>
+        <div class="erp-detail-grid">
+            <div class="erp-detail-item"><span>الكود</span><strong>@Model.Code</strong></div>
+            <div class="erp-detail-item"><span>الوحدة</span><strong>@Model.Unit</strong></div>
+            <div class="erp-detail-item"><span>الكمية</span><strong>@Model.Quantity.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>المحجوز</span><strong>@Model.ReservedQuantity.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>المتاح</span><strong>@Model.AvailableQuantity.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>حد التنبيه</span><strong>@Model.MinimumQuantity.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>سعر الشراء</span><strong>@Model.PurchasePrice.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>سعر البيع</span><strong>@Model.SellingPrice.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>الحالة</span><strong>@(Model.IsActive ? "نشط" : "غير نشط")</strong></div>
+            <div class="erp-detail-item erp-field-wide"><span>الوصف</span><strong>@(Model.Description ?? "-")</strong></div>
+        </div>
+    </div>
 </div>

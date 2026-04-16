@@ -8,52 +8,59 @@
     string formAction = isUpdate ? "Edit" : "Create";
     var materialsJson = Json.Serialize(ViewBag.Materials as IEnumerable<MaterialViewModel>);
 
-    // --- (FIX 1) ---
-    // تعريف الـ Index والـ Items بناءً على الموديل الجديد
     var items = Model.Items ?? new List<MaterialManagement.BLL.ModelVM.Reservation.ReservationItemModel>();
     int itemIndex = 0;
 }
 
-<div class="card shadow-sm border-0">
-    <div class="card-body p-4">
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">الحجوزات</p>
+            <h1>@title</h1>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">العودة إلى القائمة</a>
+        </div>
+    </div>
 
-        <h1 class="mb-3"><i class="bi bi-calendar-check-fill text-primary"></i> @title</h1>
-        <hr />
+    <section class="erp-panel">
 
         <form asp-action="@formAction" method="post" id="reservationForm">
             <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
             @if (isUpdate)
             {
-                // --- (FIX 2) ---
-                // استخدام asp-for لضمان ربط الـ Id
                 <input type="hidden" asp-for="Id" />
             }
 
-            <div class="row">
-                <div class="form-group col-md-6 mb-3">
+            <div class="erp-form-grid">
+                <div class="form-group">
                     <label asp-for="ClientId" class="control-label fw-bold">العميل</label>
                     <select asp-for="ClientId" class="form-control" asp-items="ViewBag.Clients" required>
-                        <option value="">-- اختر العميل --</option>
+                        <option value="">اختر العميل</option>
                     </select>
                     <span asp-validation-for="ClientId" class="text-danger"></span>
                 </div>
-                <div class="form-group col-md-6 mb-3">
+                <div class="form-group">
                     <label asp-for="Notes" class="control-label fw-bold">ملاحظات</label>
                     <textarea asp-for="Notes" class="form-control"></textarea>
                 </div>
             </div>
 
-            <hr />
-            <h3 class="mb-3">الأصناف المحجوزة</h3>
-            <table class="table table-hover align-middle" id="itemsTable">
+            <div class="erp-subsection-heading">
+                <div>
+                    <h2>الأصناف المحجوزة</h2>
+                    <p class="erp-table-note">الحجز يمسك المخزون فقط ولا يغير رصيد العميل حتى التسليم.</p>
+                </div>
+            </div>
+            <table class="table table-hover align-middle erp-data-table" id="itemsTable">
                 <thead class="table-light">
                     <tr>
                         <th>المادة</th>
-                        <th style="width: 15%;">الكمية</th>
-                        <th style="width: 15%;">سعر الوحدة</th>
-                        <th style="width: 20%;">الإجمالي الفرعي</th>
-                        <th style="width: 5%;"></th>
+                        <th class="reservation-number-column">الكمية</th>
+                        <th class="reservation-number-column">سعر الوحدة</th>
+                        <th class="reservation-total-column">الإجمالي الفرعي</th>
+                        <th class="reservation-action-column"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,28 +77,21 @@
                             <td><input class="form-control item-total" type="text" value="@(item.Quantity* item.UnitPrice)" readonly /></td>
                             <td><button type="button" class="btn btn-danger btn-sm remove-item-btn"><i class="bi bi-trash"></i></button></td>
                         </tr>
-                        @(itemIndex++) @* (FIX 1.b) زيادة الـ Index مع كل عنصر موجود *@
+                        itemIndex++;
                     }
                 </tbody>
             </table>
 
             <button type="button" id="addItemBtn" class="btn btn-success"><i class="bi bi-plus-circle"></i> إضافة صنف</button>
 
-            <div class="row justify-content-end mt-3">
-                <div class="col-md-4">
-                    <div class="card bg-light">
-                        <div class="card-body">
-                            <h4 class="card-title mb-0">
-                                الإجمالي الكلي:
-                                <span class="float-end text-primary fw-bold" id="grandTotal">0.00</span>
-                            </h4>
-                        </div>
-                    </div>
+            <div class="erp-summary-strip mt-3">
+                <div class="erp-summary-item">
+                    <span>الإجمالي الكلي</span>
+                    <strong id="grandTotal">0.00</strong>
                 </div>
             </div>
 
-            <hr />
-            <div class="form-group mt-4">
+            <div class="erp-form-actions">
                 <button type="submit" class="btn btn-primary btn-lg">
                     <i class="bi bi-save"></i> @(isUpdate ? "حفظ التعديلات" : "إنشاء الحجز")
                 </button>
@@ -99,7 +99,7 @@
             </div>
         </form>
 
-    </div>
+    </section>
 </div>
 
 
@@ -107,38 +107,33 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         $(document).ready(function () {
-            let itemIndex = @itemIndex; // <<< يبدأ العد من حيث انتهى الـ C#
+            let itemIndex = @itemIndex;
             const materials = JSON.parse('@Html.Raw(materialsJson)');
             const isUpdate = @isUpdate.ToString().ToLower();
 
-            // (STYLE) دالة لحساب الإجمالي الكلي
             function updateGrandTotal() {
                 let total = 0;
                 $('#itemsTable tbody tr').each(function () {
                     let quantity = parseFloat($(this).find('.item-quantity').val()) || 0;
                     let price = parseFloat($(this).find('.item-price').val()) || 0;
                     let subtotal = (quantity * price);
-                    $(this).find('.item-total').val(subtotal.toFixed(2)); // تحديث الإجمالي الفرعي
+                    $(this).find('.item-total').val(subtotal.toFixed(2));
                     total += subtotal;
                 });
                 $('#grandTotal').text(total.toFixed(2));
             }
 
-            // (FIX 3) تعديل الدالة لتقبل الـ Index كمتغير
             function createMaterialDropdown(selectedId, rowIndex) {
-                let options = '<option value="">-- اختر المادة --</option>';
+                let options = '<option value="">اختر المادة</option>';
                 materials.forEach(function (mat) {
-                    // (STYLE) إظهار الكمية المتاحة الفعلية (Quantity - ReservedQuantity)
                     let available = mat.quantity - mat.reservedQuantity;
                     let selected = selectedId === mat.id ? 'selected' : '';
                     options += `<option value="${mat.id}" data-price="${mat.unitPrice}" ${selected}>${mat.name} (المتاح: ${available})</option>`;
                 });
-                // استخدام `rowIndex` لضمان أن الأسماء فريدة
                 return `<select name="Items[${rowIndex}].MaterialId" class="form-control item-material" required>${options}</select>`;
             }
 
             function addItemRow() {
-                // (FIX 3.b) تمرير الـ Index الحالي للدالة
                 let materialDropdown = createMaterialDropdown(null, itemIndex);
                 let newRow = `
                     <tr>
@@ -163,7 +158,7 @@
                     });
                 });
                 itemIndex = $('#itemsTable tbody tr').length;
-                updateGrandTotal(); // (STYLE) تحديث الإجمالي بعد الحذف
+                updateGrandTotal();
             }
 
             if (!isUpdate && itemIndex === 0) {
@@ -177,7 +172,6 @@
                 reindexRows();
             });
 
-            // (STYLE) جلب السعر الافتراضي للمادة عند اختيارها
             $('#itemsTable').on('change', '.item-material', function () {
                 let selectedOption = $(this).find('option:selected');
                 let price = selectedOption.data('price') || 0;
@@ -185,23 +179,19 @@
                 updateGrandTotal();
             });
 
-            // (STYLE) حساب الإجمالي عند تغيير الكمية أو السعر
             $('#itemsTable').on('input', '.item-quantity, .item-price', function () {
                 updateGrandTotal();
             });
 
-            // (FIX 3.c) إصلاح لوجيك التحديث
             if (isUpdate) {
                 $('#itemsTable tbody tr').each(function (index, row) {
                     let selectedId = $(row).find('select').find('option:selected').val();
-                    // تمرير الـ index الصحيح
                     let newDropdown = createMaterialDropdown(parseInt(selectedId), index);
                     $(row).find('td:first').html(newDropdown);
                 });
-                // لا نحتاج reindexRows هنا لأن اللوب قام بالترقيم الصحيح
-                updateGrandTotal(); // حساب الإجمالي عند تحميل الصفحة
+                updateGrandTotal();
             } else {
-                 updateGrandTotal(); // حساب الإجمالي (للصف الافتراضي)
+                 updateGrandTotal();
             }
         });
     </script>

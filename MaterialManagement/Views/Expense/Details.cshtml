@@ -4,39 +4,32 @@
     ViewData["Title"] = "تفاصيل المصروف";
 }
 
-<h1>تفاصيل المصروف</h1>
+<div class="erp-page erp-narrow-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">المالية</p>
+            <h1>تفاصيل المصروف</h1>
+            <p class="erp-table-note">@Model.Description</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-warning">تعديل</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">حذف</a>
+            <a asp-action="Index" class="btn btn-outline-secondary">العودة للمصاريف</a>
+        </div>
+    </div>
 
-<div>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">الوصف</dt>
-        <dd class="col-sm-10">@Model.Description</dd>
-
-        <dt class="col-sm-2">المبلغ</dt>
-        <dd class="col-sm-10">
-            <span class="badge bg-danger fs-6">@Model.Amount.ToString("C")</span>
-        </dd>
-
-        <dt class="col-sm-2">التاريخ</dt>
-        <dd class="col-sm-10">@Model.ExpenseDate.ToString("yyyy-MM-dd")</dd>
-
-        <dt class="col-sm-2">الفئة</dt>
-        <dd class="col-sm-10">
-            <span class="badge bg-info">@Model.Category</span>
-        </dd>
-
-        <dt class="col-sm-2">طريقة الدفع</dt>
-        <dd class="col-sm-10">@Model.PaymentMethod</dd>
-
-        <dt class="col-sm-2">الملاحظات</dt>
-        <dd class="col-sm-10">@(string.IsNullOrEmpty(Model.Notes) ? "لا توجد ملاحظات" : Model.Notes)</dd>
-
-        <dt class="col-sm-2">تاريخ الإضافة</dt>
-        <dd class="col-sm-10">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
-    </dl>
-</div>
-
-<div>
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a> |
-    <a asp-action="Index" class="btn btn-secondary">رجوع للقائمة</a>
+    <section class="erp-panel">
+        <div class="erp-panel-header"><h2>بيانات المصروف</h2></div>
+        <div class="erp-detail-grid">
+            <div class="erp-detail-item"><span>الوصف</span><strong>@Model.Description</strong></div>
+            <div class="erp-detail-item"><span>المبلغ</span><strong class="erp-number">@Model.Amount.ToString("N2")</strong></div>
+            <div class="erp-detail-item"><span>التاريخ</span><strong>@Model.ExpenseDate.ToString("yyyy-MM-dd")</strong></div>
+            <div class="erp-detail-item"><span>الفئة</span><strong>@(Model.Category ?? "---")</strong></div>
+            <div class="erp-detail-item"><span>طريقة الدفع</span><strong>@(Model.PaymentMethod ?? "---")</strong></div>
+            <div class="erp-detail-item"><span>مدفوع إلى</span><strong>@(Model.EmployeeName ?? Model.PaymentTo ?? "---")</strong></div>
+            <div class="erp-detail-item"><span>الحالة</span><strong>@(Model.IsActive ? "نشط" : "غير نشط")</strong></div>
+            <div class="erp-detail-item"><span>تاريخ الإضافة</span><strong>@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</strong></div>
+            <div class="erp-detail-item erp-field-wide"><span>الملاحظات</span><strong>@(string.IsNullOrWhiteSpace(Model.Notes) ? "لا توجد ملاحظات" : Model.Notes)</strong></div>
+        </div>
+    </section>
 </div>

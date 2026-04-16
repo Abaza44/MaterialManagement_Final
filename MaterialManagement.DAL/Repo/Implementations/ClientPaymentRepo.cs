@@ -23,6 +23,7 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<IEnumerable<ClientPayment>> GetByClientIdAsync(int clientId)
         {
             return await _context.ClientPayments
+                .IgnoreQueryFilters()
                 .Where(p => p.ClientId == clientId)
                 .OrderByDescending(p => p.PaymentDate)
                 .AsNoTracking()
@@ -32,8 +33,10 @@ namespace MaterialManagement.DAL.Repo.Implementations
         public async Task<IEnumerable<ClientPayment>> GetByInvoiceIdAsync(int invoiceId)
         {
             return await _context.ClientPayments
+                .IgnoreQueryFilters()
                 .Where(p => p.SalesInvoiceId == invoiceId)
                 .OrderByDescending(p => p.PaymentDate)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

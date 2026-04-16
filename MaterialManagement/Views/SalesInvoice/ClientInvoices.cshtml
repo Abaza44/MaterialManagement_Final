@@ -2,58 +2,62 @@
 
 @{
     // العنوان الرئيسي للصفحة
-    ViewData["Title"] = $"فواتير العميل: {Model.Name}";
+    ViewData["Title"] = $"فواتير الطرف: {Model.Name}";
 }
 
-<h2 class="mb-3">
-    🧾 فواتير العميل:
-    <span class="text-primary">@Model.Name</span>
-</h2>
+<div class="erp-page">
+    <div class="erp-page-header">
+        <div>
+            <p class="erp-eyebrow">فواتير البيع</p>
+            <h1>فواتير الطرف: @Model.Name</h1>
+            <p class="erp-table-note">يعرض الجدول الفواتير النشطة مع إجماليات الرصيد والمتبقي.</p>
+        </div>
+        <div class="erp-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">العودة للتجميع</a>
+            <a asp-action="Create" class="btn btn-primary">فاتورة بيع جديدة</a>
+        </div>
+    </div>
 
 <!-- عرض رقم العميل -->
 @if (!string.IsNullOrEmpty(Model.Phone))
 {
-    <p class="text-muted">
-        📞 <strong>رقم العميل:</strong> @Model.Phone
-    </p>
+    <section class="erp-summary-strip mb-3">
+        <div class="erp-summary-item">
+            <span>رقم الهاتف</span>
+            <strong>@Model.Phone</strong>
+        </div>
+    </section>
 }
 
-<p>
-    <a asp-action="Index" class="btn btn-secondary">⬅ العودة لقائمة العملاء</a>
-</p>
+<section class="erp-summary-strip mb-3">
+    <div class="erp-summary-item">
+        <span>رصيد سابق / مرحل</span>
+        <strong id="openingBalance" class="erp-number">0.00</strong>
+    </div>
+    <div class="erp-summary-item">
+        <span>إجمالي المتبقي من الفواتير</span>
+        <strong id="grandTotalRemaining" class="erp-number text-danger">0.00</strong>
+    </div>
+    <div class="erp-summary-item">
+        <span>الرصيد الإجمالي النهائي</span>
+        <strong id="finalBalance" class="erp-number text-primary">0.00</strong>
+    </div>
+</section>
 
-<div class="card shadow-sm mt-3">
-    <div class="card-body">
-        <table id="invoicesTable" class="table table-bordered table-hover" style="width:100%">
-            <thead class="table-dark">
+<section class="erp-panel">
+        <table id="invoicesTable" class="table table-bordered table-hover erp-data-table erp-report-table" style="width:100%">
+            <thead>
                 <tr>
                     <th>رقم الفاتورة</th>
                     <th>التاريخ</th>
                     <th>الإجمالي</th>
                     <th>المدفوع</th>
                     <th>المتبقي</th>
-                    <th>إجراءات</th>
+                    <th class="text-center">إجراءات</th>
                 </tr>
             </thead>
-            <tfoot>
-                <tr class="table-light">
-                    <td colspan="4" class="text-end fw-bold">رصيد سابق / مرحل:</td>
-                    <td id="openingBalance" class="text-end fw-bold">0.00</td>
-                    <td></td>
-                </tr>
-                <tr class="table-light">
-                    <td colspan="4" class="text-end">إجمالي المتبقي من الفواتير المعروضة:</td>
-                    <td id="grandTotalRemaining" class="text-end text-danger">0.00</td>
-                    <td></td>
-                </tr>
-                <tr class="table-dark text-white fw-bolder">
-                    <td colspan="4" class="text-end fs-5">الرصيد الإجمالي النهائي:</td>
-                    <td id="finalBalance" class="text-end fs-5">0.00</td>
-                    <td></td>
-                </tr>
-            </tfoot>
         </table>
-    </div>
+</section>
 </div>
 
 @section Scripts {
@@ -88,30 +92,32 @@
                             return new Date(data).toLocaleDateString('ar-EG');
                         }
                     },
-                    { data: "totalAmount", render: currencyFormat, className: "text-end" },
-                    { data: "paidAmount", render: currencyFormat, className: "text-end" },
+                    { data: "totalAmount", render: currencyFormat, className: "text-end erp-number" },
+                    { data: "paidAmount", render: currencyFormat, className: "text-end erp-number" },
                     {
                         data: "remainingAmount",
                         render: function (data) {
                             return data > 0
                                 ? `<span class="badge bg-danger">${currencyFormat(data)}</span>`
-                                : `<span class="badge bg-success">✔</span>`;
+                                : `<span class="badge bg-success">مسدد</span>`;
                         },
-                        className: "text-end"
+                        className: "text-end erp-number"
                     },
                     {
                         data: "id",
                         render: function (data) {
                             return `
-                                <a href='/SalesInvoice/Details/${data}' class='btn btn-info btn-sm'>👁</a>
-                                <a href='/SalesInvoice/Delete/${data}' class='btn btn-danger btn-sm'>🗑</a>
+                                <div class='erp-table-actions'>
+                                    <a href='/SalesInvoice/Details/${data}' class='btn btn-outline-primary btn-sm'>التفاصيل</a>
+                                    <a href='/SalesInvoice/Delete/${data}' class='btn btn-outline-danger btn-sm'>حذف</a>
+                                </div>
                             `;
                         },
                         orderable: false,
                         searchable: false
                     }
                 ],
-                language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/Arabic.json" },
+                language: window.erpDataTablesArabic,
                 order: [[1, "desc"]]
             });
         });

@@ -1,303 +1,271 @@
 ﻿@model MaterialManagement.BLL.ModelVM.Invoice.PurchaseInvoiceCreateModel
 
+@using MaterialManagement.DAL.Enums
+
 @{
     ViewData["Title"] = "إنشاء شراء / مرتجع";
+    var isRegisteredSupplier = Model.PartyMode == PurchaseInvoicePartyMode.RegisteredSupplier;
+    var isOneTimeSupplier = Model.PartyMode == PurchaseInvoicePartyMode.OneTimeSupplier;
+    var isClientReturn = Model.PartyMode == PurchaseInvoicePartyMode.RegisteredClientReturn;
+    var activePartyLabel = isClientReturn ? "العميل" : "المورد";
+    var supervisorErrors = ViewData.ModelState["SupervisorPassword"]?.Errors;
+    var supervisorError = supervisorErrors != null && supervisorErrors.Count > 0
+        ? supervisorErrors[0].ErrorMessage
+        : null;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1><i class="bi bi-cart-plus"></i> إنشاء عملية شراء / مرتجع</h1>
-    <a asp-action="Index" class="btn btn-secondary">العودة للقائمة</a>
-</div>
-
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/invoice.css" asp-append-version="true" />
 }
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form asp-action="Create" method="post" id="purchaseForm">
-            @Html.AntiForgeryToken()
+<div class="invoice-workbench" dir="rtl">
+    <div class="invoice-toolbar no-print">
+        <div>
+            <p class="invoice-eyebrow">فواتير الشراء والمردودات</p>
+            <h1>إنشاء عملية شراء / مرتجع</h1>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">العودة للقائمة</a>
+    </div>
 
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label asp-for="InvoiceNumber" class="form-label fw-bold"></label>
-                    <input asp-for="InvoiceNumber" class="form-control" placeholder="سيتم إنشاؤه تلقائيًا" readonly />
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label asp-for="InvoiceDate" class="form-label fw-bold"></label>
-                    <input asp-for="InvoiceDate" type="date" class="form-control" />
-                    <span asp-validation-for="InvoiceDate" class="text-danger"></span>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold">نوع العملية</label>
-                    <select id="transactionType" class="form-select">
-                        <option value="supplier" selected>شراء من مورد</option>
-                        <option value="client">مرتجع من عميل</option>
-                    </select>
-                </div>
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger no-print">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success no-print">@TempData["SuccessMessage"]</div>
+    }
+
+    <form asp-action="Create" method="post" id="invoiceEditorForm" class="invoice-editor">
+        @Html.AntiForgeryToken()
+
+        <section class="invoice-section invoice-header-grid purchase-header-grid" aria-label="بيانات العملية">
+            <div class="invoice-field">
+                <label asp-for="InvoiceNumber" class="form-label">رقم العملية</label>
+                <input asp-for="InvoiceNumber" class="form-control" placeholder="يتم توليده عند الحفظ" readonly />
+                <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
             </div>
 
-            <div id="supplierDiv" class="mb-3">
-                <label asp-for="SupplierId" class="form-label fw-bold"></label>
-                <select asp-for="SupplierId" class="form-select" asp-items="@(new SelectList(ViewBag.Suppliers, "Id", "Name"))">
-                    <option value="">-- اختر المورد --</option>
+            <div class="invoice-field">
+                <label asp-for="InvoiceDate" class="form-label">تاريخ العملية</label>
+                <input asp-for="InvoiceDate" type="date" class="form-control" />
+                <span asp-validation-for="InvoiceDate" class="text-danger"></span>
+            </div>
+
+            <div class="invoice-field">
+                <label asp-for="PartyMode" class="form-label">نوع العملية</label>
+                <select asp-for="PartyMode" id="transactionType" class="form-select" data-purchase-transaction-type>
+                    <option value="@PurchaseInvoicePartyMode.RegisteredSupplier">شراء من مورد مسجل</option>
+                    <option value="@PurchaseInvoicePartyMode.OneTimeSupplier">شراء من مورد يدوي</option>
+                    <option value="@PurchaseInvoicePartyMode.RegisteredClientReturn">مرتجع من عميل مسجل</option>
+                </select>
+                <span asp-validation-for="PartyMode" class="text-danger"></span>
+            </div>
+
+            <div class="invoice-field invoice-field-wide" data-purchase-supplier-field hidden="@(isRegisteredSupplier ? null : "hidden")">
+                <label asp-for="SupplierId" class="form-label">المورد</label>
+                <select asp-for="SupplierId" class="form-select" asp-items="@(new SelectList(ViewBag.Suppliers, "Id", "Name"))" disabled="@(isRegisteredSupplier ? null : "disabled")">
+                    <option value="">اختر المورد</option>
                 </select>
                 <span asp-validation-for="SupplierId" class="text-danger"></span>
             </div>
 
-            <div id="clientDiv" class="mb-3" style="display:none;">
-                <label asp-for="ClientId" class="form-label fw-bold"></label>
-                <select asp-for="ClientId" class="form-select" asp-items="@(new SelectList(ViewBag.Clients, "Id", "Name"))">
-                    <option value="">-- اختر العميل --</option>
+            <div class="invoice-field invoice-field-wide" data-purchase-one-time-supplier-field hidden="@(isOneTimeSupplier ? null : "hidden")">
+                <label asp-for="OneTimeSupplierName" class="form-label">اسم المورد اليدوي</label>
+                <input asp-for="OneTimeSupplierName" class="form-control" placeholder="مثال: مورد نقدي" disabled="@(isOneTimeSupplier ? null : "disabled")" />
+                <span asp-validation-for="OneTimeSupplierName" class="text-danger"></span>
+            </div>
+
+            <div class="invoice-field" data-purchase-one-time-supplier-field hidden="@(isOneTimeSupplier ? null : "hidden")">
+                <label asp-for="OneTimeSupplierPhone" class="form-label">هاتف اختياري</label>
+                <input asp-for="OneTimeSupplierPhone" class="form-control" placeholder="اختياري" disabled="@(isOneTimeSupplier ? null : "disabled")" />
+                <span asp-validation-for="OneTimeSupplierPhone" class="text-danger"></span>
+            </div>
+
+            <div class="invoice-field invoice-field-wide" data-purchase-client-field hidden="@(isClientReturn ? null : "hidden")">
+                <label asp-for="ClientId" class="form-label">العميل</label>
+                <select asp-for="ClientId" class="form-select" asp-items="@(new SelectList(ViewBag.Clients, "Id", "Name"))" disabled="@(isClientReturn ? null : "disabled")">
+                    <option value="">اختر العميل</option>
                 </select>
                 <span asp-validation-for="ClientId" class="text-danger"></span>
             </div>
 
-            <hr />
-            <h4 class="mb-3">البنود</h4>
+            <div class="invoice-field invoice-field-wide" data-purchase-client-return-supervisor hidden="@(isClientReturn ? null : "hidden")">
+                <label for="SupervisorPassword" class="form-label">اعتماد المشرف لمرتجع العميل</label>
+                <input id="SupervisorPassword"
+                       name="SupervisorPassword"
+                       type="password"
+                       class="form-control @(string.IsNullOrWhiteSpace(supervisorError) ? "" : "is-invalid")"
+                       autocomplete="current-password"
+                       inputmode="numeric"
+                       placeholder="كلمة مرور / PIN المشرف"
+                       disabled="@(isClientReturn ? null : "disabled")"
+                       required="@(isClientReturn ? "required" : null)" />
+                <div class="form-text">هذا النوع يعكس مخزوناً ورصيد عميل، لذلك يحتاج اعتماد المشرف قبل الحفظ.</div>
+                @if (!string.IsNullOrWhiteSpace(supervisorError))
+                {
+                    <div class="invalid-feedback d-block">@supervisorError</div>
+                }
+            </div>
+        </section>
 
-            <div class="table-responsive">
-                <table class="table table-bordered" id="itemsTable">
-                    <thead class="table-light text-center align-middle">
+        <section class="invoice-section invoice-grid-section" aria-label="بنود العملية">
+            <div class="invoice-section-heading no-print">
+                <div>
+                    <h2>بنود العملية</h2>
+                    <p>استخدم Enter للتنقل السريع بين الخانات، و Alt+N لإضافة بند جديد.</p>
+                </div>
+                <button type="button" class="btn btn-primary" data-invoice-add-row>إضافة بند</button>
+            </div>
+
+            <div class="invoice-grid-wrap">
+                <table class="invoice-entry-grid" id="itemsTable">
+                    <thead>
                         <tr>
-                            <th style="width: 40%;">المادة</th>
-                            <th style="width: 15%;">الكمية</th>
-                            <th style="width: 20%;">سعر الوحدة</th>
-                            <th style="width: 20%;">الإجمالي</th>
-                            <th style="width: 5%;"></th>
+                            <th class="invoice-row-index">#</th>
+                            <th>كود/باركود</th>
+                            <th>المادة</th>
+                            <th>المخزون الحالي</th>
+                            <th>الكمية</th>
+                            <th>سعر الوحدة</th>
+                            <th>إجمالي البند</th>
+                            <th class="no-print">حذف</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- صف افتراضي واحد يبدأ به النموذج -->
-                        <tr>
-                            <td>
-                                <select name="Items[0].MaterialId" class="form-select material-select">
-                                    <option value="">-- اختر مادة --</option>
-                                    @foreach (var material in ViewBag.Materials)
-                                    {
-                                        <option value="@material.Id">@material.Name</option>
-                                    }
-                                </select>
-                            </td>
-                            <td><input name="Items[0].Quantity" type="number" step="any" class="form-control item-calc" /></td>
-                            <td><input name="Items[0].UnitPrice" type="number" step="0.01" class="form-control item-calc" /></td>
-                            <td><input type="number" class="form-control total-item-price" readonly /></td>
-                            <td class="text-center"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
-                        </tr>
+                        @for (int i = 0; i < Model.Items.Count; i++)
+                        {
+                            <tr data-invoice-row>
+                                <td class="invoice-row-index" data-row-number>@(i + 1)</td>
+                                <td>
+                                    <input type="text" class="form-control invoice-cell" data-material-code placeholder="امسح أو اكتب الكود" autocomplete="off" />
+                                </td>
+                                <td>
+                                    <select name="Items[@i].MaterialId" class="form-select invoice-cell" data-material-select>
+                                        <option value="">اختر مادة</option>
+                                        @foreach (var material in ViewBag.Materials)
+                                        {
+                                            <option value="@material.Id"
+                                                    data-code="@material.Code"
+                                                    data-price="@System.Convert.ToString(material.PurchasePrice, System.Globalization.CultureInfo.InvariantCulture)"
+                                                    data-stock="@System.Convert.ToString(material.Quantity, System.Globalization.CultureInfo.InvariantCulture)"
+                                                    selected="@(Model.Items[i].MaterialId == material.Id ? "selected" : null)">
+                                                @material.Code - @material.Name
+                                            </option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="@Model.Items[i].MaterialId" class="text-danger"></span>
+                                </td>
+                                <td class="invoice-stock-cell" data-stock-display>0.00</td>
+                                <td>
+                                    <input name="Items[@i].Quantity"
+                                           value="@Model.Items[i].Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           type="number"
+                                           step="any"
+                                           min="0"
+                                           class="form-control invoice-cell invoice-number-input"
+                                           data-quantity />
+                                    <span asp-validation-for="@Model.Items[i].Quantity" class="text-danger"></span>
+                                </td>
+                                <td>
+                                    <input name="Items[@i].UnitPrice"
+                                           value="@Model.Items[i].UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           class="form-control invoice-cell invoice-number-input"
+                                           data-unit-price />
+                                    <span asp-validation-for="@Model.Items[i].UnitPrice" class="text-danger"></span>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control invoice-line-total" data-line-total value="0.00" readonly tabindex="-1" />
+                                </td>
+                                <td class="text-center no-print">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" data-invoice-remove-row>حذف</button>
+                                </td>
+                            </tr>
+                        }
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">الإجمالي الكلي:</td>
-                            <td id="grandTotal" class="fw-bold text-center">0.00</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
+        </section>
 
-            <button type="button" class="btn btn-primary btn-sm mb-3" id="addRow">
-                <i class="bi bi-plus-lg"></i> إضافة بند
-            </button>
+        <section class="invoice-section invoice-notes-section">
+            <label asp-for="Notes" class="form-label">ملاحظات</label>
+            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="ملاحظات تظهر مع العملية عند الحاجة"></textarea>
+        </section>
 
-            <hr />
-
-            <div class="row justify-content-end">
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">الإجمالي الكلي</label>
-                        <input id="grandTotalDisplay" class="form-control" value="0.00" readonly disabled style="background-color: #e9ecef; font-weight: bold; color: #000;" />
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="mb-3">
-                                <label asp-for="DiscountAmount" class="form-label fw-bold"></label>
-                                <input asp-for="DiscountAmount" id="discountAmount" class="form-control" type="number" step="0.01" value="0" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">الصافي بعد الخصم</label>
-                        <input id="netTotalDisplay" class="form-control" value="0.00" readonly disabled style="background-color: #e9ecef; font-weight: bold; color: #198754;" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="PaidAmount" class="form-label fw-bold"></label>
-                        <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" value="0" />
-                        <span asp-validation-for="PaidAmount" class="text-danger"></span>
-                    </div>
-                    <div class="mb-3">
-                        <label asp-for="Notes" class="form-label fw-bold"></label>
-                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
-                    </div>
-                </div>
+        <div class="invoice-totals-bar no-print" aria-label="ملخص العملية">
+            <div class="invoice-total-box">
+                <span>الإجمالي</span>
+                <strong data-grand-total>0.00</strong>
             </div>
 
-            <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> حفظ العملية</button>
-        </form>
-    </div>
+            <div class="invoice-total-input">
+                <label asp-for="DiscountAmount">الخصم</label>
+                <input asp-for="DiscountAmount" id="discountAmount" type="number" step="0.01" min="0" class="form-control invoice-number-input" value="@Model.DiscountAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-discount />
+                <span asp-validation-for="DiscountAmount" class="text-danger"></span>
+            </div>
+
+            <div class="invoice-total-box">
+                <span>الصافي</span>
+                <strong data-net-total>0.00</strong>
+            </div>
+
+            <div class="invoice-total-input">
+                <label asp-for="PaidAmount">المسدد / المسترجع</label>
+                <input asp-for="PaidAmount" id="paidAmount" type="number" step="0.01" min="0" class="form-control invoice-number-input" value="@Model.PaidAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-paid />
+                <span asp-validation-for="PaidAmount" class="text-danger"></span>
+            </div>
+
+            <div class="invoice-total-box invoice-total-due">
+                <span data-purchase-remaining-label>المتبقي على @activePartyLabel</span>
+                <strong data-remaining-total>0.00</strong>
+            </div>
+
+            <button type="submit" class="btn btn-success invoice-save-button">حفظ العملية</button>
+        </div>
+    </form>
 </div>
+
+<template id="invoiceRowTemplate">
+    <tr data-invoice-row>
+        <td class="invoice-row-index" data-row-number></td>
+        <td>
+            <input type="text" class="form-control invoice-cell" data-material-code placeholder="امسح أو اكتب الكود" autocomplete="off" />
+        </td>
+        <td>
+            <select name="Items[__index__].MaterialId" class="form-select invoice-cell" data-material-select>
+                <option value="">اختر مادة</option>
+                @foreach (var material in ViewBag.Materials)
+                {
+                    <option value="@material.Id"
+                            data-code="@material.Code"
+                            data-price="@System.Convert.ToString(material.PurchasePrice, System.Globalization.CultureInfo.InvariantCulture)"
+                            data-stock="@System.Convert.ToString(material.Quantity, System.Globalization.CultureInfo.InvariantCulture)">
+                        @material.Code - @material.Name
+                    </option>
+                }
+            </select>
+        </td>
+        <td class="invoice-stock-cell" data-stock-display>0.00</td>
+        <td>
+            <input name="Items[__index__].Quantity" type="number" step="any" min="0" class="form-control invoice-cell invoice-number-input" data-quantity />
+        </td>
+        <td>
+            <input name="Items[__index__].UnitPrice" type="number" step="0.01" min="0" class="form-control invoice-cell invoice-number-input" data-unit-price />
+        </td>
+        <td>
+            <input type="text" class="form-control invoice-line-total" data-line-total value="0.00" readonly tabindex="-1" />
+        </td>
+        <td class="text-center no-print">
+            <button type="button" class="btn btn-outline-danger btn-sm" data-invoice-remove-row>حذف</button>
+        </td>
+    </tr>
+</template>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const transactionType = document.getElementById("transactionType");
-            const supplierDiv = document.getElementById("supplierDiv");
-            const clientDiv = document.getElementById("clientDiv");
-            const tableBody = document.querySelector("#itemsTable tbody");
-
-            // ▼▼▼ References to discount fields ▼▼▼
-            const grandTotalDisplay = document.getElementById('grandTotalDisplay');
-            const netTotalDisplay = document.getElementById('netTotalDisplay');
-            // const discountPercentInput = document.getElementById('discountPercent'); // REMOVED
-            const discountAmountInput = document.getElementById('discountAmount');
-            let currentGrandTotal = 0;
-
-            // Toggle Supplier/Client
-            function toggleFields() {
-                // ... (This function remains the same) ...
-                 if (transactionType.value === "supplier") {
-                    supplierDiv.style.display = "block";
-                    clientDiv.style.display = "none";
-                    clientDiv.querySelector("select").value = "";
-                } else {
-                    supplierDiv.style.display = "none";
-                    clientDiv.style.display = "block";
-                    supplierDiv.querySelector("select").value = "";
-                }
-            }
-            transactionType.addEventListener("change", toggleFields);
-            toggleFields();
-
-            // Calculate total for one row
-            function updateRowCalculations(row) {
-                // ... (This function remains the same) ...
-                 const qtyInput = row.querySelector('[name$=".Quantity"]');
-                const priceInput = row.querySelector('[name$=".UnitPrice"]');
-                const totalInput = row.querySelector('.total-item-price');
-
-                const qty = parseFloat(qtyInput.value) || 0;
-                const price = parseFloat(priceInput.value) || 0;
-                const total = qty * price;
-                totalInput.value = total.toFixed(2);
-                updateGrandTotal(); // This will call calculateDiscount
-            }
-
-            // Calculate Grand Total and trigger discount calculation
-            function updateGrandTotal() {
-                let grandTotal = 0;
-                tableBody.querySelectorAll('.total-item-price').forEach(input => {
-                    grandTotal += parseFloat(input.value) || 0;
-                });
-                document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
-                grandTotalDisplay.value = grandTotal.toFixed(2);
-                currentGrandTotal = grandTotal;
-                calculateDiscount(); // Update discount based on new total
-            }
-
-            // ▼▼▼ SIMPLIFIED Discount Calculation ▼▼▼
-            function calculateDiscount() {
-                const total = currentGrandTotal;
-                let amount = parseFloat(discountAmountInput.value) || 0;
-
-                // Ensure discount doesn't exceed total
-                if (amount > total) {
-                    amount = total;
-                    discountAmountInput.value = amount.toFixed(2);
-                }
-                 if (amount < 0) {
-                    amount = 0;
-                    discountAmountInput.value = amount.toFixed(2);
-                }
-
-
-                const netTotal = total - amount;
-                netTotalDisplay.value = netTotal.toFixed(2);
-            }
-
-            // ▼▼▼ Listener only for the amount input ▼▼▼
-            discountAmountInput.addEventListener('input', calculateDiscount);
-
-            // Reindex table rows
-            function reindexTable() {
-                // ... (This function remains the same) ...
-                 const rows = tableBody.querySelectorAll('tr');
-                rows.forEach((row, index) => {
-                    const mat = row.querySelector('[name$=".MaterialId"]');
-                    const qty = row.querySelector('[name$=".Quantity"]');
-                    const price = row.querySelector('[name$=".UnitPrice"]');
-                    if (mat) mat.name = `Items[${index}].MaterialId`;
-                    if (qty) qty.name = `Items[${index}].Quantity`;
-                    if (price) price.name = `Items[${index}].UnitPrice`;
-                });
-            }
-
-            // Add new row
-            document.getElementById('addRow').addEventListener('click', function () {
-               // ... (This function remains the same, ensure it doesn't reference percentage) ...
-                const index = tableBody.rows.length;
-                const newRow = document.createElement('tr');
-                newRow.innerHTML = `
-                    <td>
-                        <select name="Items[${index}].MaterialId" class="form-select">
-                            <option value="">-- اختر مادة --</option>
-                            @foreach (var material in ViewBag.Materials)
-                            {
-                                    <option value="@material.Id">@material.Name</option>
-                            }
-                        </select>
-                    </td>
-                    <td><input name="Items[${index}].Quantity" type="number" step="any" class="form-control item-calc" /></td>
-                    <td><input name="Items[${index}].UnitPrice" type="number" step="0.01" class="form-control item-calc" /></td>
-                    <td><input type="number" class="form-control total-item-price" readonly /></td>
-                    <td class="text-center"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
-                `;
-                tableBody.appendChild(newRow);
-                reindexTable();
-            });
-
-            // Event listener for row calculations
-            tableBody.addEventListener('input', function (e) {
-                if (e.target.classList.contains('item-calc')) {
-                    const row = e.target.closest('tr');
-                    updateRowCalculations(row);
-                }
-            });
-
-            // Delete row
-            tableBody.addEventListener('click', function (e) {
-               // ... (This function remains the same) ...
-                 const rem = e.target.closest('.remove-row');
-                if (rem) {
-                    if (tableBody.rows.length > 1) {
-                        rem.closest('tr').remove();
-                        reindexTable();
-                        updateGrandTotal();
-                    } else {
-                        alert('يجب أن تحتوي العملية على بند واحد على الأقل.');
-                    }
-                }
-            });
-
-            // Initial calculation
-            if (tableBody.rows.length > 0) {
-                updateRowCalculations(tableBody.querySelector('tr'));
-            }
-
-            // Before form submit
-            document.getElementById('purchaseForm').addEventListener('submit', function () {
-                reindexTable();
-                // Ensure discount calculation is up-to-date before submit
-                calculateDiscount();
-            });
-        });
-    </script>
+    <script src="~/js/invoice-editor.js" asp-append-version="true"></script>
 }
